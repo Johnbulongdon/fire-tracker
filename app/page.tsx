@@ -1,11 +1,34 @@
-import CalculatorForm from '../components/CalculatorForm'
-import { Sparkles, Shield, TrendingUp } from 'lucide-react'
-import Link from 'next/link' // ← ADD THIS IMPORT
+import CalculatorForm from '@/components/CalculatorForm'
+import { Sparkles, Shield, TrendingUp, LogIn } from 'lucide-react'
+import Link from 'next/link'
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
-      {/* Hero Section - keep as is */}
+      <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🔥</span>
+            <span className="font-bold text-xl text-gray-900">FIRE Calculator</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="text-gray-700 hover:text-gray-900 font-medium"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/login"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-teal-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </nav>
+
       <div className="max-w-6xl mx-auto px-4 py-12 md:py-20">
         <div className="text-center">
           <div className="inline-flex items-center justify-center p-3 bg-gradient-to-r from-blue-100 to-teal-100 rounded-2xl mb-6">
@@ -21,14 +44,12 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Calculator Section - keep as is */}
       <div className="max-w-4xl mx-auto px-4 pb-16">
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
           <CalculatorForm />
         </div>
       </div>
 
-      {/* Features Section - keep as is */}
       <div className="max-w-6xl mx-auto px-4 pb-20">
         <div className="grid md:grid-cols-3 gap-8">
           <div className="text-center p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
@@ -63,13 +84,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Footer - ADD THE LINK HERE */}
       <footer className="border-t border-gray-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 py-8 text-center">
           <p className="text-gray-500 mb-4">
             🔥 Built for the FIRE community • Your journey to financial freedom starts here
           </p>
-          {/* ADD THIS LINK */}
           <Link 
             href="/dashboard" 
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-teal-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"

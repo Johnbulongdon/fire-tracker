@@ -4,16 +4,20 @@ interface ProgressCircleProps {
   percentage: number
   fireNumber: number
   currentStash: number
+  planName?: string
 }
 
-export default function ProgressCircle({ percentage, fireNumber, currentStash }: ProgressCircleProps) {
+export default function ProgressCircle({ percentage, fireNumber, currentStash, planName }: ProgressCircleProps) {
   const radius = 80
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (percentage / 100) * circumference
 
   return (
     <div className="flex flex-col items-center p-8 bg-gradient-to-br from-blue-50 to-teal-50 rounded-3xl shadow-xl border border-blue-100">
-      <h3 className="text-xl font-bold text-gray-800 mb-6">FIRE Progress</h3>
+      <h3 className="text-xl font-bold text-gray-800 mb-6 flex flex-col items-center">
+        <span>FIRE Progress</span>
+        {planName && <span className="text-sm font-medium text-blue-600 mt-1">{planName}</span>}
+      </h3>
       
       <div className="relative w-64 h-64">
         {/* Background circle */}

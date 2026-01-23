@@ -2,54 +2,69 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Check } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import toast from 'react-hot-toast'
 
 interface QuickAddButtonProps {
   currentStash: number
+  planId: string
+  onUpdate: () => void
 }
 
-export default function QuickAddButton({ currentStash }: QuickAddButtonProps) {
-  // 1. ALL HOOKS FIRST (same order every render)
+export default function QuickAddButton({ currentStash, planId, onUpdate }: QuickAddButtonProps) {
   const [isClient, setIsClient] = useState(false)
   const [amount, setAmount] = useState('500')
   const [isAdding, setIsAdding] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const supabase = createClient(
-    'https://boqzhdfdetixnwnohtho.supabase.co',
-    'sb_publishable_uXt2OykfORDHF6XHwNwsSQ_pvPd5HTP'
-  )
-
-  // 2. useEffect
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // 3. Client check AFTER all hooks
   if (!isClient) {
-    return <div className="p-4 text-center">Loading...</div>
+    return null
   }
 
-  // 4. Rest of your component logic
   const handleAdd = async () => {
+    if (!planId) return
+
     setIsAdding(true)
     try {
-      // In a real app, you'd update the specific plan
-      // For now, we'll just show a success message
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const addAmount = parseInt(amount) || 0
+      const newStash = currentStash + addAmount
+
+      const { error } = await supabase
+        .from('user_plans')
+        .update({ current_stash: newStash })
+        .eq('id', planId)
+
+      if (error) throw error
       
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase
+          .from('stash_history')
+          .insert([{
+            user_id: user.id,
+            plan_id: planId,
+            stash_amount: newStash,
+            logged_date: new Date().toISOString().split('T')[0]
+          }])
+      }
+
       setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      toast.success(`Successfully added $${addAmount.toLocaleString()} to your savings!`)
+      onUpdate()
       
-      console.log(`Added $${amount} to savings`)
+      setTimeout(() => setSuccess(false), 3000)
     } catch (error) {
       console.error('Error adding savings:', error)
+      toast.error('Failed to update savings')
     } finally {
       setIsAdding(false)
     }
   }
 
-  // 5. JSX
   return (
     <div className="bg-gradient-to-r from-green-50 to-emerald-100 p-6 rounded-2xl border border-green-200">
       <h3 className="font-bold text-gray-800 mb-4">Quick Add Savings</h3>
@@ -85,7 +100,7 @@ export default function QuickAddButton({ currentStash }: QuickAddButtonProps) {
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
             placeholder="Custom amount"
             min="1"
           />

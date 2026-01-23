@@ -2,46 +2,56 @@
 
 import { useState, useEffect } from 'react'
 import { Calculator, Target, Calendar, TrendingUp, Save, AlertCircle } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth-context'
+import toast from 'react-hot-toast'
 
-export default function CalculatorForm() {
-  // 1. ALL HOOKS FIRST (in same order)
+interface CalculatorFormProps {
+  initialData?: any
+  onSave?: () => void
+}
+
+export default function CalculatorForm({ initialData, onSave }: CalculatorFormProps) {
+  const { user } = useAuth()
   const [isClient, setIsClient] = useState(false)
   const [inputs, setInputs] = useState({
-    age: 30,
-    income: 5000,
-    invest: 1000,
-    spend: 3000,
-    stash: 50000
+    planName: initialData?.plan_name || 'My FIRE Plan',
+    age: initialData?.current_age || 30,
+    income: initialData?.monthly_income || 5000,
+    invest: initialData?.monthly_invest || 1000,
+    spend: initialData?.monthly_spend || 3000,
+    stash: initialData?.current_stash || 50000
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
-  
-  const supabase = createClient(
-    'https://boqzhdfdetixnwnohtho.supabase.co',
-    'sb_publishable_uXt2OykfORDHF6XHwNwsSQ_pvPd5HTP'
-  )
 
-  // 2. useEffect (runs once on mount)
   useEffect(() => {
     setIsClient(true)
     
-    console.log('🔧 CalculatorForm mounted')
-    console.log('Supabase client created:', !!supabase)
-    
+    if (initialData) {
+      setInputs({
+        planName: initialData.plan_name,
+        age: initialData.current_age,
+        income: initialData.monthly_income,
+        invest: initialData.monthly_invest,
+        spend: initialData.monthly_spend,
+        stash: initialData.current_stash
+      })
+    }
+  }, [initialData])
+
+  useEffect(() => {
+    if (!isClient) return
     supabase.from('user_plans').select('count', { head: true })
       .then(result => {
         if (result.error?.code === 'PGRST116') {
-          console.log('ℹ️ Supabase connected! Table "user_plans" not found')
+          console.log('ℹ️ Supabase connected!')
         } else if (result.error) {
           console.log('❌ Supabase error:', result.error.message)
-        } else {
-          console.log('✅ Supabase connected and table exists!')
         }
       })
-  }, [])
+  }, [isClient])
 
-  // 3. Client check AFTER all hooks
   if (!isClient) {
     return (
       <div className="p-8 text-center">
@@ -50,11 +60,10 @@ export default function CalculatorForm() {
     )
   }
 
-  // 4. Component logic
-  const handleChange = (field: keyof typeof inputs, value: string) => {
+  const handleChange = (field: string, value: string | number) => {
     setInputs(prev => ({
       ...prev,
-      [field]: parseInt(value) || 0
+      [field]: field === 'planName' ? value : (parseInt(value as string) || 0)
     }))
   }
 
@@ -64,14 +73,18 @@ export default function CalculatorForm() {
   const progressPercent = Math.min((inputs.stash / fireNumber) * 100, 100)
 
   const handleSave = async () => {
+    if (!user) {
+      toast.error('Please sign in to save your plan')
+      return
+    }
+
     setIsSaving(true)
     setSaveMessage('Saving your plan...')
     
     try {
-      console.log('📝 Saving plan to Supabase...')
-      
-      const planData = {
-        plan_name: 'My FIRE Plan',
+      const planData: any = {
+        user_id: user.id,
+        plan_name: inputs.planName,
         current_age: inputs.age,
         monthly_income: inputs.income,
         monthly_invest: inputs.invest,
@@ -81,51 +94,54 @@ export default function CalculatorForm() {
         expected_return: 7.0,
         withdrawal_rate: 4.0
       }
+
+      if (initialData?.id) {
+        planData.id = initialData.id
+      }
       
-      console.log('Plan data:', planData)
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_plans')
-        .insert([planData])
+        .upsert([planData])
         .select()
       
       if (error) {
-        console.error('❌ Save error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        })
-        
-        let errorMsg = 'Save failed'
-        if (error.message) errorMsg += `: ${error.message}`
-        if (error.hint) errorMsg += ` (${error.hint})`
-        
-        setSaveMessage(errorMsg)
+        throw error
       } else {
-        console.log('✅ Save successful!', data)
-        setSaveMessage(`✅ Plan saved! ID: ${data[0].id.slice(0, 8)}...`)
-        setTimeout(() => setSaveMessage(''), 5000)
+        toast.success(initialData?.id ? 'Plan updated!' : 'Plan saved!')
+        setSaveMessage(initialData?.id ? '✅ Plan updated!' : '✅ Plan saved!')
+        if (onSave) onSave()
+        setTimeout(() => setSaveMessage(''), 3000)
       }
     } catch (err: any) {
-      console.error('❌ Save exception:', err)
-      setSaveMessage(`Save error: ${err.message}`)
+      console.error('❌ Save error:', err)
+      toast.error(`Save failed: ${err.message}`)
+      setSaveMessage(`❌ Error: ${err.message}`)
     } finally {
       setIsSaving(false)
     }
   }
 
-  // 5. JSX
   return (
     <div className="p-6 md:p-8">
       <div className="text-center mb-8">
         <Calculator className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-800">FIRE Calculator</h2>
+        <h2 className="text-2xl font-bold text-gray-800">{initialData ? 'Edit FIRE Plan' : 'FIRE Calculator'}</h2>
         <p className="text-gray-600 mt-2">Adjust the sliders to see your financial future</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
         <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="font-medium text-gray-700">Plan Name</label>
+            <input
+              type="text"
+              value={inputs.planName}
+              onChange={(e) => handleChange('planName', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="e.g. Early Retirement Plan"
+            />
+          </div>
+
           {[
             { label: 'Current Age', field: 'age', icon: '👤', min: 20, max: 70, step: 1 },
             { label: 'Monthly Income ($)', field: 'income', icon: '💰', min: 1000, max: 50000, step: 100 },
@@ -140,7 +156,7 @@ export default function CalculatorForm() {
                   {label}
                 </label>
                 <span className="font-bold text-blue-600">
-                  ${inputs[field as keyof typeof inputs].toLocaleString()}
+                  ${(inputs as any)[field].toLocaleString()}
                 </span>
               </div>
               <input
@@ -148,8 +164,8 @@ export default function CalculatorForm() {
                 min={min}
                 max={max}
                 step={step}
-                value={inputs[field as keyof typeof inputs]}
-                onChange={(e) => handleChange(field as keyof typeof inputs, e.target.value)}
+                value={(inputs as any)[field]}
+                onChange={(e) => handleChange(field, e.target.value)}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
               <div className="flex justify-between text-sm text-gray-500">
@@ -226,7 +242,7 @@ export default function CalculatorForm() {
               ) : (
                 <>
                   <Save className="w-5 h-5" />
-                  💾 Save My FIRE Plan
+                  {initialData ? 'Update FIRE Plan' : 'Save My FIRE Plan'}
                 </>
               )}
             </button>
@@ -245,15 +261,6 @@ export default function CalculatorForm() {
                 <span className="text-sm">{saveMessage}</span>
               </div>
             )}
-            
-            <div className="text-xs text-gray-500 text-center">
-              Click "Save" to store your plan in the database. 
-              {saveMessage.includes('Table not found') && (
-                <div className="mt-1">
-                  Go to Supabase → Table Editor → Create "user_plans" table
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
