@@ -272,6 +272,68 @@ function MagicReveal({ city, income, monthlySavings }: { city: string; income: n
   );
 }
 
+function WaitlistSection() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const handleSubmit = async () => {
+    if (!email) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) setStatus("done");
+      else setStatus("error");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div style={{ background: "#08080e", borderTop: "1px solid #1c1c2e", padding: "80px 40px", textAlign: "center" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto" }}>
+        <div style={{ color: "#f97316", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>
+          🔥 Coming Soon
+        </div>
+        <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 36, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 12 }}>
+          Get the AI roadmap
+        </h2>
+        <p style={{ color: "#5e5e7a", fontSize: 16, lineHeight: 1.7, marginBottom: 32 }}>
+          Join the waitlist for the AI-powered FIRE roadmap — personalized monthly plan to retire faster. Launching at $9/mo.
+        </p>
+        {status === "done" ? (
+          <div style={{ background: "rgba(34,211,165,0.1)", border: "1px solid rgba(34,211,165,0.3)", borderRadius: 14, padding: "20px 24px", color: "#22d3a5", fontWeight: 700, fontSize: 16 }}>
+            🎉 You&apos;re on the list! We&apos;ll email you when we launch.
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 10, maxWidth: 440, margin: "0 auto" }}>
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              style={{ flex: 1, background: "#13131e", border: "1px solid #1c1c2e", borderRadius: 10, padding: "14px 16px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={status === "loading"}
+              style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 10, padding: "14px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap", opacity: status === "loading" ? 0.7 : 1 }}
+            >
+              {status === "loading" ? "Joining..." : "Join waitlist →"}
+            </button>
+          </div>
+        )}
+        {status === "error" && <div style={{ color: "#ef4444", fontSize: 13, marginTop: 12 }}>Something went wrong — try again.</div>}
+        <div style={{ color: "#5e5e7a", fontSize: 12, marginTop: 16 }}>No spam. Unsubscribe anytime.</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [screen, setScreen] = useState<"hero" | "step1" | "step2" | "step3" | "reveal">("hero");
   const [city, setCity] = useState("");
@@ -381,36 +443,39 @@ export default function Home() {
 
       {/* HERO */}
       {screen === "hero" && (
-        <div className="uf-hero">
-          <Particles />
-          <div className="uf-hero-content">
-            <div className="uf-badge">🔥 Free FIRE Calculator</div>
-            <h1 className="uf-headline">
-              What&apos;s your<br />
-              <span className="uf-headline-accent">magic number?</span>
-            </h1>
-            <p className="uf-hero-sub">Find out exactly how much you need to retire — personalized to your city, income, and savings. Takes 60 seconds.</p>
-            <button className="uf-btn-hero" onClick={() => setScreen("step1")}>Start my journey →</button>
-            <div className="uf-social-proof">
-              <div className="uf-avatars">
-                {["🧑‍💻", "👩‍🏫", "🧑‍⚕️", "👨‍🎨", "👩‍🔬"].map((e, i) => <div key={i} className="uf-avatar">{e}</div>)}
-              </div>
-              <span>12,400+ people found their number this month</span>
-            </div>
+  <>
+    <div className="uf-hero">
+      <Particles />
+      <div className="uf-hero-content">
+        <div className="uf-badge">🔥 Free FIRE Calculator</div>
+        <h1 className="uf-headline">
+          What&apos;s your<br />
+          <span className="uf-headline-accent">magic number?</span>
+        </h1>
+        <p className="uf-hero-sub">Find out exactly how much you need to retire — personalized to your city, income, and savings. Takes 60 seconds.</p>
+        <button className="uf-btn-hero" onClick={() => setScreen("step1")}>Start my journey →</button>
+        <div className="uf-social-proof">
+          <div className="uf-avatars">
+            {["🧑‍💻", "👩‍🏫", "🧑‍⚕️", "👨‍🎨", "👩‍🔬"].map((e, i) => <div key={i} className="uf-avatar">{e}</div>)}
           </div>
-          <div className="uf-float-card">
-            <div className="uf-float-label">FIRE Target</div>
-            <div className="uf-float-num">$1.84M</div>
-            <div className="uf-float-sub">Retire at age 47 · 15.2 years away</div>
-            <div className="uf-float-bar"><div className="uf-float-fill" /></div>
-            <div className="uf-float-row">
-              <span style={{ color: "#5e5e7a" }}>$0</span>
-              <span style={{ color: "#f97316", fontWeight: 700 }}>23% there</span>
-              <span style={{ color: "#5e5e7a" }}>$1.84M</span>
-            </div>
-          </div>
+          <span>12,400+ people found their number this month</span>
         </div>
-      )}
+      </div>
+      <div className="uf-float-card">
+        <div className="uf-float-label">FIRE Target</div>
+        <div className="uf-float-num">$1.84M</div>
+        <div className="uf-float-sub">Retire at age 47 · 15.2 years away</div>
+        <div className="uf-float-bar"><div className="uf-float-fill" /></div>
+        <div className="uf-float-row">
+          <span style={{ color: "#5e5e7a" }}>$0</span>
+          <span style={{ color: "#f97316", fontWeight: 700 }}>23% there</span>
+          <span style={{ color: "#5e5e7a" }}>$1.84M</span>
+        </div>
+      </div>
+    </div>
+    <WaitlistSection />
+  </>
+)}
 
       {/* ONBOARDING */}
       {(screen === "step1" || screen === "step2" || screen === "step3" || screen === "reveal") && (
