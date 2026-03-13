@@ -9,7 +9,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🔥</span>
-            <span className="font-bold text-xl text-gray-900">FIRE Calculator</span>
+            <span className="font-bold text-xl text-gray-900">UntilFire</span>
           </div>
           <div className="flex items-center gap-4">
             <Link
