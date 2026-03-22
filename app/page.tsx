@@ -629,17 +629,16 @@ export default function Home() {
   const router = useRouter();
   const [screen,  setScreen]  = useState<"hero"|"step1"|"step2"|"step3"|"reveal">("hero");
 
- useEffect(() => {
-    // Handle hash token on page load
+useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
       supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) router.push('/dashboard');
+        if (session) window.location.href = '/dashboard';
       });
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }
     });
     return () => subscription.unsubscribe();
