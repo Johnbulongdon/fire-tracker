@@ -629,7 +629,14 @@ export default function Home() {
   const router = useRouter();
   const [screen,  setScreen]  = useState<"hero"|"step1"|"step2"|"step3"|"reveal">("hero");
 
-  useEffect(() => {
+ useEffect(() => {
+    // Handle hash token on page load
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) router.push('/dashboard');
+      });
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         router.push('/dashboard');
@@ -637,6 +644,7 @@ export default function Home() {
     });
     return () => subscription.unsubscribe();
   }, [router]);
+  
   const [city,    setCity]    = useState("");
   const [income,  setIncome]  = useState(0);
   const [savings, setSavings] = useState(0);
