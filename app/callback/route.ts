@@ -15,9 +15,3 @@ export async function GET(request: Request) {
 
   return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
 }
-```
-
-Then in Supabase → **Authentication → URL Configuration → Redirect URLs**, add:
-```
-https://fire-tracker.vercel.app/auth/callback
-https://untilfire.com/auth/callback
