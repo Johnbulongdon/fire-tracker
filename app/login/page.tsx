@@ -21,8 +21,16 @@ export default function LoginPage() {
       }
     }
     checkUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/dashboard')
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [router])
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-teal-50">
       <div className="w-full max-w-md">
@@ -35,7 +43,6 @@ export default function LoginPage() {
               Sign in to track your journey to Financial Independence
             </p>
           </div>
-          
           <Auth
             supabaseClient={supabase}
             appearance={{ 
