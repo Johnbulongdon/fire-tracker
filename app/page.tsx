@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 /* ─────────────────────────── DATA */
 const CITY_DATA: Record<string, { col: number; emoji: string; tax: number }> = {
@@ -624,7 +626,17 @@ function WaitlistSection() {
 
 /* ─────────────────────────── HOME */
 export default function Home() {
+  const router = useRouter();
   const [screen,  setScreen]  = useState<"hero"|"step1"|"step2"|"step3"|"reveal">("hero");
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/dashboard');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
   const [city,    setCity]    = useState("");
   const [income,  setIncome]  = useState(0);
   const [savings, setSavings] = useState(0);
