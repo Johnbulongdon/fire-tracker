@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setRedirectUrl(`${window.location.origin}/dashboard`)
+      setRedirectUrl(`${window.location.origin}/auth/callback`)
     }
 
     const checkUser = async () => {
