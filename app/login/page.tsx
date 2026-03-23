@@ -7,9 +7,8 @@ import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [redirectUrl, setRedirectUrl] = useState(
-  typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : ''
-)
+  const [redirectUrl, setRedirectUrl] = useState('')
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
