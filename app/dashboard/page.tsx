@@ -4,6 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from '@/lib/supabase';
 import Link from "next/link";
 
+const tabs = [
+  { key: "dashboard", label: "📊 Dashboard" },
+  { key: "budget", label: "💰 Budget Tracker" },
+  { key: "fire", label: "🔥 FIRE Calculator" },
+] as const;
+
 const fmt = (n: number) =>
   n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(2)}M` : n >= 1_000 ? `$${(n / 1_000).toFixed(1)}k` : `$${Math.round(n).toLocaleString()}`;
 
@@ -377,10 +383,11 @@ export default function Dashboard() {
       <nav className="uf-dash-nav">
         <Link href="/" className="uf-logo">Until<span>Fire</span></Link>
         <div className="uf-tabs">
-          {tabs.map((t) => (
-            <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
-          ))}
-        </div>
+  {tabs.map((t) => (
+    <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
+  ))}
+  <Link href="/expenses" className="uf-tab">💳 Expenses</Link>
+</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12 }}>Saving...</span>}
           {saveStatus === "saved" && <span style={{ color: "#22d3a5", fontSize: 12 }}>✓ Saved</span>}
