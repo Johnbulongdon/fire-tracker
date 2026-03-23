@@ -272,6 +272,14 @@ export default function Dashboard() {
   const [income, setIncome] = useState(7000);
   const [expenses, setExpenses] = useState<Expenses>({ housing: 1800, food: 600, transport: 400, subscriptions: 150, healthcare: 200, entertainment: 200, other: 150 });
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        window.location.href = '/login'
+      }
+    })
+  }, [])
+
   const tabs = [
     { key: "dashboard", label: "📊 Dashboard" },
     { key: "budget", label: "💰 Budget Tracker" },
