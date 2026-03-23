@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [redirectUrl, setRedirectUrl] = useState('')
+  const [redirectUrl, setRedirectUrl] = useState('https://untilfirecom.vercel.app/auth/callback')
 
 
   useEffect(() => {
