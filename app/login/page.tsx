@@ -7,7 +7,9 @@ import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [redirectUrl, setRedirectUrl] = useState('')
+  const [redirectUrl, setRedirectUrl] = useState(
+  typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : ''
+)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -43,22 +45,24 @@ export default function LoginPage() {
               Sign in to track your journey to Financial Independence
             </p>
           </div>
-          <Auth
-            supabaseClient={supabase}
-            appearance={{ 
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: '#2563eb',
-                    brandAccent: '#1d4ed8',
-                  },
-                },
-              },
-            }}
-            providers={['github', 'google']}
-            redirectTo={redirectUrl}
-          />
+          {redirectUrl && (
+  <Auth
+    supabaseClient={supabase}
+    appearance={{ 
+      theme: ThemeSupa,
+      variables: {
+        default: {
+          colors: {
+            brand: '#2563eb',
+            brandAccent: '#1d4ed8',
+          },
+        },
+      },
+    }}
+    providers={['github', 'google']}
+    redirectTo={redirectUrl}
+  />
+)}
         </div>
       </div>
     </div>
