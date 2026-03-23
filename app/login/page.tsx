@@ -46,23 +46,22 @@ setRedirectUrl(url)
               Sign in to track your journey to Financial Independence
             </p>
           </div>
-          {redirectUrl && (
-  <Auth
-    supabaseClient={supabase}
-    appearance={{ 
-      theme: ThemeSupa,
-      variables: {
-        default: {
-          colors: {
-            brand: '#2563eb',
-            brandAccent: '#1d4ed8',
-          },
+         <Auth
+  supabaseClient={supabase}
+  appearance={{ 
+    theme: ThemeSupa,
+    variables: {
+      default: {
+        colors: {
+          brand: '#2563eb',
+          brandAccent: '#1d4ed8',
         },
       },
-    }}
-    providers={['github', 'google']}
-    redirectTo={redirectUrl}
-  />
+    },
+  }}
+  providers={['github', 'google']}
+  redirectTo={redirectUrl}
+/>
 )}
         </div>
       </div>
