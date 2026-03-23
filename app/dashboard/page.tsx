@@ -273,14 +273,11 @@ export default function Dashboard() {
   const [expenses, setExpenses] = useState<Expenses>({ housing: 1800, food: 600, transport: 400, subscriptions: 150, healthcare: 200, entertainment: 200, other: 150 });
 
 useEffect(() => {
-  const checkSession = async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    const { data: { session } } = await supabase.auth.getSession()
+  supabase.auth.getSession().then(({ data: { session } }) => {
     if (!session) {
       window.location.href = '/login'
     }
-  }
-  checkSession()
+  })
 }, [])
 
   const tabs = [
