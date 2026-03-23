@@ -4,6 +4,7 @@ import './globals.css'
 import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
+import { Analytics } from '@vercel/analytics/react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -33,6 +34,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="top-right" />
+          <Analytics />
         </AuthProvider>
       </body>
     </html>
