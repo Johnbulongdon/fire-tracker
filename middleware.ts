@@ -16,37 +16,35 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
+          response = NextResponse.next({ request: { headers: request.headers } })
           response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
+          response = NextResponse.next({ request: { headers: request.headers } })
           response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  await supabase.auth.getSession()
+
+  const { data: { user } } = await supabase.auth.getUser()
 
   const protectedRoutes = ['/dashboard', '/profile', '/settings']
   const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
-  if (isProtectedRoute && !session) {
+  if (isProtectedRoute && !user) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
     redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (request.nextUrl.pathname === '/login' && session) {
+  if (request.nextUrl.pathname === '/login' && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -54,5 +52,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/profile/:path*', '/settings/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/profile/:path*', '/settings/:path*', '/login'],
 }
