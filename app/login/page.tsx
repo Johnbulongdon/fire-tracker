@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [redirectUrl, setRedirectUrl] = useState('https://untilfire.com/auth/callback')
-
+  const [redirectUrl, setRedirectUrl] = useState(
+  typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : 'https://untilfire.com/auth/callback'
+)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
