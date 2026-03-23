@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from '@/lib/supabase';
 import Link from "next/link";
 
 const fmt = (n: number) =>
@@ -240,6 +241,32 @@ function DashTab({ income, expenses }: { income: number; expenses: Expenses }) {
   );
 }
 
+function UserNav() {
+  const [email, setEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setEmail(user?.email ?? null)
+    })
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
+
+  if (!email) {
+    return <Link href="/login" style={{ background: "#f97316", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <span style={{ color: "#5e5e7a", fontSize: 13 }}>{email}</span>
+      <button onClick={handleSignOut} style={{ background: "transparent", color: "#f97316", border: "1px solid #f97316", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Sign Out</button>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [tab, setTab] = useState<"dashboard" | "budget" | "fire">("budget");
   const [income, setIncome] = useState(7000);
@@ -284,7 +311,7 @@ export default function Dashboard() {
             <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
           ))}
         </div>
-        <Link href="/login" style={{ background: "#f97316", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>
+        <UserNav />
       </nav>
 
       <div className="uf-content">
