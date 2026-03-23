@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from '@/lib/supabase';
 import Link from "next/link";
 
@@ -269,16 +269,50 @@ function UserNav() {
 
 export default function Dashboard() {
   const [tab, setTab] = useState<"dashboard" | "budget" | "fire">("budget");
-  const [income, setIncome] = useState(7000);
-  const [expenses, setExpenses] = useState<Expenses>({ housing: 1800, food: 600, transport: 400, subscriptions: 150, healthcare: 200, entertainment: 200, other: 150 });
+  const [income, setIncome] = useState(0);
+  const [expenses, setExpenses] = useState<Expenses>({ housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0 });
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLoaded = useRef(false);
 
-useEffect(() => {
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (!session) {
-      window.location.href = '/login'
-    }
-  })
-}, [])
+  // Load data on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        window.location.href = '/login'
+        return
+      }
+      // Load saved budget
+      supabase
+        .from('user_budget')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setIncome(data.income || 0)
+            setExpenses(data.expenses || { housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0 })
+          }
+          isLoaded.current = true
+        })
+    })
+  }, [])
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!isLoaded.current) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    setSaveStatus("saving")
+    saveTimer.current = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await supabase
+        .from('user_budget')
+        .upsert({ user_id: session.user.id, income, expenses, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      setSaveStatus("saved")
+      setTimeout(() => setSaveStatus("idle"), 2000)
+    }, 1000)
+  }, [income, expenses])
 
   const tabs = [
     { key: "dashboard", label: "📊 Dashboard" },
@@ -319,7 +353,11 @@ useEffect(() => {
             <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
           ))}
         </div>
-        <UserNav />
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12 }}>Saving...</span>}
+          {saveStatus === "saved" && <span style={{ color: "#22d3a5", fontSize: 12 }}>✓ Saved</span>}
+          <UserNav />
+        </div>
       </nav>
 
       <div className="uf-content">
