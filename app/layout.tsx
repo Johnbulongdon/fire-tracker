@@ -9,8 +9,22 @@ import { Analytics } from '@vercel/analytics/react'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FIRE Calculator - Your Path to Financial Freedom',
-  description: 'Calculate when you can achieve Financial Independence and Retire Early (FIRE) with our free calculator.',
+  title: 'UntilFire — Find Your FIRE Number & Retire Early',
+  description: 'Calculate exactly when you can retire. Find your FIRE number, track expenses, and see how small changes compound into years of freedom. Free FIRE calculator.',
+  keywords: 'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator',
+  openGraph: {
+    title: 'UntilFire — Find Your FIRE Number',
+    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    url: 'https://untilfire.com',
+    siteName: 'UntilFire',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'UntilFire — Find Your FIRE Number',
+    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+  },
+  metadataBase: new URL('https://untilfire.com'),
 }
 
 export default function RootLayout({
