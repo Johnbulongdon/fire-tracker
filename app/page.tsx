@@ -630,6 +630,11 @@ export default function Home() {
   const [screen,  setScreen]  = useState<"hero"|"step1"|"step2"|"step3"|"reveal">("hero");
 
 useEffect(() => {
+    // If already logged in, go straight to dashboard
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = '/dashboard';
+    });
+
     if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) window.location.href = '/dashboard';
