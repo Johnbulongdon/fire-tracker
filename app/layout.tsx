@@ -60,6 +60,20 @@ export default function RootLayout({
           {/* Vercel Analytics */}
           <Analytics />
 
+          <Script
+  src="https://www.googletagmanager.com/gtag/js?id=G-L8EQM1LL1S"
+  strategy="afterInteractive"
+/>
+
+<Script id="ga4-init" strategy="afterInteractive">
+  {`
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-L8EQM1LL1S');
+  `}
+</Script>
+
           {/* Ahrefs Analytics */}
           <Script
             src="https://analytics.ahrefs.com/analytics.js"
