@@ -10,20 +10,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'UntilFire — Find Your FIRE Number & Retire Early',
-  description: 'Calculate exactly when you can retire. Find your FIRE number, track expenses, and see how small changes compound into years of freedom. Free FIRE calculator.',
-  keywords: 'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator',
-  openGraph: {
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
-    url: 'https://untilfire.com',
-    siteName: 'UntilFire',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
-  },
+  description: 'Calculate exactly when you can retire...',
   metadataBase: new URL('https://untilfire.com'),
 }
 
@@ -43,12 +30,6 @@ export default function RootLayout({
             })
           `}
         </Script>
-
-        <Script
-          src="https://analytics.ahrefs.com/analytics.js"
-          data-key="FiPq4kEv/tSkbCGk1licIA"
-          strategy="afterInteractive"
-        />
       </head>
 
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
@@ -56,6 +37,21 @@ export default function RootLayout({
           {children}
           <Toaster position="top-right" />
           <Analytics />
+
+          {/* Ahrefs (force load) */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  var s = document.createElement('script');
+                  s.src = 'https://analytics.ahrefs.com/analytics.js';
+                  s.setAttribute('data-key', 'FiPq4kEv/tSkbCGk1licIA');
+                  s.async = true;
+                  document.head.appendChild(s);
+                })();
+              `,
+            }}
+          />
         </AuthProvider>
       </body>
     </html>
