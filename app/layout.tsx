@@ -5,6 +5,7 @@ import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
+import { PostHogProvider } from '../lib/posthog'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -52,6 +53,7 @@ export default function RootLayout({
         className={`${inter.className} antialiased`}
         suppressHydrationWarning
       >
+        <PostHogProvider>
         <AuthProvider>
           {children}
 
@@ -81,6 +83,7 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         </AuthProvider>
+        </PostHogProvider>
       </body>
     </html>
   )
