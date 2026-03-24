@@ -41,11 +41,12 @@ Last updated: March 2026
 *Timeline: April–June 2026*
 
 ### Growth
-- [ ] Reddit launch post (r/financialindependence)
-- [ ] Product Hunt launch
-- [ ] Google Search Console setup + verify domain
+- [ ] Reddit launch post (r/financialindependence) — post drafted in `docs/LAUNCH_POSTS.md`, post Wednesday March 25 in weekly promo thread
+- [ ] Product Hunt launch — planned after initial traction, prep notes in `docs/LAUNCH_POSTS.md`
+- [x] Google Search Console setup + domain verified
 - [ ] First 5 city SEO landing pages (`/fire-number/austin-tx`, `/fire-number/london`, etc.)
-- [ ] X/Twitter content calendar (@GetUntilFire) — city comparisons, FIRE stats
+- [x] X account live (@GetUntilFire) — 4-week content calendar ready in `docs/X_CONTENT_CALENDAR.md`
+- [ ] Hacker News Show HN post — drafted in `docs/LAUNCH_POSTS.md`
 
 ### Product
 - [ ] Share my FIRE number — native share card + clipboard copy
