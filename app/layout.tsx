@@ -5,7 +5,6 @@ import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
-import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
 
