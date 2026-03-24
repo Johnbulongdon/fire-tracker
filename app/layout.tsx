@@ -10,7 +10,22 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'UntilFire — Find Your FIRE Number & Retire Early',
-  description: 'Calculate exactly when you can retire...',
+  description:
+    'Calculate exactly when you can retire. Find your FIRE number, track expenses, and see how small changes compound into years of freedom. Free FIRE calculator.',
+  keywords:
+    'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator',
+  openGraph: {
+    title: 'UntilFire — Find Your FIRE Number',
+    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    url: 'https://untilfire.com',
+    siteName: 'UntilFire',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'UntilFire — Find Your FIRE Number',
+    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+  },
   metadataBase: new URL('https://untilfire.com'),
 }
 
@@ -22,6 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Existing script (keep) */}
         <Script id="remove-extension-attributes" strategy="beforeInteractive">
           {`
             document.addEventListener('DOMContentLoaded', function() {
@@ -32,25 +48,23 @@ export default function RootLayout({
         </Script>
       </head>
 
-      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
+      <body
+        className={`${inter.className} antialiased`}
+        suppressHydrationWarning
+      >
         <AuthProvider>
           {children}
+
           <Toaster position="top-right" />
+
+          {/* Vercel Analytics */}
           <Analytics />
 
-          {/* Ahrefs (force load) */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function() {
-                  var s = document.createElement('script');
-                  s.src = 'https://analytics.ahrefs.com/analytics.js';
-                  s.setAttribute('data-key', 'FiPq4kEv/tSkbCGk1licIA');
-                  s.async = true;
-                  document.head.appendChild(s);
-                })();
-              `,
-            }}
+          {/* Ahrefs Analytics */}
+          <Script
+            src="https://analytics.ahrefs.com/analytics.js"
+            data-key="FiPq4kEv/tSkbCGk1licIA"
+            strategy="afterInteractive"
           />
         </AuthProvider>
       </body>
