@@ -305,18 +305,80 @@ function CityScreen({ onNext, onBack }: {
 // SCREEN 2 — INCOME
 // ─────────────────────────────────────────────────────────────────────────────
 
+type IncomeMode = 'annual' | 'monthly' | 'biweekly' | 'hourly' | 'takehome';
+
+const INCOME_MODES: { key: IncomeMode; label: string; unit: string; hint: string }[] = [
+  { key: 'annual',    label: 'Annual',    unit: '/year',       hint: 'Yearly gross salary' },
+  { key: 'monthly',   label: 'Monthly',   unit: '/month',      hint: 'Monthly gross (×12)' },
+  { key: 'biweekly',  label: 'Bi-weekly', unit: '/paycheck',   hint: '26 paychecks/yr' },
+  { key: 'hourly',    label: 'Hourly',    unit: '/hr',         hint: '2,080 hrs/yr' },
+  { key: 'takehome',  label: 'Take-home', unit: '/month',      hint: 'Skip tax calc — enter what lands in your bank' },
+];
+
+// Convert any mode's raw value to annual gross
+function toAnnualGross(value: number, mode: IncomeMode): number {
+  switch (mode) {
+    case 'annual':   return value;
+    case 'monthly':  return value * 12;
+    case 'biweekly': return value * 26;
+    case 'hourly':   return value * 2080;
+    case 'takehome': return 0; // handled separately
+    default:         return value;
+  }
+}
+
 function IncomeScreen({ stateKey, onNext, onBack }: {
   stateKey: string;
-  onNext: (income: number) => void;
+  onNext: (income: number, takeHomeOverride?: number) => void;
   onBack: () => void;
 }) {
-  const [income, setIncome] = useState(90000);
-  const tax = calcTakeHome(income, stateKey);
+  const [mode, setMode]         = useState<IncomeMode>('annual');
+  const [rawValue, setRawValue] = useState<string>('90000');
+  const [takeHomeRaw, setTakeHomeRaw] = useState<string>(''); // for take-home mode
 
-  function handleInput(raw: string) {
-    const v = parseInt(raw.replace(/\D/g, "")) || 0;
-    setIncome(Math.max(0, v));
-  }
+  const numVal = parseFloat(rawValue) || 0;
+
+  // Derived annual gross
+  const annualGross = mode === 'takehome' ? 0 : toAnnualGross(numVal, mode);
+
+  // Take-home mode: user enters monthly take-home directly
+  const monthlyTakeHome = mode === 'takehome'
+    ? (parseFloat(takeHomeRaw) || 0)
+    : 0;
+  const annualTakeHome = monthlyTakeHome * 12;
+
+  // Tax calc — use real calc for gross modes, back-calculate for take-home mode
+  const tax = mode !== 'takehome' ? calcTakeHome(annualGross, stateKey) : null;
+
+  // For take-home mode: back-calculate effective rate if gross also entered
+  const customEffectiveRate = (mode === 'takehome' && annualGross === 0)
+    ? null
+    : null; // could extend later to accept both gross + take-home
+
+  // What we display in the stat cards
+  const displayGross    = mode === 'takehome' ? null : annualGross;
+  const displayTakeHome = mode === 'takehome' ? annualTakeHome : (tax?.takeHome ?? 0);
+  const displayMonthly  = displayTakeHome / 12;
+  const displayHourly   = displayTakeHome / 2080;
+  const displayEffRate  = mode === 'takehome' ? null : (tax?.effectiveRate ?? 0);
+
+  // What we pass to FIRE calc (always annual take-home equivalent)
+  // For gross modes: use tax.takeHome as proxy for income used in savings rate calc
+  // For take-home mode: monthly * 12 is the take-home
+  const incomeForFIRE = mode === 'takehome' ? annualTakeHome : (tax?.takeHome ?? 0);
+
+  // Placeholder per mode
+  const placeholders: Record<IncomeMode, string> = {
+    annual:   '90000',
+    monthly:  '7500',
+    biweekly: '3462',
+    hourly:   '43',
+    takehome: '5000',
+  };
+
+  const canContinue = mode === 'takehome'
+    ? monthlyTakeHome > 0
+    : annualGross > 0;
 
   return (
     <div className="uf-screen">
@@ -324,82 +386,161 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
       <p className="uf-step-label">Step 2 of 3</p>
       <div className="uf-eyebrow">Income</div>
       <h2 className="uf-h2">What do you <span className="uf-accent">earn?</span></h2>
-      <p className="uf-body" style={{ marginBottom: 32 }}>
-        We calculate your real take-home after taxes — not your gross salary.
+      <p className="uf-body" style={{ marginBottom: 24 }}>
+        Enter however your pay is structured — we&apos;ll handle the conversion.
       </p>
 
-      <label className="uf-label">Annual gross income</label>
-      <div className="uf-big-input-wrap">
-        <span className="uf-input-prefix uf-big-prefix">$</span>
-        <input
-          type="number"
-          className="uf-input uf-input-mono uf-input-big"
-          style={{ paddingLeft: 28 }}
-          value={income || ""}
-          min={0}
-          onChange={e => handleInput(e.target.value)}
-          autoFocus
-        />
-        <span className="uf-unit">/year</span>
+      {/* Mode pills */}
+      <div className="uf-mode-pills">
+        {INCOME_MODES.map(m => (
+          <button
+            key={m.key}
+            className={`uf-mode-pill ${mode === m.key ? 'active' : ''}`}
+            onClick={() => { setMode(m.key); setRawValue(''); }}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
+      <p className="uf-hint" style={{ marginBottom: 16 }}>
+        {INCOME_MODES.find(m => m.key === mode)?.hint}
+      </p>
 
-      <div className="uf-slider-wrap">
-        <input
-          type="range" min={20000} max={500000} step={5000}
-          value={Math.min(income, 500000)}
-          className="uf-range"
-          onChange={e => setIncome(parseInt(e.target.value))}
-        />
-        <div className="uf-range-labels"><span>$20k</span><span>$250k</span><span>$500k+</span></div>
-      </div>
-
-      <div className="uf-stat-row">
-        <div className="uf-stat-box">
-          <div className="uf-stat-val">{fmtUSD(income)}</div>
-          <div className="uf-stat-lab">Gross annual</div>
-        </div>
-        <div className="uf-stat-box">
-          <div className="uf-stat-val" style={{ color: "var(--teal)" }}>{fmtUSD(tax.takeHome)}</div>
-          <div className="uf-stat-lab">After-tax take-home</div>
-        </div>
-        <div className="uf-stat-box">
-          <div className="uf-stat-val">{fmtUSD(tax.takeHome / 12)}</div>
-          <div className="uf-stat-lab">Monthly take-home</div>
-        </div>
-      </div>
-
-      <div className="uf-card" style={{ marginTop: 14 }}>
-        <div className="uf-card-head">Tax breakdown</div>
-        <div className="uf-tax-row">
-          <span className="uf-tax-label">Federal income tax</span>
-          <span className="uf-mono">{tax.fedTax > 0 ? `-${fmtUSD(tax.fedTax)}` : tax.isUSCity ? "$0" : "n/a"}</span>
-        </div>
-        <div className="uf-tax-row">
-          <span className="uf-tax-label">{tax.isUSCity ? "State / local tax" : "Est. income tax"} ({tax.stateInfo.label})</span>
-          <span className="uf-mono">{tax.stateTax > 0 ? `-${fmtUSD(tax.stateTax)}` : "$0"}</span>
-        </div>
-        {tax.isUSCity && (
-          <div className="uf-tax-row">
-            <span className="uf-tax-label">FICA (Social Security + Medicare)</span>
-            <span className="uf-mono">{tax.fica > 0 ? `-${fmtUSD(tax.fica)}` : "$0"}</span>
+      {/* Main input */}
+      {mode !== 'takehome' ? (
+        <>
+          <label className="uf-label">
+            {mode === 'annual'   && 'Annual gross income'}
+            {mode === 'monthly'  && 'Monthly gross income (before tax)'}
+            {mode === 'biweekly' && 'Bi-weekly gross paycheck'}
+            {mode === 'hourly'   && 'Hourly rate (gross)'}
+          </label>
+          <div className="uf-big-input-wrap">
+            <span className="uf-input-prefix uf-big-prefix">$</span>
+            <input
+              key={mode}
+              type="number"
+              className="uf-input uf-input-mono uf-input-big"
+              style={{ paddingLeft: 28 }}
+              value={rawValue}
+              placeholder={placeholders[mode]}
+              min={0}
+              onChange={e => setRawValue(e.target.value)}
+              autoFocus
+            />
+            <span className="uf-unit">{INCOME_MODES.find(m => m.key === mode)?.unit}</span>
           </div>
-        )}
-        <div className="uf-tax-divider" />
-        <div className="uf-tax-row" style={{ fontWeight: 500 }}>
-          <span>Effective total tax rate</span>
-          <span className="uf-mono uf-accent">{tax.effectiveRate.toFixed(1)}%</span>
-        </div>
-      </div>
+          {/* Slider only for annual mode */}
+          {mode === 'annual' && (
+            <div className="uf-slider-wrap">
+              <input
+                type="range" min={20000} max={500000} step={5000}
+                value={Math.min(annualGross || 0, 500000)}
+                className="uf-range"
+                onChange={e => setRawValue(e.target.value)}
+              />
+              <div className="uf-range-labels"><span>$20k</span><span>$250k</span><span>$500k+</span></div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Take-home mode */
+        <>
+          <label className="uf-label">Monthly take-home (what actually lands in your bank)</label>
+          <div className="uf-big-input-wrap">
+            <span className="uf-input-prefix uf-big-prefix">$</span>
+            <input
+              type="number"
+              className="uf-input uf-input-mono uf-input-big"
+              style={{ paddingLeft: 28 }}
+              value={takeHomeRaw}
+              placeholder="5000"
+              min={0}
+              onChange={e => setTakeHomeRaw(e.target.value)}
+              autoFocus
+            />
+            <span className="uf-unit">/month</span>
+          </div>
+          <p className="uf-hint" style={{ marginBottom: 8 }}>
+            We&apos;ll skip the tax calculator and use this directly for your FIRE projection.
+          </p>
+        </>
+      )}
 
-      <div className="uf-card uf-card-accent" style={{ marginTop: 12 }}>
-        <div className="uf-card-sub">Your <strong>real hourly rate</strong> after all taxes</div>
-        <div className="uf-hourly">{(tax.takeHome / 2080).toFixed(2)}/hr</div>
-        <div className="uf-card-hint">Based on 2,080 working hours/yr</div>
-      </div>
+      {/* Stat cards */}
+      {canContinue && (
+        <div className="uf-stat-row" style={{ marginTop: 20 }}>
+          {mode !== 'takehome' && displayGross !== null && (
+            <div className="uf-stat-box">
+              <div className="uf-stat-val">{fmtUSD(displayGross)}</div>
+              <div className="uf-stat-lab">Gross annual</div>
+            </div>
+          )}
+          <div className="uf-stat-box">
+            <div className="uf-stat-val" style={{ color: 'var(--teal)' }}>{fmtUSD(displayTakeHome)}</div>
+            <div className="uf-stat-lab">Annual take-home</div>
+          </div>
+          <div className="uf-stat-box">
+            <div className="uf-stat-val">{fmtUSD(displayMonthly)}</div>
+            <div className="uf-stat-lab">Monthly take-home</div>
+          </div>
+        </div>
+      )}
+
+      {/* Tax breakdown — only for gross modes */}
+      {mode !== 'takehome' && tax && canContinue && (
+        <>
+          <div className="uf-card" style={{ marginTop: 14 }}>
+            <div className="uf-card-head">Tax breakdown</div>
+            <div className="uf-tax-row">
+              <span className="uf-tax-label">Federal income tax</span>
+              <span className="uf-mono">{tax.fedTax > 0 ? `-${fmtUSD(tax.fedTax)}` : tax.isUSCity ? '$0' : 'n/a'}</span>
+            </div>
+            <div className="uf-tax-row">
+              <span className="uf-tax-label">{tax.isUSCity ? 'State / local tax' : 'Est. income tax'} ({tax.stateInfo.label})</span>
+              <span className="uf-mono">{tax.stateTax > 0 ? `-${fmtUSD(tax.stateTax)}` : '$0'}</span>
+            </div>
+            {tax.isUSCity && (
+              <div className="uf-tax-row">
+                <span className="uf-tax-label">FICA (Social Security + Medicare)</span>
+                <span className="uf-mono">{tax.fica > 0 ? `-${fmtUSD(tax.fica)}` : '$0'}</span>
+              </div>
+            )}
+            <div className="uf-tax-divider" />
+            <div className="uf-tax-row" style={{ fontWeight: 500 }}>
+              <span>Effective total tax rate</span>
+              <span className="uf-mono uf-accent">{displayEffRate?.toFixed(1)}%</span>
+            </div>
+          </div>
+          <div className="uf-card uf-card-accent" style={{ marginTop: 12 }}>
+            <div className="uf-card-sub">Your <strong>real hourly rate</strong> after all taxes</div>
+            <div className="uf-hourly">{displayHourly.toFixed(2)}/hr</div>
+            <div className="uf-card-hint">Based on 2,080 working hours/yr</div>
+          </div>
+        </>
+      )}
+
+      {/* Take-home mode note */}
+      {mode === 'takehome' && canContinue && (
+        <div className="uf-card" style={{ marginTop: 14, background: 'var(--teal-dim)', borderColor: 'rgba(34,211,165,0.2)' }}>
+          <div className="uf-tax-row" style={{ fontWeight: 500 }}>
+            <span>Annual take-home (estimated)</span>
+            <span className="uf-mono" style={{ color: 'var(--teal)' }}>{fmtUSD(annualTakeHome)}</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6 }}>
+            Tax breakdown skipped — using your real take-home directly. Most accurate option if our tax estimate felt off.
+          </div>
+        </div>
+      )}
 
       <div className="uf-nav-row">
         <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(income)}>
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ flex: 1 }}
+          disabled={!canContinue}
+          onClick={() => onNext(incomeForFIRE)}
+        >
           Continue →
         </button>
       </div>
@@ -411,14 +552,15 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
 // SCREEN 3 — SAVINGS
 // ─────────────────────────────────────────────────────────────────────────────
 
+// income is now always annual take-home (already post-tax) from IncomeScreen
 function SavingsScreen({ income, stateKey, onNext, onBack }: {
   income: number; stateKey: string;
   onNext: (savings: number) => void;
   onBack: () => void;
 }) {
   const [savings, setSavings] = useState(1500);
-  const { takeHome } = calcTakeHome(income, stateKey);
-  const monthly = takeHome / 12;
+  // income is already take-home annual — divide by 12 for monthly
+  const monthly = income / 12;
   const rate = monthly > 0 ? Math.round((savings / monthly) * 100) : 0;
 
   const rateColor = rate < 15 ? "var(--danger)" : rate < 30 ? "var(--accent)" : "var(--teal)";
@@ -841,6 +983,12 @@ export default function Home() {
         .uf-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 15px; pointer-events: none; }
         .uf-big-prefix { font-size: 18px; font-weight: 500; }
         .uf-unit { font-size: 14px; color: var(--text-muted); white-space: nowrap; }
+
+        /* ── MODE PILLS ── */
+        .uf-mode-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .uf-mode-pill { padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-light); background: transparent; color: var(--text-muted); font-family: var(--font-body); transition: all 0.15s; }
+        .uf-mode-pill:hover { border-color: var(--accent); color: var(--text); }
+        .uf-mode-pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
         /* ── RANGE SLIDER ── */
         .uf-slider-wrap { margin: 8px 0; }
