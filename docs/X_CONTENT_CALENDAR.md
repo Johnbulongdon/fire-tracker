@@ -14,7 +14,7 @@ Last updated: March 2026
 - 20% Savings rate / income content
 - 15% Behind-the-build / founder story
 
-**Voice**: Direct, data-driven, slightly contrarian. Not a finance bro. Not a hype account. The person who actually ran the numbers.
+**Voice**: Direct, data-driven, slightly contrarian. Not a finance bro. Not a hype account. The person who actually ran the numbers and is building the tool they wish existed — something that tells you what to *do*, not just what your number is.
 
 **Posting schedule**: 1 post/day, 5 days/week (skip weekends early on — lower FIRE audience engagement)
 
@@ -48,9 +48,10 @@ $90k/yr gross income, 20% savings rate:
 🇹🇭 Bangkok → FIRE in 11 years
 🇮🇳 Bangalore → FIRE in 8 years
 
-The city you retire in matters more than almost anything else.
+Most calculators give you a number.
+None of them tell you what to do with it.
 
-Calculate yours → untilfire.com
+Building the one that does → untilfire.com
 ```
 
 ---
@@ -315,16 +316,18 @@ Calculate yours → untilfire.com
 ```
 Why I built UntilFire:
 
-I tried to calculate my FIRE number.
+I looked at every FIRE tool out there.
 
-Every tool I found either:
-- Used national average expenses (wrong for my city)
-- Ignored taxes completely (wildly wrong)  
-- Required sign-up before showing me anything
+On one end: calculators so simple you can't trust them.
+On the other: tools so complex they still don't tell you what to actually do.
 
-So I spent a few weeks building one that doesn't do any of those things.
+Nobody has built the thing in the middle —
+a FIRE adviser that understands your actual situation
+and tells you what to move first.
 
-Free. No email. Just the number.
+That's what I'm building.
+
+It starts with a calculator. The adviser layer is coming.
 
 untilfire.com
 ```

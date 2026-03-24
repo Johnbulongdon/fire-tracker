@@ -128,17 +128,30 @@ Free tools as top-of-funnel for paid AUM advisory ($100K minimum). Powerful but 
 
 ## UntilFire's Competitive Position
 
-### The Whitespace: "Credible Simplicity"
-No competitor is simultaneously:
-1. **Simple** — delivers a meaningful result in under 60 seconds
-2. **Global** — accounts for real city-level cost of living worldwide
-3. **Credible** — shows real tax math, not generic multipliers
-4. **Free to start** — no credit card, no email required
+### The Whitespace: "The Adviser Gap"
 
-ProjectionLab is credible but not simple. FIRECalc is simple but not credible (no taxes, no COL). Monarch Money is neither simple nor FIRE-focused.
+Every tool in the market does one of two things:
+- **Gives you a number** and leaves you alone (FIRECalc, cFIREsim, generic calculators)
+- **Gives you a model** that requires hours to set up and still doesn't tell you what to do tomorrow (ProjectionLab, Boldin)
+
+Neither tells you: *"Based on your actual situation, here's the one thing to do this month."*
+
+That's the gap UntilFire is building into. The market has calculators and modellers. Nobody has built an adviser — something that understands your situation, tracks it over time, and gives you clear, personalised next steps.
 
 ### UntilFire's Positioning Statement
-> For anyone who's heard of FIRE but doesn't know where to start, UntilFire is the only calculator that gives you your real, personalised FIRE number — accounting for where you live, what you earn, and what you pay in taxes — in 60 seconds, completely free.
+> For anyone on the path to FIRE — whether you're just starting or already tracking — UntilFire is the personal FIRE adviser that meets you where you are: start with your number in 60 seconds, then get guidance that actually tells you what to do next.
+
+**The category UntilFire is creating:** Personal FIRE adviser — not a calculator, not a budgeting app, not a wealth manager. An app that grows with you and gives real answers, not just projections.
+
+### Why this positioning is defensible
+
+- **FIRECalc / cFIREsim**: Give a probability, not a plan. No personalisation. No next steps.
+- **ProjectionLab**: A powerful model that requires you to do all the thinking yourself. It tells you *if* you're on track. It doesn't tell you *what to do*.
+- **Monarch Money**: Budgeting-first. FIRE features still in beta. No FIRE-specific adviser logic.
+- **Boldin**: Comprehensive but built for 50+ pre-retirees. Overwhelming for accumulation-phase users.
+- **Human financial advisers**: $2,800–$5,000+ per engagement. Not accessible for the FIRE community.
+
+UntilFire's bet is that the 25–40 age group pursuing FIRE doesn't need a wealth manager — they need a knowledgeable friend who knows their numbers and checks in monthly.
 
 ### Differentiation by Dimension
 
@@ -148,6 +161,7 @@ ProjectionLab is credible but not simple. FIRECalc is simple but not credible (n
 | Login required | **No** | No (no save) | No | Yes ($) |
 | City-level COL | **263 cities** | No | No | No |
 | Real tax calculation | **Yes** | Yes | No | Yes |
+| Tells you what to do next | **Yes (Pro)** | No | No | No |
 | FIRE-specific | **Yes** | Yes | Yes | Partial |
 | Budgeting/tracking | Yes (dashboard) | No | No | Yes |
 | Price (paid) | **$9/mo** | $9/mo | Free | $14.99/mo |

@@ -20,21 +20,22 @@ Last updated: March 2026
 
 ---
 
-Hey everyone — I built a FIRE calculator called **UntilFire** and would love some feedback from this community specifically.
+Hey everyone — I've been building **UntilFire** and wanted to share it here for feedback from the people who'd actually use it.
 
-The frustration that prompted it: every calculator I found either ignored taxes entirely, used national cost-of-living averages (meaningless if you're in SF vs. Austin vs. Bangkok), or required sign-up before showing you anything. So I built one that doesn't do any of those things.
+The problem I kept running into: FIRE tools are either so simple they're not worth trusting, or so complex they don't tell you what to actually *do*. FIRECalc gives you a percentage. ProjectionLab gives you a model. Neither one tells you: "based on your situation, here's the thing to move first this month."
 
-**What it does:**
-- Asks three questions: where do you want to retire, what do you earn, and how much do you save per month
-- Applies real 2025 US tax brackets (federal + FICA + state) — or flat effective rates for international cities
-- Uses actual city-level cost-of-living data for 263 cities worldwide (US, China, India, SE Asia, Europe, Middle East, LatAm)
-- If your city isn't in the list, you can just enter your monthly expenses directly
-- Shows your FIRE number, estimated retirement year, and how small changes (save $500/mo more, cut dining 20%) compress your timeline
-- Completely free, no login required, no email asked
+I'm building toward something that does that — a personal FIRE adviser that understands your actual numbers and gives you real next steps, not just projections. Right now it starts as a calculator, and I'm adding the adviser layer as more users come on.
 
-The 263-city coverage came from thinking about this community specifically — a lot of FIRE-seekers are either expats, geo-arbitrageurs, or evaluating where to retire internationally. Most tools just have "Other" for non-US cities which is useless.
+**What's live today:**
+- Three questions (city, income, monthly savings) → your FIRE number + retirement year in about 60 seconds
+- 2025 US tax math built in (federal brackets, FICA, all 50 state rates) — or flat effective rates for international cities
+- 263 cities worldwide with real cost-of-living data — not a national average. If your city isn't there, you enter your monthly expenses directly
+- Shows how specific changes (save $500 more, cut dining 20%) shift your retirement date
+- Completely free, no login, no email
 
-Would genuinely appreciate feedback — especially if the cost-of-living estimates for your city feel off, or if something in the calculator feels wrong.
+Building toward: expense tracking that updates your FIRE date in real time, and a monthly adviser that tells you the one thing to do to retire faster based on your actual spending.
+
+Would love honest feedback — especially if the COL estimate for your city is wrong, or if the tax math looks off for your situation.
 
 https://untilfire.com
 
@@ -63,33 +64,37 @@ https://untilfire.com
 
 ### Title:
 ```
-Show HN: UntilFire – FIRE retirement calculator with real city COL data and tax math
+Show HN: UntilFire – personal FIRE adviser, starting with a 60-second calculator
 ```
 
 ### Post body (paste in the "text" field — optional but recommended):
 
 ---
 
-I built UntilFire because I got frustrated with FIRE calculators that use national average cost-of-living data and ignore taxes. Both of those assumptions create wildly different numbers depending on who you are.
+I built UntilFire because I think the FIRE tool market has a clear gap: everything either gives you a simple number you can't fully trust, or a complex model that still doesn't tell you what to actually *do*.
 
-**What it does differently:**
+The end goal is a personal FIRE adviser — an app that understands your actual financial situation and gives you specific, actionable monthly guidance. Today it's a calculator. The adviser layer is what I'm building toward.
 
-1. **263 cities with real COL data** — not a national average multiplier. SF ($110k/yr), Austin ($55k/yr), Bangkok ($22k/yr), and 260 others each have their own estimated annual expense figure based on actual cost-of-living research.
+**What's live today and what makes it different:**
 
-2. **Actual tax math** — for US cities: 2025 federal brackets with standard deduction, FICA (SS + Medicare + Additional Medicare surtax), and all 50 state rates. For international: flat effective rates by country. The tax breakdown is shown line by line so you can verify it.
+1. **263 cities with real COL data** — SF ($110k/yr), Austin ($55k/yr), Bangkok ($22k/yr), Bangalore ($11k/yr). Not a multiplier against a national average. If your city isn't listed, you enter your monthly expenses directly.
 
-3. **Custom city fallback** — if your city isn't in the list, you enter your monthly expenses in USD and it uses that directly. Useful for digital nomads or anyone in a tier-2 city.
+2. **Actual tax calculation** — US cities: 2025 federal brackets with standard deduction, FICA (SS + Medicare + additional surtax), all 50 state rates, shown line by line. International: flat effective rates by country. You can verify the math yourself.
 
-4. **No login, no email** — you get the full result (FIRE number, retirement year, delta cards) before any signup is asked.
+3. **No login, no email required** — full result (FIRE number, retirement year, delta cards showing how specific changes affect your date) before any signup is asked.
 
-**The calculation:**
-- FIRE target = annual expenses × 25 (4% withdrawal rate / Trinity Study)
-- Years to FIRE: compound growth at 7% real return from current ~$27k starting balance
-- Retirement year and age derived from that
+4. **Delta cards** — rather than just a number, it shows concretely: "cutting dining by 20% moves your date by X years", "saving $500/mo more saves you Y years". This is the start of the "what to do next" layer.
 
-**Stack**: Next.js 15, Supabase, Tailwind, deployed on Vercel.
+**What I'm building toward:**
+- Expense tracking that updates your FIRE date as you log real spending
+- Monthly adviser: "based on last month, here's the one thing to change"
+- Scenario planning tied to real data, not manual inputs
 
-Happy to discuss the COL data methodology, tax calculation accuracy, or anything else. The biggest known limitation right now is that the starting savings balance is hardcoded at $27,400 — adding an "existing savings" input is on the roadmap.
+**Stack**: Next.js 15, Supabase, Tailwind CSS v4, Vercel.
+
+**Known limitations**: Starting savings balance is hardcoded at $27,400 (adding an existing savings input is next). Monte Carlo and Social Security optimisation are out of scope for now.
+
+Happy to discuss the COL data methodology, the tax calculation approach, or the product direction.
 
 https://untilfire.com
 

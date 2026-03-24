@@ -6,7 +6,13 @@
 
 ## What is UntilFire?
 
-UntilFire is a **FIRE (Financial Independence, Retire Early) calculator and tracker** that tells users exactly when they can retire — adjusted for their specific city, income, and savings rate. It is free to use with no login required for the core calculator. A paid tier ($9/mo) unlocks AI-powered financial planning, budget tracking, and a personalized FIRE roadmap.
+UntilFire is a **personal FIRE adviser** — an app that meets you where you are, understands your actual financial situation, and tells you what to do next to retire earlier. Not just a number. Not a spreadsheet. A product that grows with you from "I just heard about FIRE" to "I know exactly what to do this month."
+
+The market is split between tools that are too simple to trust (FIRECalc, generic calculators) and tools that are too complex to give you clear next steps (ProjectionLab, Boldin). UntilFire sits in the gap: credible enough to take seriously, clear enough to act on.
+
+It is free to use with no login required for the core calculator. A paid tier ($9/mo) unlocks a personalised FIRE adviser — regular guidance based on your actual spending and progress, not generic tips.
+
+**One-line pitch:** The FIRE adviser that tells you what to do next, not just what your number is.
 
 **Live at:** https://untilfire.com  
 **X/Twitter:** @GetUntilFire  
@@ -94,8 +100,8 @@ UntilFire is a **FIRE (Financial Independence, Retire Early) calculator and trac
 
 | Tier | Price | Access |
 |---|---|---|
-| Free | $0 | Full FIRE calculator, no login required |
-| Pro | $9/mo | AI roadmap, budget tracker, real-time FIRE date updates |
+| Free | $0 | Full FIRE calculator, no login required — city, income, savings → FIRE number + retirement date |
+| Pro | $9/mo | Personal FIRE adviser: monthly action plan, budget tracker, real-time FIRE date, personalised next steps |
 
 ---
 
