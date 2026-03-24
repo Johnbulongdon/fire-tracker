@@ -1,581 +1,679 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import {
+  CITIES, City, calcTakeHome, calcFIRE, STATE_TAX,
+} from "@/lib/fire-data";
 
-/* ─────────────────────────── DATA */
-const CITY_DATA: Record<string, { col: number; emoji: string; tax: number }> = {
-  "New York":       { col: 1.35, emoji: "🗽",  tax: 0.30 },
-  "San Francisco":  { col: 1.45, emoji: "🌉",  tax: 0.32 },
-  "Los Angeles":    { col: 1.20, emoji: "🎬",  tax: 0.28 },
-  "Chicago":        { col: 1.00, emoji: "🏙️",  tax: 0.25 },
-  "Austin":         { col: 0.90, emoji: "🤠",  tax: 0.20 },
-  "Miami":          { col: 1.05, emoji: "🌴",  tax: 0.21 },
-  "Seattle":        { col: 1.15, emoji: "☕",  tax: 0.24 },
-  "Denver":         { col: 0.95, emoji: "🏔️",  tax: 0.22 },
-  "Nashville":      { col: 0.85, emoji: "🎸",  tax: 0.19 },
-  "Phoenix":        { col: 0.82, emoji: "☀️",  tax: 0.20 },
-  "Boston":         { col: 1.25, emoji: "🦞",  tax: 0.27 },
-  "Portland":       { col: 1.05, emoji: "🌲",  tax: 0.24 },
-  "Remote / Other": { col: 0.85, emoji: "🌍",  tax: 0.22 },
-};
-const CITIES = Object.keys(CITY_DATA);
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 
-/* ─────────────────────────── UTILS */
-const fmt = (n: number) =>
-  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(2)}M`
-  : n >= 1_000   ? `$${(n / 1_000).toFixed(0)}k`
-  :                `$${Math.round(n).toLocaleString()}`;
-
-/* ─────────────────────────── CALC */
-interface FIREResult {
-  yearsToFire:     number | null;
-  fireTarget:      number;
-  monthlyExpenses: number;
-  annualExpenses:  number;
-  savingsRate:     number;
-  afterTax:        number;
+function fmtUSD(n: number) {
+  return "$" + Math.round(n).toLocaleString();
 }
 
-function calcFIRE(
-  annualIncome: number,
-  monthlySavings: number,
-  col: number,
-  tax: number,
-): FIREResult {
-  const afterTax        = annualIncome * (1 - tax);
-  const annualExpenses  = Math.max(afterTax - monthlySavings * 12, 0);
-  const monthlyExpenses = annualExpenses / 12;
-  const fireTarget      = Math.round(annualExpenses * 25 * col);
-  const savingsRate     = afterTax > 0 ? (monthlySavings * 12) / afterTax : 0;
+// ─────────────────────────────────────────────────────────────────────────────
+// NAV
+// ─────────────────────────────────────────────────────────────────────────────
 
-  if (monthlySavings <= 0 || fireTarget <= 0)
-    return { yearsToFire: null, fireTarget, monthlyExpenses, annualExpenses, savingsRate, afterTax };
+function Nav({ step, totalSteps, onRestart }: {
+  step: number; totalSteps: number; onRestart: () => void;
+}) {
+  return (
+    <nav className="uf-nav">
+      <div className="uf-nav-logo">Until<span>Fire</span></div>
+      <div className="uf-nav-dots">
+        {Array.from({ length: totalSteps }).map((_, i) => (
+          <div key={i} className={`uf-nav-dot ${i === step ? "active" : i < step ? "done" : ""}`} />
+        ))}
+      </div>
+      {step > 0 && (
+        <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
+      )}
+      {step === 0 && <div style={{ width: 90 }} />}
+    </nav>
+  );
+}
 
-  const r = 0.08 / 12;
-  let months = 0, balance = 0;
-  while (balance < fireTarget && months < 960) {
-    balance = balance * (1 + r) + monthlySavings;
-    months++;
+// ─────────────────────────────────────────────────────────────────────────────
+// WIZARD PROGRESS BAR
+// ─────────────────────────────────────────────────────────────────────────────
+
+function WizardProgress({ step }: { step: number }) {
+  const steps = ["City", "Income", "Savings"];
+  return (
+    <div className="uf-wizard-progress">
+      {steps.map((_, i) => (
+        <div key={i} className="uf-wizard-row">
+          <div className={`uf-wdot ${i < step ? "done" : i === step ? "active" : ""}`} />
+          {i < steps.length - 1 && (
+            <div className={`uf-wline ${i < step ? "done" : i === step ? "active" : ""}`} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN 0 — HERO
+// ─────────────────────────────────────────────────────────────────────────────
+
+function HeroScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="uf-screen uf-hero">
+      <div className="uf-badge">
+        <span className="uf-badge-dot" /> Free — no login required
+      </div>
+      <h1 className="uf-h1">
+        Your spending is<br />
+        <span className="uf-accent">costing you years</span><br />
+        of freedom.
+      </h1>
+      <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 32px" }}>
+        Find out exactly when you can retire — adjusted for your city, your income,
+        and what you actually spend. Takes 60 seconds.
+      </p>
+      <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full" onClick={onStart}>
+        Calculate my FIRE number →
+      </button>
+      <div className="uf-social-proof">
+        <div className="uf-avatars">
+          {["#f97316","#22d3a5","#a78bfa","#fb923c"].map((c, i) => (
+            <div key={i} className="uf-avatar" style={{ background: c }} />
+          ))}
+        </div>
+        <span className="uf-proof-text">
+          Joined by <strong>2,400+</strong> FIRE seekers this month
+        </span>
+      </div>
+      <div className="uf-stats-grid">
+        <div className="uf-stat-hero"><span className="uf-accent">$5.8B</span><div>market growing 10.3% CAGR</div></div>
+        <div className="uf-stat-hero"><span style={{ color: "var(--teal)" }}>2.2M</span><div>r/financialindependence members</div></div>
+        <div className="uf-stat-hero"><span style={{ color: "var(--purple)" }}>25%</span><div>Gen Z targeting retirement under 55</div></div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN 1 — CITY
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface CityState {
+  name: string;
+  col: number;
+  stateKey: string;
+  isCustom: boolean;
+}
+
+function CityScreen({ onNext, onBack }: {
+  onNext: (c: CityState) => void;
+  onBack: () => void;
+}) {
+  const [query, setQuery]           = useState("");
+  const [open, setOpen]             = useState(false);
+  const [selected, setSelected]     = useState<CityState | null>(null);
+  const [showCustom, setShowCustom] = useState(false);
+  const [customMonthly, setCustomMonthly] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropRef  = useRef<HTMLDivElement>(null);
+
+  const matches = query.trim()
+    ? CITIES.filter(c => c.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+    : [];
+
+  function pickCity(city: City) {
+    setSelected({ name: city.name, col: city.col, stateKey: city.state, isCustom: false });
+    setQuery(city.name);
+    setOpen(false);
+    setShowCustom(false);
   }
-  return {
-    yearsToFire:    months < 960 ? months / 12 : null,
-    fireTarget, monthlyExpenses, annualExpenses, savingsRate, afterTax,
-  };
-}
 
-// For the scenario simulator: takes monthly expenses + savings directly
-function calcFIREScenario(monthlyExpenses: number, monthlySavings: number, col: number) {
-  const annualExpenses = Math.max(monthlyExpenses, 0) * 12;
-  const fireTarget     = Math.round(annualExpenses * 25 * col);
-  if (monthlySavings <= 0 || fireTarget <= 0) return { yearsToFire: null as number | null, fireTarget };
-  const r = 0.08 / 12;
-  let months = 0, balance = 0;
-  while (balance < fireTarget && months < 960) {
-    balance = balance * (1 + r) + monthlySavings;
-    months++;
+  function openCustom() {
+    setOpen(false);
+    setShowCustom(true);
+    setSelected(null);
+    setTimeout(() => document.getElementById("customMonthly")?.focus(), 80);
   }
-  return { yearsToFire: months < 960 ? months / 12 : null as number | null, fireTarget };
+
+  function confirmCustom() {
+    const monthly = parseInt(customMonthly) || 0;
+    if (monthly < 100) return;
+    setSelected({ name: query || "Custom City", col: monthly * 12, stateKey: "tx", isCustom: true });
+    setShowCustom(false);
+  }
+
+  // close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node) &&
+          inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const diff = selected ? selected.col - 52000 : 0;
+
+  return (
+    <div className="uf-screen">
+      <WizardProgress step={0} />
+      <p className="uf-step-label">Step 1 of 3</p>
+      <div className="uf-eyebrow">Location</div>
+      <h2 className="uf-h2">Where do you want<br />to <span className="uf-accent">retire?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 32 }}>
+        Your FIRE number changes significantly by city. We use real cost-of-living data — not national averages.
+      </p>
+
+      {/* Search input */}
+      <label className="uf-label">Start typing your city or country</label>
+      <div style={{ position: "relative" }}>
+        <input
+          ref={inputRef}
+          type="text"
+          className="uf-input"
+          placeholder="e.g. Austin, Tokyo, London…"
+          value={query}
+          autoComplete="off"
+          onChange={e => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setSelected(null);
+            setShowCustom(false);
+          }}
+          onFocus={() => { if (query.trim()) setOpen(true); }}
+        />
+        <svg className="uf-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+        </svg>
+
+        {/* Dropdown */}
+        {open && query.trim() && (
+          <div ref={dropRef} className="uf-dropdown">
+            {matches.map(c => (
+              <button key={c.key} className="uf-dropdown-item" onMouseDown={() => pickCity(c)}>
+                <span className="uf-dropdown-flag">{c.flag}</span>
+                <div>
+                  <div className="uf-dropdown-name">{c.name}</div>
+                  <div className="uf-dropdown-sub">
+                    Est. {fmtUSD(c.col)}/yr · FIRE target {fmtUSD(c.col * 25)}
+                  </div>
+                </div>
+              </button>
+            ))}
+            {/* Always show custom option */}
+            <button className="uf-dropdown-custom" onMouseDown={openCustom}>
+              <span className="uf-dropdown-flag">📍</span>
+              <div>
+                <div className="uf-dropdown-custom-title">
+                  &ldquo;{query}&rdquo; — enter my monthly expenses
+                </div>
+                <div className="uf-dropdown-sub">My city isn&apos;t in the list — I&apos;ll set it manually</div>
+              </div>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Custom city inline form */}
+      {showCustom && (
+        <div className="uf-custom-city">
+          <label className="uf-label">
+            Your city isn&apos;t in our list — enter your estimated monthly expenses (USD)
+          </label>
+          <div className="uf-custom-row">
+            <div style={{ position: "relative", flex: 1 }}>
+              <span className="uf-input-prefix">$</span>
+              <input
+                id="customMonthly"
+                type="number"
+                className="uf-input uf-input-mono"
+                style={{ paddingLeft: 28 }}
+                placeholder="e.g. 2800"
+                min={100}
+                value={customMonthly}
+                onChange={e => setCustomMonthly(e.target.value)}
+              />
+            </div>
+            <span className="uf-unit">/month</span>
+            <button
+              className="uf-btn uf-btn-primary"
+              disabled={!customMonthly || parseInt(customMonthly) < 100}
+              onClick={confirmCustom}
+            >
+              Use this
+            </button>
+          </div>
+          <p className="uf-hint">
+            We&apos;ll calculate your FIRE number using the 25× rule on your annual expenses.
+          </p>
+        </div>
+      )}
+
+      {/* City info card */}
+      {selected && (
+        <div className="uf-city-info">
+          <div className="uf-city-info-label">
+            {selected.isCustom
+              ? "📍 Custom city — using your manual monthly expense figure"
+              : `${CITIES.find(c => c.name === selected.name)?.flag ?? ""} ${STATE_TAX[selected.stateKey]?.label ?? "Local tax rates apply"}`}
+          </div>
+          <div className="uf-info-card">
+            <div className="uf-info-col">
+              <div className="uf-info-val">{fmtUSD(selected.col)}</div>
+              <div className="uf-info-lab">Est. annual expenses</div>
+            </div>
+            <div className="uf-info-divider" />
+            <div className="uf-info-col">
+              <div className="uf-info-val">{fmtUSD(selected.col * 25)}</div>
+              <div className="uf-info-lab">FIRE target (25× rule)</div>
+            </div>
+            <div className="uf-info-divider" />
+            <div className="uf-info-col">
+              <div className="uf-info-val" style={{ color: diff > 0 ? "var(--danger)" : "var(--teal)" }}>
+                {diff >= 0 ? "+" : ""}{fmtUSD(diff)}
+              </div>
+              <div className="uf-info-lab">vs. US avg</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ flex: 1 }}
+          disabled={!selected}
+          onClick={() => selected && onNext(selected)}
+        >
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
 }
 
-/* ─────────────────────────── HOOKS */
-function useCountUp(target: number, duration = 1800, running = false) {
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN 2 — INCOME
+// ─────────────────────────────────────────────────────────────────────────────
+
+function IncomeScreen({ stateKey, onNext, onBack }: {
+  stateKey: string;
+  onNext: (income: number) => void;
+  onBack: () => void;
+}) {
+  const [income, setIncome] = useState(90000);
+  const tax = calcTakeHome(income, stateKey);
+
+  function handleInput(raw: string) {
+    const v = parseInt(raw.replace(/\D/g, "")) || 0;
+    setIncome(Math.max(0, v));
+  }
+
+  return (
+    <div className="uf-screen">
+      <WizardProgress step={1} />
+      <p className="uf-step-label">Step 2 of 3</p>
+      <div className="uf-eyebrow">Income</div>
+      <h2 className="uf-h2">What do you <span className="uf-accent">earn?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 32 }}>
+        We calculate your real take-home after taxes — not your gross salary.
+      </p>
+
+      <label className="uf-label">Annual gross income</label>
+      <div className="uf-big-input-wrap">
+        <span className="uf-input-prefix uf-big-prefix">$</span>
+        <input
+          type="number"
+          className="uf-input uf-input-mono uf-input-big"
+          style={{ paddingLeft: 28 }}
+          value={income || ""}
+          min={0}
+          onChange={e => handleInput(e.target.value)}
+          autoFocus
+        />
+        <span className="uf-unit">/year</span>
+      </div>
+
+      <div className="uf-slider-wrap">
+        <input
+          type="range" min={20000} max={500000} step={5000}
+          value={Math.min(income, 500000)}
+          className="uf-range"
+          onChange={e => setIncome(parseInt(e.target.value))}
+        />
+        <div className="uf-range-labels"><span>$20k</span><span>$250k</span><span>$500k+</span></div>
+      </div>
+
+      <div className="uf-stat-row">
+        <div className="uf-stat-box">
+          <div className="uf-stat-val">{fmtUSD(income)}</div>
+          <div className="uf-stat-lab">Gross annual</div>
+        </div>
+        <div className="uf-stat-box">
+          <div className="uf-stat-val" style={{ color: "var(--teal)" }}>{fmtUSD(tax.takeHome)}</div>
+          <div className="uf-stat-lab">After-tax take-home</div>
+        </div>
+        <div className="uf-stat-box">
+          <div className="uf-stat-val">{fmtUSD(tax.takeHome / 12)}</div>
+          <div className="uf-stat-lab">Monthly take-home</div>
+        </div>
+      </div>
+
+      <div className="uf-card" style={{ marginTop: 14 }}>
+        <div className="uf-card-head">Tax breakdown</div>
+        <div className="uf-tax-row">
+          <span className="uf-tax-label">Federal income tax</span>
+          <span className="uf-mono">{tax.fedTax > 0 ? `-${fmtUSD(tax.fedTax)}` : tax.isUSCity ? "$0" : "n/a"}</span>
+        </div>
+        <div className="uf-tax-row">
+          <span className="uf-tax-label">{tax.isUSCity ? "State / local tax" : "Est. income tax"} ({tax.stateInfo.label})</span>
+          <span className="uf-mono">{tax.stateTax > 0 ? `-${fmtUSD(tax.stateTax)}` : "$0"}</span>
+        </div>
+        {tax.isUSCity && (
+          <div className="uf-tax-row">
+            <span className="uf-tax-label">FICA (Social Security + Medicare)</span>
+            <span className="uf-mono">{tax.fica > 0 ? `-${fmtUSD(tax.fica)}` : "$0"}</span>
+          </div>
+        )}
+        <div className="uf-tax-divider" />
+        <div className="uf-tax-row" style={{ fontWeight: 500 }}>
+          <span>Effective total tax rate</span>
+          <span className="uf-mono uf-accent">{tax.effectiveRate.toFixed(1)}%</span>
+        </div>
+      </div>
+
+      <div className="uf-card uf-card-accent" style={{ marginTop: 12 }}>
+        <div className="uf-card-sub">Your <strong>real hourly rate</strong> after all taxes</div>
+        <div className="uf-hourly">{(tax.takeHome / 2080).toFixed(2)}/hr</div>
+        <div className="uf-card-hint">Based on 2,080 working hours/yr</div>
+      </div>
+
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(income)}>
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN 3 — SAVINGS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SavingsScreen({ income, stateKey, onNext, onBack }: {
+  income: number; stateKey: string;
+  onNext: (savings: number) => void;
+  onBack: () => void;
+}) {
+  const [savings, setSavings] = useState(1500);
+  const { takeHome } = calcTakeHome(income, stateKey);
+  const monthly = takeHome / 12;
+  const rate = monthly > 0 ? Math.round((savings / monthly) * 100) : 0;
+
+  const rateColor = rate < 15 ? "var(--danger)" : rate < 30 ? "var(--accent)" : "var(--teal)";
+  const rateLabel = rate < 10 ? "Very low" : rate < 20 ? "Below average" : rate < 30 ? "Average"
+    : rate < 40 ? "Good" : rate < 50 ? "Strong" : "FIRE pace! 🔥";
+
+  return (
+    <div className="uf-screen">
+      <WizardProgress step={2} />
+      <p className="uf-step-label">Step 3 of 3</p>
+      <div className="uf-eyebrow">Savings</div>
+      <h2 className="uf-h2">How much are you <span className="uf-accent">saving?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 32 }}>
+        Don&apos;t worry about being exact — we&apos;ll help you track real numbers after setup.
+      </p>
+
+      <label className="uf-label">Monthly savings amount</label>
+      <div className="uf-big-input-wrap">
+        <span className="uf-input-prefix uf-big-prefix">$</span>
+        <input
+          type="number"
+          className="uf-input uf-input-mono uf-input-big"
+          style={{ paddingLeft: 28 }}
+          value={savings || ""}
+          min={0}
+          onChange={e => setSavings(Math.max(0, parseInt(e.target.value) || 0))}
+          autoFocus
+        />
+        <span className="uf-unit">/month</span>
+      </div>
+
+      <div className="uf-slider-wrap">
+        <input
+          type="range" min={0} max={10000} step={100}
+          value={Math.min(savings, 10000)}
+          className="uf-range"
+          onChange={e => setSavings(parseInt(e.target.value))}
+        />
+        <div className="uf-range-labels"><span>$0</span><span>$5k</span><span>$10k/mo</span></div>
+      </div>
+
+      <div className="uf-stat-row">
+        <div className="uf-stat-box">
+          <div className="uf-stat-val uf-accent">{fmtUSD(savings)}/mo</div>
+          <div className="uf-stat-lab">Monthly savings</div>
+        </div>
+        <div className="uf-stat-box">
+          <div className="uf-stat-val">{rate}%</div>
+          <div className="uf-stat-lab">Of take-home income</div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <div className="uf-rate-head">
+          <span className="uf-tax-label">Savings rate benchmark</span>
+          <span style={{ color: rateColor, fontSize: 13, fontWeight: 500 }}>{rateLabel}</span>
+        </div>
+        <div className="uf-progress-track">
+          <div className="uf-progress-fill" style={{ width: `${Math.min(rate * 2, 100)}%`, background: rateColor }} />
+        </div>
+        <div className="uf-range-labels" style={{ marginTop: 4 }}>
+          <span>0%</span><span>20% (Good)</span><span>50%+ (FIRE)</span>
+        </div>
+      </div>
+
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(savings)}>
+          Show my FIRE number 🔥
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN 4 — REVEAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function useCountUp(target: number, duration: number, running: boolean) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     if (!running) return;
     const start = performance.now();
-    const tick = (now: number) => {
-      const p    = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - p, 4);
-      setVal(Math.round(ease * target));
-      if (p < 1) requestAnimationFrame(tick);
-    };
+    function ease(t: number) { return 1 - Math.pow(1 - t, 4); }
+    function tick(now: number) {
+      const t = Math.min((now - start) / duration, 1);
+      setVal(Math.round(ease(t) * target));
+      if (t < 1) requestAnimationFrame(tick);
+    }
     requestAnimationFrame(tick);
-  }, [target, running]);
+  }, [target, duration, running]);
   return val;
 }
 
-/* ─────────────────────────── PARTICLES */
-function Particles() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx)  return;
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    const ps = Array.from({ length: 55 }, () => ({
-      x:  Math.random() * canvas.width,
-      y:  Math.random() * canvas.height,
-      r:  Math.random() * 1.5 + 0.3,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
-      a:  Math.random() * 0.4 + 0.1,
-    }));
-    let raf: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ps.forEach((p) => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width)  p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(249,115,22,${p.a})`;
-        ctx.fill();
-      });
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.6 }}
-    />
-  );
-}
-
-/* ─────────────────────────── WIZARD STEPS */
-function CityStep({ value, onChange, onNext }: {
-  value: string; onChange: (v: string) => void; onNext: () => void;
+function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
+  city: CityState; income: number; savings: number; stateKey: string;
+  onAdjust: () => void;
 }) {
-  const [search, setSearch] = useState("");
-  const filtered = CITIES.filter(c => c.toLowerCase().includes(search.toLowerCase()));
-  return (
-    <div className="uf-step">
-      <div className="uf-step-label">Step 1 of 3</div>
-      <h2 className="uf-step-title">Where do you live?</h2>
-      <p className="uf-step-sub">Cost of living varies hugely — your city shapes your FIRE number.</p>
-      <input className="uf-search" placeholder="Search city..." value={search}
-        onChange={e => setSearch(e.target.value)} autoFocus />
-      <div className="uf-city-grid">
-        {filtered.map(city => (
-          <button key={city} className={`uf-city-btn ${value === city ? "active" : ""}`}
-            onClick={() => { onChange(city); onNext(); }}>
-            <span style={{ fontSize: 22 }}>{CITY_DATA[city].emoji}</span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>{city}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+  const result = calcFIRE(savings, city.col);
+  const { takeHome } = calcTakeHome(income, stateKey);
 
-function IncomeStep({ value, onChange, onNext, onBack }: {
-  value: number; onChange: (v: number) => void; onNext: () => void; onBack: () => void;
-}) {
-  const [raw, setRaw] = useState<number | "">(value || "");
-  const presets = [50000, 75000, 100000, 150000, 200000];
-  return (
-    <div className="uf-step">
-      <div className="uf-step-label">Step 2 of 3</div>
-      <h2 className="uf-step-title">What&apos;s your annual income?</h2>
-      <p className="uf-step-sub">Enter your gross salary — we&apos;ll handle taxes based on your city.</p>
-      <div className="uf-big-input-wrap">
-        <span className="uf-big-prefix">$</span>
-        <input className="uf-big-input" type="number" placeholder="80,000" value={raw}
-          onChange={e => { const v = Number(e.target.value); setRaw(v); onChange(v); }} autoFocus />
-        <span className="uf-big-suffix">/ yr</span>
-      </div>
-      <div className="uf-presets">
-        {presets.map(p => (
-          <button key={p} className={`uf-preset ${raw === p ? "active" : ""}`}
-            onClick={() => { setRaw(p); onChange(p); }}>{fmt(p)}</button>
-        ))}
-      </div>
-      <div className="uf-nav">
-        <button className="uf-back" onClick={onBack}>← Back</button>
-        <button className="uf-next" disabled={!raw || Number(raw) <= 0} onClick={onNext}>Continue →</button>
-      </div>
-    </div>
-  );
-}
+  // Phase 1: calculating steps
+  const [calcPhase, setCalcPhase] = useState(true);
+  const [activeSteps, setActiveSteps] = useState<number[]>([]);
+  const [barPct, setBarPct] = useState(0);
 
-function SavingsStep({ value, income, onChange, onNext, onBack }: {
-  value: number; income: number; onChange: (v: number) => void; onNext: () => void; onBack: () => void;
-}) {
-  const [raw, setRaw] = useState<number | "">(value || "");
-  const monthly = Math.round((income || 0) / 12);
-  const presets  = [0.1, 0.2, 0.3, 0.5].map(r => Math.round(monthly * r)).filter(Boolean);
-  const rate     = income && raw ? ((Number(raw) * 12) / income * 100).toFixed(0) : null;
-
-  return (
-    <div className="uf-step">
-      <div className="uf-step-label">Step 3 of 3</div>
-      <h2 className="uf-step-title">How much do you save monthly?</h2>
-      <p className="uf-step-sub">Money you invest each month — 401k, brokerage, crypto, all of it.</p>
-      <div className="uf-big-input-wrap">
-        <span className="uf-big-prefix">$</span>
-        <input className="uf-big-input" type="number" placeholder="1,000" value={raw}
-          onChange={e => { const v = Number(e.target.value); setRaw(v); onChange(v); }} autoFocus />
-        <span className="uf-big-suffix">/ mo</span>
-      </div>
-      {rate && (
-        <div style={{
-          color: Number(rate) >= 30 ? "#22d3a5" : Number(rate) >= 15 ? "#f97316" : "#ef4444",
-          fontWeight: 700, fontSize: 14, padding: "8px 14px",
-          background: "rgba(255,255,255,0.04)", borderRadius: 8,
-        }}>
-          {Number(rate) >= 50 ? "🔥 FIRE pace!" : Number(rate) >= 30 ? "💪 Strong saver"
-            : Number(rate) >= 15 ? "📈 Good start" : "⚠️ Room to grow"}
-          &nbsp;&nbsp;{rate}% savings rate
-        </div>
-      )}
-      <div className="uf-presets">
-        {presets.map(p => (
-          <button key={p} className={`uf-preset ${raw === p ? "active" : ""}`}
-            onClick={() => { setRaw(p); onChange(p); }}>{fmt(p)}/mo</button>
-        ))}
-      </div>
-      <div className="uf-nav">
-        <button className="uf-back" onClick={onBack}>← Back</button>
-        <button className="uf-next" disabled={!raw || Number(raw) <= 0} onClick={onNext}>Calculate my number →</button>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────── DELTA CARD */
-function DeltaCard({ emoji, label, delta }: { emoji: string; label: string; delta: number | null }) {
-  if (delta === null) return null;
-  const earlier = delta > 0.05;
-  const later   = delta < -0.05;
-  return (
-    <div className={`uf-delta-card${earlier ? " uf-delta-good" : later ? " uf-delta-bad" : ""}`}>
-      <div className="uf-delta-emoji">{emoji}</div>
-      <div className="uf-delta-label">{label}</div>
-      <div className={`uf-delta-val${earlier ? " good" : later ? " bad" : ""}`}>
-        {earlier ? `▲ ${Math.abs(delta).toFixed(1)} yrs earlier`
-         : later  ? `▼ ${Math.abs(delta).toFixed(1)} yrs later`
-         :           "Minimal change"}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────── INSIGHTS ENGINE */
-function generateInsights(p: {
-  savingsRate:     number;
-  yearsToFire:     number | null;
-  city:            string;
-  col:             number;
-  fireTarget:      number;
-  monthlyExpenses: number;
-}) {
-  const srPct = Math.round(p.savingsRate * 100);
-  const ins: { icon: string; title: string; body: string }[] = [];
-
-  // ── savings rate insight ──
-  if (srPct < 15)
-    ins.push({ icon: "⚠️", title: "Savings rate is a problem",
-      body: `${srPct}% puts you in the bottom quartile. FIRE achievers average 40%+. Each extra $500/mo saved removes roughly 1–2 years from your timeline.` });
-  else if (srPct < 30)
-    ins.push({ icon: "📈", title: "Good — but not FIRE pace",
-      body: `${srPct}% is above average, but FIRE requires 30%+. You're currently delaying your exit by several years compared to a 30% saver.` });
-  else if (srPct < 50)
-    ins.push({ icon: "💪", title: "Strong savings rate",
-      body: `${srPct}% puts you in the top 25% of savers. You're on a real FIRE trajectory — the question is how aggressively you want to accelerate.` });
-  else
-    ins.push({ icon: "🔥", title: `Elite saver — top 5%`,
-      body: `At ${srPct}%, FIRE is a question of when, not if. Lifestyle inflation is your main risk now — guard your rate.` });
-
-  // ── city insight ──
-  const premium = Math.abs(Math.round((p.col - 1) * p.fireTarget));
-  if (p.col > 1.1)
-    ins.push({ icon: "🏙️", title: `${p.city} adds ${fmt(premium)} to your target`,
-      body: `High cost of living inflates both your FIRE number and your expenses. Moving to a median-COL city is one of the highest-leverage moves available.` });
-  else if (p.col < 0.95)
-    ins.push({ icon: "✅", title: `${p.city} saves you ${fmt(premium)}`,
-      body: `Below-average cost of living knocked ${fmt(premium)} off your FIRE target vs. the national average. Geographic arbitrage is working in your favour.` });
-  else
-    ins.push({ icon: "📍", title: "Average city, average drag",
-      body: `${p.city} is near the national average. Relocating to a lower-COL area is the single fastest way to shrink your FIRE number.` });
-
-  // ── timeline insight ──
-  if (p.yearsToFire === null)
-    ins.push({ icon: "🚨", title: "Not on track",
-      body: `At current pace your savings won't reach your FIRE number within 40 years. You need to cut expenses, boost income, or both — now.` });
-  else if (p.yearsToFire > 30)
-    ins.push({ icon: "⏳", title: `${p.yearsToFire.toFixed(0)}-year haul`,
-      body: `That's a long road. Cutting monthly spend by even 10% will compress your timeline more than almost any other single change.` });
-  else if (p.yearsToFire > 15)
-    ins.push({ icon: "📅", title: "Above-average timeline",
-      body: `${p.yearsToFire.toFixed(1)} years is better than most. One year of aggressive saving now typically buys 2–3 years of freedom later.` });
-  else
-    ins.push({ icon: "🚀", title: `Top 10% FIRE timeline`,
-      body: `${p.yearsToFire.toFixed(1)} years to FIRE puts you in elite company. Stay disciplined — the biggest risk now is lifestyle creep.` });
-
-  return ins;
-}
-
-/* ─────────────────────────── MAGIC REVEAL */
-function MagicReveal({ city, income, monthlySavings }: {
-  city: string; income: number; monthlySavings: number;
-}) {
-  const ci = CITY_DATA[city] ?? CITY_DATA["Remote / Other"];
-
-  // ── base calc ──
-  const base = useMemo(
-    () => calcFIRE(income, monthlySavings, ci.col, ci.tax),
-    [income, monthlySavings, ci],
-  );
-
-  // ── scenario simulator state ──
-  const [saveMore, setSaveMore] = useState(0); // $/mo extra from expense cuts
-  const [earnMore, setEarnMore] = useState(0); // $/mo extra income
-
-  const scenario = useMemo(
-    () => calcFIREScenario(
-      Math.max(base.monthlyExpenses - saveMore, 0),
-      monthlySavings + saveMore + earnMore,
-      ci.col,
-    ),
-    [base.monthlyExpenses, monthlySavings, saveMore, earnMore, ci.col],
-  );
-
-  // ── FIRE delta calculations ──
-  const deltaEM500 = useMemo(() => {
-    const r = calcFIRE(income, monthlySavings + 500, ci.col, ci.tax);
-    if (!base.yearsToFire || !r.yearsToFire) return null;
-    return base.yearsToFire - r.yearsToFire;
-  }, [income, monthlySavings, ci.col, ci.tax, base.yearsToFire]);
-
-  const deltaEP500 = useMemo(() => {
-    const r = calcFIRE(income, Math.max(monthlySavings - 500, 0), ci.col, ci.tax);
-    if (!base.yearsToFire || !r.yearsToFire) return null;
-    return base.yearsToFire - r.yearsToFire;
-  }, [income, monthlySavings, ci.col, ci.tax, base.yearsToFire]);
-
-  const deltaIP1k = useMemo(() => {
-    const r = calcFIRE(income + 12000, monthlySavings + 1000, ci.col, ci.tax);
-    if (!base.yearsToFire || !r.yearsToFire) return null;
-    return base.yearsToFire - r.yearsToFire;
-  }, [income, monthlySavings, ci.col, ci.tax, base.yearsToFire]);
-
-  const deltaIM1k = useMemo(() => {
-    const r = calcFIRE(Math.max(income - 12000, 0), monthlySavings, ci.col, ci.tax);
-    if (!base.yearsToFire || !r.yearsToFire) return null;
-    return base.yearsToFire - r.yearsToFire;
-  }, [income, monthlySavings, ci.col, ci.tax, base.yearsToFire]);
-
-  // ── reveal animation ──
-  const [show,     setShow]     = useState(false);
+  // Phase 2: number reveal
+  const [counting, setCounting] = useState(false);
   const [revealed, setRevealed] = useState(false);
-  const counted = useCountUp(base.fireTarget, 2200, show);
-  useEffect(() => { const t = setTimeout(() => setShow(true), 300); return () => clearTimeout(t); }, []);
+  const numRef = useRef<HTMLDivElement>(null);
+
+  const counted = useCountUp(result.fireTarget, 2200, counting);
+
+  // Run calculating sequence
   useEffect(() => {
-    if (counted >= base.fireTarget) setTimeout(() => setRevealed(true), 400);
-  }, [counted, base.fireTarget]);
+    setCalcPhase(true);
+    setActiveSteps([]);
+    setBarPct(0);
+    setCounting(false);
+    setRevealed(false);
 
-  // ── share ──
-  const [copied, setCopied] = useState(false);
-  const yrs = base.yearsToFire?.toFixed(1) ?? "50+";
-  const age = base.yearsToFire ? Math.round(30 + base.yearsToFire) : null;
+    const calcSteps = [0, 1, 2, 3];
+    calcSteps.forEach((i) => {
+      setTimeout(() => {
+        setActiveSteps(prev => [...prev, i]);
+        setBarPct(((i + 1) / calcSteps.length) * 85);
+      }, i * 620);
+    });
+    setTimeout(() => {
+      setBarPct(100);
+    }, calcSteps.length * 620);
+    setTimeout(() => {
+      setCalcPhase(false);
+      setCounting(true);
+      // Trigger slam animation
+      setTimeout(() => {
+        numRef.current?.classList.add("uf-fire-slam");
+      }, 50);
+    }, calcSteps.length * 620 + 800);
+  }, []);
 
-  const scenarioDelta = base.yearsToFire && scenario.yearsToFire
-    ? base.yearsToFire - scenario.yearsToFire : null;
-
-  const insights = useMemo(() => generateInsights({
-    savingsRate:     base.savingsRate,
-    yearsToFire:     base.yearsToFire,
-    city, col:       ci.col,
-    fireTarget:      base.fireTarget,
-    monthlyExpenses: base.monthlyExpenses,
-  }), [base, city, ci.col]);
-
-  const handleShare = () => {
-    const text =
-      `🔥 UntilFire\n\n` +
-      `I can retire in ${yrs} years\n` +
-      `FIRE number: ${fmt(base.fireTarget)}\n` +
-      `Savings rate: ${Math.round(base.savingsRate * 100)}%\n` +
-      `City: ${ci.emoji} ${city}\n\n` +
-      `Find yours → untilfire.com`;
-    if (typeof navigator !== "undefined" && navigator.share) {
-      navigator.share({ title: "My FIRE Number", text }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+  useEffect(() => {
+    if (counted >= result.fireTarget && counting) {
+      setTimeout(() => setRevealed(true), 300);
     }
-  };
+  }, [counted, result.fireTarget, counting]);
+
+  // Delta calculations
+  const highSaver = calcFIRE((takeHome / 12) * 0.5, city.col);
+  const costYears = Math.max(0, result.years - highSaver.years).toFixed(1);
+
+  const d1 = calcFIRE(savings + city.col * 0.04 / 12, city.col);
+  const d2 = calcFIRE(savings + 416, city.col);
+  const d3 = calcFIRE(Math.max(0, savings - income * 0.1 / 12), city.col);
+  const d4 = calcFIRE(savings + 500, city.col);
+
+  const calcLabels = ["City cost-of-living", "After-tax income", "Compound growth at 7%", "25× withdrawal rule"];
 
   return (
-    <div className="uf-reveal">
-      <div className="uf-orb" />
-      <div className="uf-step-label" style={{ textAlign: "center" }}>{ci.emoji} {city}</div>
-      <h2 className="uf-step-title"  style={{ textAlign: "center" }}>Your Magic Number</h2>
-      <p className="uf-step-sub"     style={{ textAlign: "center" }}>The exact amount you need to never work again</p>
-
-      <div className="uf-magic-num">
-        ${counted >= 1_000_000
-          ? `${(counted / 1_000_000).toFixed(2)}M`
-          : `${(counted / 1_000).toFixed(0)}k`}
-      </div>
-
-      {revealed && (
-        <>
-          {/* ── Stats ── */}
-          <div className="uf-stats-row">
-            <div className="uf-stat">
-              <div className="uf-stat-val">{yrs} yrs</div>
-              <div className="uf-stat-lbl">Time to FIRE</div>
-            </div>
-            <div className="uf-stat-div" />
-            <div className="uf-stat">
-              <div className="uf-stat-val">{age ? `Age ${age}` : "50+"}</div>
-              <div className="uf-stat-lbl">You retire at</div>
-            </div>
-            <div className="uf-stat-div" />
-            <div className="uf-stat">
-              <div className="uf-stat-val">{fmt(base.monthlyExpenses)}</div>
-              <div className="uf-stat-lbl">Monthly spend</div>
-            </div>
-            <div className="uf-stat-div" />
-            <div className="uf-stat">
-              <div className="uf-stat-val">{Math.round(base.savingsRate * 100)}%</div>
-              <div className="uf-stat-lbl">Savings rate</div>
-            </div>
-          </div>
-
-          {/* ── FIRE Delta ── */}
-          <div className="uf-sec-head">
-            <div className="uf-sec-title">⚡ Every lever counts</div>
-            <div className="uf-sec-sub">How small changes compound into years of freedom</div>
-          </div>
-          <div className="uf-delta-grid">
-            <DeltaCard emoji="✂️" label="Spend $500 less/mo" delta={deltaEM500} />
-            <DeltaCard emoji="💸" label="Spend $500 more/mo" delta={deltaEP500} />
-            <DeltaCard emoji="💰" label="Earn $1k more/mo"   delta={deltaIP1k}  />
-            <DeltaCard emoji="📉" label="Earn $1k less/mo"   delta={deltaIM1k}  />
-          </div>
-
-          {/* ── Scenario Simulator ── */}
-          <div className="uf-sec-head">
-            <div className="uf-sec-title">🎛️ Scenario simulator</div>
-            <div className="uf-sec-sub">Drag to see your new FIRE timeline instantly</div>
-          </div>
-          <div className="uf-sim">
-            <div className="uf-slider-block">
-              <div className="uf-slider-top">
-                <span className="uf-slider-name">Cut expenses</span>
-                <span className="uf-slider-val" style={{ color: saveMore > 0 ? "#22d3a5" : "#5e5e7a" }}>
-                  {saveMore === 0 ? "no change" : `-$${saveMore.toLocaleString()}/mo`}
-                </span>
-              </div>
-              <input type="range" className="uf-range"
-                min={0} max={2000} step={50} value={saveMore}
-                onChange={e => setSaveMore(Number(e.target.value))} />
-              <div className="uf-range-lbl"><span>$0</span><span>-$2k/mo</span></div>
-            </div>
-            <div className="uf-slider-block">
-              <div className="uf-slider-top">
-                <span className="uf-slider-name">Boost income</span>
-                <span className="uf-slider-val" style={{ color: earnMore > 0 ? "#22d3a5" : "#5e5e7a" }}>
-                  {earnMore === 0 ? "no change" : `+$${earnMore.toLocaleString()}/mo`}
-                </span>
-              </div>
-              <input type="range" className="uf-range"
-                min={0} max={5000} step={100} value={earnMore}
-                onChange={e => setEarnMore(Number(e.target.value))} />
-              <div className="uf-range-lbl"><span>$0</span><span>+$5k/mo</span></div>
-            </div>
-            <div className="uf-sim-result">
-              {(saveMore > 0 || earnMore > 0) ? (
-                <>
-                  <div style={{ color:"#5e5e7a", fontSize:11, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700 }}>
-                    New timeline
-                  </div>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:36, fontWeight:700, color:"#f97316", lineHeight:1 }}>
-                    {scenario.yearsToFire?.toFixed(1) ?? "50+"} yrs
-                  </div>
-                  {scenarioDelta !== null && Math.abs(scenarioDelta) > 0.05 && (
-                    <div style={{ fontWeight:700, fontSize:14, color: scenarioDelta > 0 ? "#22d3a5" : "#ef4444" }}>
-                      {scenarioDelta > 0
-                        ? `▲ Retire ${scenarioDelta.toFixed(1)} years earlier`
-                        : `▼ Retire ${Math.abs(scenarioDelta).toFixed(1)} years later`}
-                    </div>
-                  )}
-                  <div style={{ color:"#5e5e7a", fontSize:12 }}>New target: {fmt(scenario.fireTarget)}</div>
-                </>
-              ) : (
-                <div style={{ color:"#5e5e7a", fontSize:14 }}>← Drag sliders to simulate</div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Insights ── */}
-          <div className="uf-sec-head">
-            <div className="uf-sec-title">🧠 Personalized insights</div>
-            <div className="uf-sec-sub">Based on your numbers — no fluff</div>
-          </div>
-          <div className="uf-insights-stack">
-            {insights.map((ins, i) => (
-              <div key={i} className="uf-insight-row">
-                <div className="uf-insight-icon">{ins.icon}</div>
-                <div>
-                  <div className="uf-insight-ttl">{ins.title}</div>
-                  <div className="uf-insight-bdy">{ins.body}</div>
-                </div>
-              </div>
+    <div className="uf-screen uf-reveal-screen">
+      {/* PHASE 1 */}
+      {calcPhase && (
+        <div className="uf-calc-phase">
+          <div className="uf-calc-label">Running your projection…</div>
+          <div className="uf-calc-steps">
+            {calcLabels.map((label, i) => (
+              <span key={i} className={`uf-calc-step ${activeSteps.includes(i) ? "lit" : ""}`}>
+                {label}
+                {i < calcLabels.length - 1 && <span className="uf-calc-dot">·</span>}
+              </span>
             ))}
           </div>
+          <div className="uf-calc-bar-track">
+            <div className="uf-calc-bar-fill" style={{ width: `${barPct}%` }} />
+          </div>
+        </div>
+      )}
 
-          {/* ── Share Card ── */}
-          <div className="uf-share-wrap">
-            <div className="uf-share-card">
-              <div style={{ color:"#f97316", fontSize:11, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10 }}>
-                🔥 UntilFire
-              </div>
-              <div style={{ fontFamily:"'Syne',sans-serif", fontSize:24, fontWeight:800, letterSpacing:"-0.03em", marginBottom:6 }}>
-                I can retire in&nbsp;
-                <span style={{ color:"#f97316" }}>{yrs} years</span>
-              </div>
-              <div style={{ color:"#5e5e7a", fontSize:13 }}>
-                FIRE number: {fmt(base.fireTarget)} · Savings rate: {Math.round(base.savingsRate * 100)}% · {ci.emoji} {city}
-              </div>
-              <div style={{ color:"#2a2a3e", fontSize:11, marginTop:14, fontWeight:600 }}>
-                untilfire.com
-              </div>
+      {/* PHASE 2 */}
+      {!calcPhase && (
+        <div className="uf-number-phase">
+          {/* Hero number */}
+          <div className="uf-fire-hero">
+            <div className="uf-fire-eyebrow">Your estimated FIRE number</div>
+            <div ref={numRef} className="uf-fire-num">
+              {fmtUSD(counted)}
             </div>
-            <button className="uf-share-btn" onClick={handleShare}>
-              {copied ? "✓ Copied to clipboard!" : "Share my FIRE number →"}
-            </button>
-          </div>
-
-          {/* ── CTA ── */}
-          <div className="uf-cta">
-            <div>
-              <div style={{ fontWeight:800, fontSize:18, marginBottom:4 }}>
-                Track your journey to {fmt(base.fireTarget)}
+            <div className="uf-fire-date-row">
+              <div className="uf-fire-date-line" />
+              <div className="uf-fire-date">
+                You could retire in {result.retireYear} — age {result.age}
               </div>
-              <div style={{ color:"#5e5e7a", fontSize:13 }}>Budget tracker · Monthly progress · AI roadmap</div>
+              <div className="uf-fire-date-line" />
             </div>
-            <Link href="/dashboard" className="uf-cta-btn">Start tracking — Free →</Link>
+            <div className="uf-fire-city">{city.name}</div>
           </div>
 
-          <div style={{ color:"#5e5e7a", fontSize:11, textAlign:"center" }}>
-            Based on 8% avg annual returns · 25× rule · {city} cost of living
-          </div>
-        </>
+          {revealed && (
+            <>
+              {/* Cost statement */}
+              <div className="uf-cost-card">
+                <div className="uf-cost-label">At your current savings rate, your spending is costing you</div>
+                <div className="uf-cost-years">{costYears} years</div>
+                <div className="uf-cost-sub">of freedom vs. someone saving 50% of their income</div>
+              </div>
+
+              {/* Delta grid */}
+              <div className="uf-delta-grid">
+                {[
+                  { label: "Cut dining out by 20%",    val: (result.years - d1.years), positive: true },
+                  { label: "Save $500/mo more today",  val: (result.years - d4.years), positive: true },
+                  { label: "Take a 10% pay cut",       val: (d3.years - result.years), positive: false },
+                  { label: "Invest your annual bonus", val: (result.years - d2.years), positive: true },
+                ].map((item, i) => (
+                  <div key={i} className={`uf-delta-card ${item.positive ? "positive" : "negative"}`}>
+                    <div className="uf-delta-label">{item.label}</div>
+                    <div className={`uf-delta-val ${item.positive ? "pos" : "neg"}`}>
+                      {item.positive
+                        ? item.val > 0 ? `-${item.val.toFixed(1)} yrs` : "< 1 yr"
+                        : `+${item.val.toFixed(1)} yrs`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <Link href="/dashboard" className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
+                Make this more accurate — it&apos;s free →
+              </Link>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
+                  ← Adjust inputs
+                </button>
+              </div>
+              <p className="uf-disclaimer">
+                Estimate only. Not financial advice. Based on 7% real return (historical S&P500 average after inflation).
+              </p>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-/* ─────────────────────────── WAITLIST */
+// ─────────────────────────────────────────────────────────────────────────────
+// WAITLIST
+// ─────────────────────────────────────────────────────────────────────────────
+
 function WaitlistSection() {
-  const [email,  setEmail]  = useState("");
+  const [email, setEmail]   = useState("");
   const [status, setStatus] = useState<"idle"|"loading"|"done"|"error">("idle");
 
-  const handleSubmit = async () => {
+  async function handleSubmit() {
     if (!email) return;
     setStatus("loading");
     try {
@@ -586,294 +684,359 @@ function WaitlistSection() {
       });
       setStatus(res.ok ? "done" : "error");
     } catch { setStatus("error"); }
-  };
+  }
 
   return (
-    <div style={{ background:"#08080e", borderTop:"1px solid #1c1c2e", padding:"80px 40px", textAlign:"center" }}>
-      <div style={{ maxWidth:520, margin:"0 auto" }}>
-        <div style={{ color:"#f97316", fontSize:11, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:16 }}>
-          🔥 Coming Soon
+    <div className="uf-waitlist">
+      <div className="uf-eyebrow" style={{ textAlign: "center", marginBottom: 16 }}>🔥 Coming Soon</div>
+      <h2 className="uf-h2" style={{ textAlign: "center", marginBottom: 12 }}>Get the AI roadmap</h2>
+      <p className="uf-body" style={{ textAlign: "center", marginBottom: 32 }}>
+        Join the waitlist for the AI-powered FIRE roadmap — personalized monthly plan to retire faster. Launching at $9/mo.
+      </p>
+      {status === "done" ? (
+        <div className="uf-waitlist-success">🎉 You&apos;re on the list! We&apos;ll email you when we launch.</div>
+      ) : (
+        <div className="uf-waitlist-form">
+          <input
+            type="email" placeholder="your@email.com" value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+            className="uf-input"
+          />
+          <button
+            className="uf-btn uf-btn-primary"
+            disabled={status === "loading"}
+            onClick={handleSubmit}
+            style={{ whiteSpace: "nowrap" }}
+          >
+            {status === "loading" ? "Joining…" : "Join waitlist →"}
+          </button>
         </div>
-        <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:36, fontWeight:800, letterSpacing:"-0.03em", marginBottom:12 }}>
-          Get the AI roadmap
-        </h2>
-        <p style={{ color:"#5e5e7a", fontSize:16, lineHeight:1.7, marginBottom:32 }}>
-          Join the waitlist for the AI-powered FIRE roadmap — personalized monthly plan to retire faster. Launching at $9/mo.
-        </p>
-        {status === "done" ? (
-          <div style={{ background:"rgba(34,211,165,0.1)", border:"1px solid rgba(34,211,165,0.3)", borderRadius:14, padding:"20px 24px", color:"#22d3a5", fontWeight:700, fontSize:16 }}>
-            🎉 You&apos;re on the list! We&apos;ll email you when we launch.
-          </div>
-        ) : (
-          <div style={{ display:"flex", gap:10, maxWidth:440, margin:"0 auto" }}>
-            <input type="email" placeholder="your@email.com" value={email}
-              onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSubmit()}
-              style={{ flex:1, background:"#13131e", border:"1px solid #1c1c2e", borderRadius:10, padding:"14px 16px", color:"#e8e8f2", fontSize:14, outline:"none", fontFamily:"inherit" }}
-            />
-            <button onClick={handleSubmit} disabled={status === "loading"}
-              style={{ background:"#f97316", color:"#fff", border:"none", borderRadius:10, padding:"14px 24px", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Syne',sans-serif", whiteSpace:"nowrap", opacity: status === "loading" ? 0.7 : 1 }}>
-              {status === "loading" ? "Joining..." : "Join waitlist →"}
-            </button>
-          </div>
-        )}
-        {status === "error" && <div style={{ color:"#ef4444", fontSize:13, marginTop:12 }}>Something went wrong — try again.</div>}
-        <div style={{ color:"#5e5e7a", fontSize:12, marginTop:16 }}>No spam. Unsubscribe anytime.</div>
-      </div>
+      )}
+      {status === "error" && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 12 }}>Something went wrong — try again.</p>}
+      <p className="uf-hint" style={{ textAlign: "center", marginTop: 16 }}>No spam. Unsubscribe anytime.</p>
     </div>
   );
 }
 
-/* ─────────────────────────── HOME */
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT
+// ─────────────────────────────────────────────────────────────────────────────
+
+type Screen = "hero" | "city" | "income" | "savings" | "reveal";
+
 export default function Home() {
   const router = useRouter();
-  const [screen,  setScreen]  = useState<"hero"|"step1"|"step2"|"step3"|"reveal">("hero");
+  const [screen, setScreen] = useState<Screen>("hero");
 
-useEffect(() => {
-    // If already logged in, go straight to dashboard
+  // Wizard state
+  const [cityState, setCityState]   = useState<CityState | null>(null);
+  const [income, setIncome]         = useState(90000);
+  const [savings, setSavings]       = useState(1500);
+
+  // Auth redirect — keep existing behaviour
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = '/dashboard';
+      if (session) router.push("/dashboard");
     });
-
-    if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) window.location.href = '/dashboard';
-      });
-    }
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        window.location.href = '/dashboard';
-      }
+      if (event === "SIGNED_IN" && session) router.push("/dashboard");
     });
     return () => subscription.unsubscribe();
   }, [router]);
-  
-  const [city,    setCity]    = useState("");
-  const [income,  setIncome]  = useState(0);
-  const [savings, setSavings] = useState(0);
+
+  const STEP_MAP: Record<Screen, number> = { hero: 0, city: 1, income: 2, savings: 3, reveal: 4 };
+  const totalDots = 5;
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500;700&display=swap');
-        *, *::before, *::after { box-sizing: border-box; }
-        body { background: #08080e; color: #e8e8f2; font-family: 'DM Sans', sans-serif; margin: 0; }
-        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
 
-        /* ── Nav ── */
-        .uf-nav-bar { display:flex; align-items:center; justify-content:space-between; padding:0 40px; height:60px; border-bottom:1px solid #1c1c2e; position:sticky; top:0; background:rgba(8,8,14,0.9); backdrop-filter:blur(12px); z-index:50; }
-        .uf-logo { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; letter-spacing:-0.04em; text-decoration:none; color:#e8e8f2; }
-        .uf-logo span { color:#f97316; }
-        .uf-nav-cta { background:#f97316; color:#fff; border:none; border-radius:8px; padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* ── Hero ── */
-        .uf-hero { min-height:calc(100vh - 60px); display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:60px; padding:60px 80px; position:relative; overflow:hidden; }
-        .uf-hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 60% 60% at 30% 50%, rgba(249,115,22,0.08) 0%, transparent 70%), radial-gradient(ellipse 40% 40% at 70% 70%, rgba(34,211,165,0.05) 0%, transparent 70%); pointer-events:none; }
-        .uf-hero-content { position:relative; z-index:2; }
-        .uf-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(249,115,22,0.12); border:1px solid rgba(249,115,22,0.25); color:#f97316; border-radius:20px; padding:5px 14px; font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:24px; animation:ufFadeUp 0.6s ease both; }
-        .uf-headline { font-family:'Syne',sans-serif; font-size:clamp(44px,6vw,72px); font-weight:800; line-height:1.05; letter-spacing:-0.03em; animation:ufFadeUp 0.6s 0.1s ease both; margin:0 0 20px; }
-        .uf-headline-accent { background:linear-gradient(90deg,#f97316,#fb923c,#fbbf24); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .uf-hero-sub { color:#5e5e7a; font-size:17px; line-height:1.7; margin:0 0 36px; max-width:480px; animation:ufFadeUp 0.6s 0.2s ease both; }
-        .uf-btn-hero { background:#f97316; color:#fff; border:none; border-radius:12px; padding:16px 36px; font-size:16px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; box-shadow:0 0 40px rgba(249,115,22,0.35); transition:transform 0.15s,box-shadow 0.15s; animation:ufFadeUp 0.6s 0.3s ease both; }
-        .uf-btn-hero:hover { transform:translateY(-2px); box-shadow:0 0 60px rgba(249,115,22,0.5); }
-        .uf-social-proof { display:flex; align-items:center; gap:12px; margin-top:20px; font-size:13px; color:#5e5e7a; animation:ufFadeUp 0.6s 0.4s ease both; }
-        .uf-avatars { display:flex; }
-        .uf-avatar { width:28px; height:28px; border-radius:50%; background:#13131e; border:2px solid #08080e; display:flex; align-items:center; justify-content:center; font-size:14px; margin-left:-6px; }
-        .uf-avatar:first-child { margin-left:0; }
-
-        /* ── Float card ── */
-        .uf-float-card { position:relative; z-index:2; background:#13131e; border:1px solid #1c1c2e; border-radius:24px; padding:32px 36px; box-shadow:0 0 80px rgba(249,115,22,0.12), 0 20px 60px rgba(0,0,0,0.5); animation:ufFloatIn 0.8s 0.2s cubic-bezier(0.16,1,0.3,1) both; }
-        .uf-float-label { color:#5e5e7a; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; margin-bottom:8px; }
-        .uf-float-num { font-family:'DM Mono',monospace; font-size:48px; font-weight:700; color:#f97316; line-height:1; margin-bottom:8px; }
-        .uf-float-sub { color:#5e5e7a; font-size:13px; margin-bottom:20px; }
-        .uf-float-bar { height:8px; background:#1c1c2e; border-radius:8px; overflow:hidden; margin-bottom:6px; }
-        .uf-float-fill { height:100%; width:23%; background:linear-gradient(90deg,#f97316,#fbbf24); border-radius:8px; animation:ufGrow 1.5s 1s cubic-bezier(0.16,1,0.3,1) both; }
-        .uf-float-row { display:flex; justify-content:space-between; font-size:11px; }
-
-        /* ── Shell / Card ── */
-        .uf-shell { min-height:calc(100vh - 60px); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; }
-        .uf-card { background:#13131e; border:1px solid #1c1c2e; border-radius:24px; padding:48px; width:100%; max-width:620px; box-shadow:0 20px 60px rgba(0,0,0,0.5); animation:ufFadeUp 0.4s ease both; position:relative; overflow:hidden; }
-        .uf-progress { display:flex; gap:6px; margin-bottom:32px; }
-
-        /* ── Steps ── */
-        .uf-step { display:flex; flex-direction:column; gap:20px; }
-        .uf-step-label { color:#f97316; font-size:11px; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; }
-        .uf-step-title { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; letter-spacing:-0.03em; margin:0; }
-        .uf-step-sub { color:#5e5e7a; font-size:14px; line-height:1.6; margin:0; }
-        .uf-search { background:#08080e; border:1px solid #1c1c2e; border-radius:10px; padding:10px 14px; color:#e8e8f2; font-size:14px; width:100%; outline:none; font-family:inherit; transition:border-color 0.2s; }
-        .uf-search:focus { border-color:#f97316; }
-        .uf-city-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:280px; overflow-y:auto; }
-        .uf-city-btn { display:flex; flex-direction:column; align-items:center; gap:4px; background:#08080e; border:1px solid #1c1c2e; border-radius:12px; padding:12px 8px; cursor:pointer; transition:all 0.15s; font-family:inherit; color:#e8e8f2; }
-        .uf-city-btn:hover,.uf-city-btn.active { border-color:#f97316; background:rgba(249,115,22,0.1); }
-        .uf-big-input-wrap { display:flex; align-items:center; gap:8px; background:#08080e; border:1px solid #1c1c2e; border-radius:14px; padding:14px 20px; transition:border-color 0.2s; }
-        .uf-big-input-wrap:focus-within { border-color:#f97316; }
-        .uf-big-prefix { color:#f97316; font-family:'DM Mono',monospace; font-size:24px; font-weight:700; }
-        .uf-big-suffix { color:#5e5e7a; font-size:16px; white-space:nowrap; }
-        .uf-big-input { background:none; border:none; outline:none; color:#e8e8f2; font-size:32px; font-family:'DM Mono',monospace; font-weight:700; width:100%; }
-        .uf-presets { display:flex; gap:8px; flex-wrap:wrap; }
-        .uf-preset { background:#08080e; border:1px solid #1c1c2e; border-radius:8px; padding:6px 14px; font-size:13px; color:#5e5e7a; cursor:pointer; font-family:inherit; font-weight:600; transition:all 0.15s; }
-        .uf-preset:hover,.uf-preset.active { border-color:#f97316; color:#f97316; background:rgba(249,115,22,0.1); }
-        .uf-nav { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
-        .uf-back { background:none; border:none; color:#5e5e7a; font-size:14px; cursor:pointer; font-family:inherit; font-weight:600; }
-        .uf-back:hover { color:#e8e8f2; }
-        .uf-next { background:#f97316; color:#fff; border:none; border-radius:10px; padding:13px 28px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; transition:opacity 0.2s,transform 0.15s; }
-        .uf-next:hover:not(:disabled) { transform:translateY(-1px); }
-        .uf-next:disabled { opacity:0.35; cursor:not-allowed; }
-
-        /* ── Reveal layout ── */
-        .uf-reveal { display:flex; flex-direction:column; align-items:center; gap:20px; }
-        .uf-orb { position:absolute; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle,rgba(249,115,22,0.18) 0%,transparent 70%); pointer-events:none; left:50%; top:50%; transform:translate(-50%,-50%); animation:ufPulse 3s ease-in-out infinite; }
-        .uf-magic-num { font-family:'DM Mono',monospace; font-size:clamp(52px,10vw,80px); font-weight:700; color:#f97316; line-height:1; text-shadow:0 0 60px rgba(249,115,22,0.5); }
-
-        /* ── Stats row ── */
-        .uf-stats-row { display:flex; align-items:center; background:#08080e; border:1px solid #1c1c2e; border-radius:16px; padding:20px 24px; width:100%; justify-content:space-between; animation:ufFadeUp 0.5s ease both; flex-wrap:wrap; gap:8px; }
-        .uf-stat { text-align:center; flex:1; min-width:70px; }
-        .uf-stat-val { font-family:'DM Mono',monospace; font-size:20px; font-weight:700; }
-        .uf-stat-lbl { color:#5e5e7a; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; margin-top:4px; }
-        .uf-stat-div { width:1px; height:40px; background:#1c1c2e; }
-
-        /* ── Section headers ── */
-        .uf-sec-head { width:100%; animation:ufFadeUp 0.5s ease both; }
-        .uf-sec-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; margin-bottom:4px; }
-        .uf-sec-sub { color:#5e5e7a; font-size:13px; }
-
-        /* ── FIRE Delta grid ── */
-        .uf-delta-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; animation:ufFadeUp 0.5s ease both; }
-        .uf-delta-card { background:#08080e; border:1px solid #1c1c2e; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:6px; transition:border-color 0.2s; }
-        .uf-delta-card.uf-delta-good { background:rgba(34,211,165,0.05); border-color:rgba(34,211,165,0.25); }
-        .uf-delta-card.uf-delta-bad  { background:rgba(239,68,68,0.05);   border-color:rgba(239,68,68,0.25); }
-        .uf-delta-emoji { font-size:22px; }
-        .uf-delta-label { color:#5e5e7a; font-size:12px; font-weight:600; }
-        .uf-delta-val { font-family:'DM Mono',monospace; font-size:15px; font-weight:700; color:#e8e8f2; }
-        .uf-delta-val.good { color:#22d3a5; }
-        .uf-delta-val.bad  { color:#ef4444;  }
-
-        /* ── Simulator ── */
-        .uf-sim { background:#08080e; border:1px solid #1c1c2e; border-radius:16px; padding:24px; width:100%; display:flex; flex-direction:column; gap:20px; animation:ufFadeUp 0.5s ease both; }
-        .uf-slider-block { display:flex; flex-direction:column; gap:8px; }
-        .uf-slider-top { display:flex; justify-content:space-between; align-items:center; }
-        .uf-slider-name { font-size:13px; font-weight:600; }
-        .uf-slider-val { font-family:'DM Mono',monospace; font-size:13px; font-weight:700; transition:color 0.2s; }
-        .uf-range { width:100%; height:4px; -webkit-appearance:none; appearance:none; background:#1c1c2e; border-radius:4px; outline:none; cursor:pointer; }
-        .uf-range::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#f97316; cursor:pointer; box-shadow:0 0 10px rgba(249,115,22,0.4); }
-        .uf-range::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#f97316; cursor:pointer; border:none; }
-        .uf-range-lbl { display:flex; justify-content:space-between; font-size:11px; color:#5e5e7a; }
-        .uf-sim-result { background:#13131e; border:1px solid #1c1c2e; border-radius:12px; padding:20px 24px; text-align:center; display:flex; flex-direction:column; gap:8px; align-items:center; min-height:90px; justify-content:center; }
-
-        /* ── Insights stack ── */
-        .uf-insights-stack { display:flex; flex-direction:column; gap:10px; width:100%; animation:ufFadeUp 0.5s ease both; }
-        .uf-insight-row { display:flex; gap:14px; align-items:flex-start; background:#08080e; border:1px solid #1c1c2e; border-radius:14px; padding:16px; }
-        .uf-insight-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
-        .uf-insight-ttl { font-weight:700; font-size:13px; margin-bottom:5px; }
-        .uf-insight-bdy { color:#5e5e7a; font-size:12px; line-height:1.65; }
-
-        /* ── Share ── */
-        .uf-share-wrap { width:100%; display:flex; flex-direction:column; gap:12px; animation:ufFadeUp 0.5s ease both; }
-        .uf-share-card { background:linear-gradient(135deg,#13131e,#0f0f1a); border:1px solid #1c1c2e; border-radius:16px; padding:24px; }
-        .uf-share-btn { background:#f97316; color:#fff; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; width:100%; transition:opacity 0.2s,transform 0.15s; box-shadow:0 0 30px rgba(249,115,22,0.25); }
-        .uf-share-btn:hover { opacity:0.9; transform:translateY(-1px); }
-
-        /* ── CTA ── */
-        .uf-cta { display:flex; align-items:center; justify-content:space-between; gap:20px; background:linear-gradient(135deg,rgba(249,115,22,0.12),rgba(34,211,165,0.06)); border:1px solid rgba(249,115,22,0.3); border-radius:16px; padding:24px 28px; width:100%; animation:ufFadeUp 0.5s 0.2s ease both; }
-        .uf-cta-btn { background:#f97316; color:#fff; border:none; border-radius:10px; padding:13px 24px; font-size:14px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; white-space:nowrap; text-decoration:none; box-shadow:0 0 30px rgba(249,115,22,0.3); transition:transform 0.15s; }
-        .uf-cta-btn:hover { transform:translateY(-2px); }
-
-        /* ── Keyframes ── */
-        @keyframes ufFadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes ufFloatIn { from{opacity:0;transform:translateX(30px) rotate(2deg)} to{opacity:1;transform:translateX(0) rotate(0)} }
-        @keyframes ufGrow    { from{width:0} to{width:23%} }
-        @keyframes ufPulse   { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1} 50%{transform:translate(-50%,-50%) scale(1.15);opacity:0.7} }
-
-        /* ── Responsive ── */
-        @media(max-width:768px) {
-          .uf-hero { grid-template-columns:1fr; padding:40px 24px; }
-          .uf-float-card { display:none; }
-          .uf-city-grid { grid-template-columns:repeat(2,1fr); }
-          .uf-delta-grid { grid-template-columns:1fr 1fr; }
-          .uf-cta { flex-direction:column; }
-          .uf-card { padding:28px 20px; }
-          .uf-nav-bar { padding:0 20px; }
-          .uf-stat-div { display:none; }
-          .uf-stats-row { justify-content:space-around; }
+        :root {
+          --bg: #08080e;
+          --bg-card: #13131e;
+          --bg-elevated: #1a1a28;
+          --border: #1c1c2e;
+          --border-light: #2a2a3e;
+          --text: #e8e8f2;
+          --text-muted: #6e6e8e;
+          --text-dim: #3a3a5a;
+          --accent: #f97316;
+          --accent-dim: rgba(249,115,22,0.12);
+          --accent-glow: rgba(249,115,22,0.25);
+          --teal: #22d3a5;
+          --teal-dim: rgba(34,211,165,0.12);
+          --danger: #ef4444;
+          --purple: #a78bfa;
+          --font-display: 'Syne', sans-serif;
+          --font-body: 'DM Sans', sans-serif;
+          --font-mono: 'DM Mono', monospace;
         }
+
+        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* ── NAV ── */
+        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(8,8,14,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px); }
+        .uf-nav-logo { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+        .uf-nav-logo span { color: var(--accent); }
+        .uf-nav-dots { display: flex; gap: 6px; align-items: center; }
+        .uf-nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-light); transition: all 0.3s; }
+        .uf-nav-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+        .uf-nav-dot.done { background: var(--teal); }
+        .uf-nav-restart { font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
+        .uf-nav-restart:hover { color: var(--text); }
+
+        /* ── SCREEN ── */
+        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        .uf-screen { width: 100%; max-width: 540px; padding: 48px 24px 40px; }
+        .uf-reveal-screen { max-width: 680px; }
+
+        /* ── TYPOGRAPHY ── */
+        .uf-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+        .uf-h1 { font-family: var(--font-display); font-size: clamp(32px,5vw,52px); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; color: var(--text); margin-bottom: 20px; }
+        .uf-h2 { font-family: var(--font-display); font-size: clamp(24px,4vw,38px); font-weight: 700; line-height: 1.1; letter-spacing: -1px; color: var(--text); margin-bottom: 8px; }
+        .uf-accent { color: var(--accent); }
+        .uf-body { font-size: 16px; line-height: 1.6; color: var(--text-muted); }
+        .uf-mono { font-family: var(--font-mono); }
+        .uf-hint { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
+        .uf-step-label { font-size: 12px; color: var(--text-muted); margin-bottom: 32px; }
+
+        /* ── WIZARD PROGRESS ── */
+        .uf-wizard-progress { display: flex; align-items: center; margin-bottom: 8px; }
+        .uf-wizard-row { display: flex; align-items: center; flex: 1; }
+        .uf-wizard-row:last-child { flex: 0; }
+        .uf-wdot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: all 0.3s; }
+        .uf-wdot.done { background: var(--teal); }
+        .uf-wdot.active { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+        .uf-wline { flex: 1; height: 2px; background: var(--border); margin: 0 2px; transition: background 0.4s; }
+        .uf-wline.done { background: var(--teal); }
+        .uf-wline.active { background: var(--accent); }
+
+        /* ── BUTTONS ── */
+        .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: 10px; font-family: var(--font-body); font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .uf-btn-primary { background: var(--accent); color: #fff; }
+        .uf-btn-primary:hover:not(:disabled) { background: #ea6b10; transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .uf-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+        .uf-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
+        .uf-btn-ghost:hover { color: var(--text); background: var(--bg-elevated); }
+        .uf-btn-teal { background: var(--teal); color: #08080e; font-weight: 600; }
+        .uf-btn-teal:hover { background: #1dbf96; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(34,211,165,0.25); }
+        .uf-btn-full { width: 100%; }
+        .uf-btn-lg { padding: 18px 36px; font-size: 17px; }
+        .uf-nav-row { margin-top: 32px; display: flex; gap: 12px; }
+
+        /* ── INPUTS ── */
+        .uf-label { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; display: block; }
+        .uf-input { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px 16px; font-family: var(--font-body); font-size: 16px; color: var(--text); outline: none; transition: border-color 0.2s; }
+        .uf-input:focus { border-color: var(--accent); }
+        .uf-input-mono { font-family: var(--font-mono); font-size: 18px; font-weight: 500; }
+        .uf-input-big { padding: 12px 14px; }
+        .uf-big-input-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .uf-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 15px; pointer-events: none; }
+        .uf-big-prefix { font-size: 18px; font-weight: 500; }
+        .uf-unit { font-size: 14px; color: var(--text-muted); white-space: nowrap; }
+
+        /* ── RANGE SLIDER ── */
+        .uf-slider-wrap { margin: 8px 0; }
+        .uf-range { width: 100%; -webkit-appearance: none; height: 4px; border-radius: 2px; background: var(--border-light); outline: none; cursor: pointer; }
+        .uf-range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 2px var(--accent); cursor: pointer; }
+        .uf-range-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+        /* ── DROPDOWN ── */
+        .uf-dropdown { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: 12px; max-height: 280px; overflow-y: auto; z-index: 50; box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+        .uf-dropdown-item { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: transparent; border: none; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; text-align: left; }
+        .uf-dropdown-item:hover { background: var(--bg-card); }
+        .uf-dropdown-flag { font-size: 18px; line-height: 1; flex-shrink: 0; }
+        .uf-dropdown-name { font-size: 14px; color: var(--text); }
+        .uf-dropdown-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .uf-dropdown-custom { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 16px; background: rgba(249,115,22,0.05); border: none; border-top: 1px solid rgba(249,115,22,0.18); cursor: pointer; transition: background 0.15s; text-align: left; }
+        .uf-dropdown-custom:hover { background: rgba(249,115,22,0.12); }
+        .uf-dropdown-custom-title { font-size: 14px; color: var(--accent); font-weight: 500; }
+
+        /* ── CUSTOM CITY ── */
+        .uf-custom-city { background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.3); border-radius: 12px; padding: 16px; margin-top: 14px; }
+        .uf-custom-row { display: flex; gap: 10px; align-items: center; }
+
+        /* ── CITY INFO ── */
+        .uf-city-info { margin-top: 16px; }
+        .uf-city-info-label { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+        .uf-info-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; overflow: hidden; }
+        .uf-info-col { flex: 1; padding: 14px 16px; }
+        .uf-info-col:not(:last-child) { border-right: 1px solid var(--border); }
+        .uf-info-val { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--accent); }
+        .uf-info-lab { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .uf-info-divider { width: 1px; background: var(--border); }
+
+        /* ── STAT ROW ── */
+        .uf-stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 20px; }
+        .uf-stat-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+        .uf-stat-val { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--text); }
+        .uf-stat-lab { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+        /* ── CARD ── */
+        .uf-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 16px 20px; }
+        .uf-card-accent { background: var(--accent-dim); border-color: rgba(249,115,22,0.2); }
+        .uf-card-head { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .uf-card-sub { font-size: 13px; color: var(--text-muted); }
+        .uf-card-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+        .uf-hourly { font-family: var(--font-mono); font-size: 24px; font-weight: 500; color: var(--accent); margin-top: 4px; }
+        .uf-hourly::before { content: '$'; }
+
+        /* ── TAX ── */
+        .uf-tax-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 7px; }
+        .uf-tax-label { color: var(--text-muted); }
+        .uf-tax-divider { border-top: 1px solid var(--border); margin: 6px 0; }
+
+        /* ── PROGRESS BAR ── */
+        .uf-progress-track { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; }
+        .uf-progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+        .uf-rate-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+
+        /* ── HERO SCREEN ── */
+        .uf-hero { text-align: center; max-width: 580px; padding-top: 80px; }
+        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; }
+        .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
+        .uf-avatars { display: flex; }
+        .uf-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); margin-left: -6px; }
+        .uf-avatar:first-child { margin-left: 0; }
+        .uf-proof-text { font-size: 13px; color: var(--text-muted); }
+        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 40px; }
+        .uf-stat-hero { text-align: center; font-size: 12px; color: var(--text-muted); }
+        .uf-stat-hero span { display: block; font-family: var(--font-display); font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+
+        /* ── REVEAL ── */
+        .uf-calc-phase { text-align: center; padding: 60px 0; }
+        .uf-calc-label { font-size: 13px; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 32px; }
+        .uf-calc-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 32px; }
+        .uf-calc-step { font-size: 13px; color: var(--text-muted); opacity: 0.3; transition: opacity 0.4s, color 0.4s, font-weight 0.4s; }
+        .uf-calc-step.lit { opacity: 1; color: var(--accent); font-weight: 600; }
+        .uf-calc-dot { margin: 0 6px; color: var(--border-light); }
+        .uf-calc-bar-track { max-width: 320px; margin: 0 auto; background: var(--border); border-radius: 4px; height: 3px; overflow: hidden; }
+        .uf-calc-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s ease; }
+
+        .uf-number-phase {}
+
+        @keyframes fireGlow {
+          0%   { text-shadow: 0 0 0px rgba(249,115,22,0); }
+          40%  { text-shadow: 0 0 60px rgba(249,115,22,0.9), 0 0 120px rgba(249,115,22,0.5); }
+          70%  { text-shadow: 0 0 40px rgba(249,115,22,0.7), 0 0 80px rgba(249,115,22,0.35); }
+          100% { text-shadow: 0 0 28px rgba(249,115,22,0.5), 0 0 60px rgba(249,115,22,0.2); }
+        }
+        @keyframes revealSlam {
+          0%   { opacity: 0; transform: scale(0.55); }
+          60%  { opacity: 1; transform: scale(1.06); }
+          80%  { transform: scale(0.97); }
+          100% { transform: scale(1); }
+        }
+        @keyframes pulseBorder {
+          0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+          50%      { box-shadow: 0 0 0 8px rgba(249,115,22,0.12); }
+        }
+        .uf-fire-slam { animation: revealSlam 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards, fireGlow 1.6s ease 0.5s forwards; }
+
+        .uf-fire-hero {
+          text-align: center;
+          padding: 40px 24px;
+          margin-bottom: 28px;
+          border-radius: 20px;
+          background: radial-gradient(ellipse at 50% 50%, rgba(249,115,22,0.08) 0%, transparent 70%);
+          animation: pulseBorder 2.5s ease 0.8s infinite;
+          width: 100%;
+          overflow: hidden;
+        }
+        .uf-fire-eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 18px; }
+        .uf-fire-num {
+          font-family: var(--font-display);
+          font-size: clamp(40px, 10vw, 108px);
+          font-weight: 800;
+          letter-spacing: -2px;
+          line-height: 1;
+          color: var(--accent);
+          width: 100%;
+          text-align: center;
+          overflow: hidden;
+        }
+        .uf-fire-date-row { margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 16px; }
+        .uf-fire-date-line { height: 1px; flex: 1; max-width: 60px; background: var(--border-light); }
+        .uf-fire-date { font-family: var(--font-mono); font-size: 16px; color: var(--teal); letter-spacing: 0.5px; }
+        .uf-fire-city { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+        .uf-cost-card { background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.18); border-radius: 14px; padding: 20px 24px; text-align: center; margin-bottom: 20px; }
+        .uf-cost-label { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+        .uf-cost-years { font-family: var(--font-display); font-size: 40px; font-weight: 800; color: var(--accent); line-height: 1; }
+        .uf-cost-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+        .uf-delta-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
+        .uf-delta-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .uf-delta-card.positive { border-color: rgba(34,211,165,0.25); }
+        .uf-delta-card.negative { border-color: rgba(239,68,68,0.2); }
+        .uf-delta-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+        .uf-delta-val { font-family: var(--font-mono); font-size: 20px; font-weight: 500; }
+        .uf-delta-val.pos { color: var(--teal); }
+        .uf-delta-val.neg { color: var(--danger); }
+
+        .uf-disclaimer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 14px; }
+
+        /* ── WAITLIST ── */
+        .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 80px 24px; }
+        .uf-waitlist-success { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); border-radius: 14px; padding: 20px 24px; color: var(--teal); font-weight: 700; font-size: 16px; text-align: center; }
+        .uf-waitlist-form { display: flex; gap: 10px; }
+
+        /* ── FOOTER DIVIDER ── */
+        .uf-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
       `}</style>
 
-      {/* ── Nav ── */}
-      <nav className="uf-nav-bar">
-        <Link href="/" className="uf-logo">Until<span>Fire</span></Link>
-        <div style={{ display:"flex", gap:28 }}>
-          <Link href="/dashboard" style={{ color:"#5e5e7a", fontSize:13, fontWeight:500, textDecoration:"none" }}>Dashboard</Link>
-        </div>
-        <button className="uf-nav-cta" onClick={() => setScreen("step1")}>Calculate free →</button>
-      </nav>
+      <Nav
+        step={STEP_MAP[screen]}
+        totalSteps={totalDots}
+        onRestart={() => setScreen("hero")}
+      />
 
-      {/* ── Hero ── */}
-      {screen === "hero" && (
-        <>
-          <div className="uf-hero">
-            <Particles />
-            <div className="uf-hero-content">
-              <div className="uf-badge">🔥 Free FIRE Calculator</div>
-              <h1 className="uf-headline">
-                What&apos;s your<br />
-                <span className="uf-headline-accent">magic number?</span>
-              </h1>
-              <p className="uf-hero-sub">
-                Find out exactly how much you need to retire — personalized to your city, income, and savings. Takes 60 seconds.
-              </p>
-              <button className="uf-btn-hero" onClick={() => setScreen("step1")}>Start my journey →</button>
-              <div className="uf-social-proof">
-                <div className="uf-avatars">
-                  {["🧑‍💻","👩‍🏫","🧑‍⚕️","👨‍🎨","👩‍🔬"].map((e,i) => (
-                    <div key={i} className="uf-avatar">{e}</div>
-                  ))}
-                </div>
-                <span>12,400+ people found their number this month</span>
-              </div>
-            </div>
-            <div className="uf-float-card">
-              <div className="uf-float-label">FIRE Target</div>
-              <div className="uf-float-num">$1.84M</div>
-              <div className="uf-float-sub">Retire at age 47 · 15.2 years away</div>
-              <div className="uf-float-bar"><div className="uf-float-fill" /></div>
-              <div className="uf-float-row">
-                <span style={{ color:"#5e5e7a" }}>$0</span>
-                <span style={{ color:"#f97316", fontWeight:700 }}>23% there</span>
-                <span style={{ color:"#5e5e7a" }}>$1.84M</span>
-              </div>
-            </div>
-          </div>
-          <WaitlistSection />
-        </>
-      )}
+      <div className="uf-page">
+        {screen === "hero" && (
+          <HeroScreen onStart={() => setScreen("city")} />
+        )}
+        {screen === "city" && (
+          <CityScreen
+            onNext={c => { setCityState(c); setScreen("income"); }}
+            onBack={() => setScreen("hero")}
+          />
+        )}
+        {screen === "income" && (
+          <IncomeScreen
+            stateKey={cityState?.stateKey ?? "tx"}
+            onNext={inc => { setIncome(inc); setScreen("savings"); }}
+            onBack={() => setScreen("city")}
+          />
+        )}
+        {screen === "savings" && (
+          <SavingsScreen
+            income={income}
+            stateKey={cityState?.stateKey ?? "tx"}
+            onNext={sav => { setSavings(sav); setScreen("reveal"); }}
+            onBack={() => setScreen("income")}
+          />
+        )}
+        {screen === "reveal" && cityState && (
+          <RevealScreen
+            city={cityState}
+            income={income}
+            savings={savings}
+            stateKey={cityState.stateKey}
+            onAdjust={() => setScreen("savings")}
+          />
+        )}
 
-      {/* ── Wizard + Reveal ── */}
-      {(screen === "step1" || screen === "step2" || screen === "step3" || screen === "reveal") && (
-        <div className="uf-shell">
-          <div className="uf-card">
-            {screen !== "reveal" && (
-              <div className="uf-progress">
-                {[1,2,3].map(n => {
-                  const active = screen === `step${n}`;
-                  const done   = (screen === "step2" && n === 1) || (screen === "step3" && n <= 2);
-                  return (
-                    <div key={n} style={{
-                      height:4, flex: active ? 3 : 1, borderRadius:4,
-                      background: done || active ? "#f97316" : "#1c1c2e",
-                      transition:"all 0.4s",
-                    }} />
-                  );
-                })}
-              </div>
-            )}
-            {screen === "step1"  && <CityStep    value={city}    onChange={setCity}    onNext={() => setScreen("step2")} />}
-            {screen === "step2"  && <IncomeStep  value={income}  onChange={setIncome}  onNext={() => setScreen("step3")} onBack={() => setScreen("step1")} />}
-            {screen === "step3"  && <SavingsStep value={savings} income={income}       onChange={setSavings} onNext={() => setScreen("reveal")} onBack={() => setScreen("step2")} />}
-            {screen === "reveal" && <MagicReveal city={city}     income={income}       monthlySavings={savings} />}
-          </div>
-        </div>
-      )}
+        <hr className="uf-divider" style={{ width: "100%" }} />
+        <WaitlistSection />
+      </div>
     </>
   );
 }
