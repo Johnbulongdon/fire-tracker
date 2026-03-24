@@ -5,6 +5,7 @@ import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
+import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -43,7 +44,14 @@ export default function RootLayout({
             })
           `}
         </Script>
+
+        <Script
+          src="https://analytics.ahrefs.com/analytics.js"
+          data-key="FiPq4kEv/tSkbCGk1licIA"
+          strategy="afterInteractive"
+        />
       </head>
+
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <AuthProvider>
           {children}
