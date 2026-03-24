@@ -637,6 +637,77 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// WAITLIST INLINE — shown on reveal screen
+// ─────────────────────────────────────────────────────────────────────────────
+
+function WaitlistInline({ fireTarget, retireYear }: { fireTarget: number; retireYear: number }) {
+  const [email, setEmail]   = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  async function handleSubmit() {
+    if (!isValid || status === "loading") return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, fireTarget, retireYear }),
+      });
+      setStatus(res.ok ? "done" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "done") {
+    return (
+      <div className="uf-wl-inline uf-wl-done">
+        <span style={{ fontSize: 18 }}>&#x2713;</span>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: "var(--teal)" }}>You&apos;re on the list</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>We&apos;ll email you when the FIRE adviser launches.</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="uf-wl-inline">
+      <div className="uf-wl-inline-head">
+        <div className="uf-wl-inline-title">Get early access to the FIRE adviser</div>
+        <div className="uf-wl-inline-sub">
+          Tells you exactly what to do each month to reach {fmtUSD(fireTarget)} by {retireYear}. Launching at $9/mo.
+        </div>
+      </div>
+      <div className="uf-wl-inline-form">
+        <input
+          type="email"
+          className="uf-input"
+          style={{ flex: 1, fontSize: 14, padding: "11px 14px" }}
+          placeholder="your@email.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()}
+        />
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ whiteSpace: "nowrap", padding: "11px 20px", fontSize: 14, opacity: status === "loading" ? 0.6 : 1 }}
+          disabled={!isValid || status === "loading"}
+          onClick={handleSubmit}
+        >
+          {status === "loading" ? "Joining…" : "Join waitlist"}
+        </button>
+      </div>
+      {status === "error" && (
+        <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>Something went wrong — try again.</p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SCREEN 4 — REVEAL
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -787,11 +858,15 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
                 ))}
               </div>
 
-              {/* CTA */}
+              {/* PRIMARY CTA */}
               <Link href="/dashboard" className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
                 Make this more accurate — it&apos;s free →
               </Link>
-              <div style={{ display: "flex", gap: 10 }}>
+
+              {/* SECONDARY CTA — waitlist */}
+              <WaitlistInline fireTarget={result.fireTarget} retireYear={result.retireYear} />
+
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
                   ← Adjust inputs
                 </button>
@@ -1131,6 +1206,14 @@ export default function Home() {
         .uf-delta-val.neg { color: var(--danger); }
 
         .uf-disclaimer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 14px; }
+
+        /* ── WAITLIST INLINE ── */
+        .uf-wl-inline { background: var(--bg-card); border: 1px solid rgba(249,115,22,0.2); border-radius: 14px; padding: 18px 20px; margin-top: 12px; }
+        .uf-wl-inline-head { margin-bottom: 12px; }
+        .uf-wl-inline-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .uf-wl-inline-sub { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+        .uf-wl-inline-form { display: flex; gap: 8px; }
+        .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(34,211,165,0.25); }
 
         /* ── WAITLIST ── */
         .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 80px 24px; }
