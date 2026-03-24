@@ -953,15 +953,15 @@ export default function Home() {
         }
         .uf-fire-eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 18px; }
         .uf-fire-num {
-          font-family: var(--font-display);
-          font-size: clamp(40px, 10vw, 108px);
-          font-weight: 800;
-          letter-spacing: -2px;
-          line-height: 1;
+          font-family: var(--font-mono);
+          font-size: clamp(32px, 7vw, 72px);
+          font-weight: 500;
+          letter-spacing: -1px;
+          line-height: 1.1;
           color: var(--accent);
           width: 100%;
           text-align: center;
-          overflow: hidden;
+          word-break: break-all;
         }
         .uf-fire-date-row { margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 16px; }
         .uf-fire-date-line { height: 1px; flex: 1; max-width: 60px; background: var(--border-light); }
