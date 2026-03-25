@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from '@/lib/supabase';
 import Link from "next/link";
+
+const tabs = [
+  { key: "dashboard", label: "📊 Dashboard" },
+  { key: "budget", label: "💰 Budget Tracker" },
+  { key: "fire", label: "🔥 FIRE Calculator" },
+] as const;
 
 const fmt = (n: number) =>
   n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(2)}M` : n >= 1_000 ? `$${(n / 1_000).toFixed(1)}k` : `$${Math.round(n).toLocaleString()}`;
@@ -86,21 +93,26 @@ function BudgetTab({ income, setIncome, expenses, setExpenses }: { income: numbe
   );
 }
 
-function FIRETab({ income, expenses }: { income: number; expenses: Expenses }) {
+function FIRETab({ income, expenses, fireAge, setFireAge, fireAssets, setFireAssets }: {
+  income: number;
+  expenses: Expenses;
+  fireAge: number;
+  setFireAge: (v: number) => void;
+  fireAssets: number;
+  setFireAssets: (v: number) => void;
+}) {
   const totalExp = Object.values(expenses).reduce((s, v) => s + (v || 0), 0);
   const autoSavings = Math.max(0, income - totalExp);
-  const [age, setAge] = useState(30);
-  const [assets, setAssets] = useState(0);
   const [monthlySpend, setMonthlySpend] = useState(totalExp);
   const [monthlyContrib, setMonthlyContrib] = useState(autoSavings);
 
   const fireTarget = monthlySpend * 12 * 25;
   const rate = 0.08 / 12;
   let months = 0;
-  let balance = assets;
+  let balance = fireAssets;
   while (balance < fireTarget && months < 960) { balance = balance * (1 + rate) + monthlyContrib; months++; }
-  const fireAge = months < 960 ? age + Math.floor(months / 12) : null;
-  const progress = fireTarget > 0 ? Math.min(100, (assets / fireTarget) * 100) : 0;
+  const retireAge = months < 960 ? fireAge + Math.floor(months / 12) : null;
+  const progress = fireTarget > 0 ? Math.min(100, (fireAssets / fireTarget) * 100) : 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -110,25 +122,38 @@ function FIRETab({ income, expenses }: { income: number; expenses: Expenses }) {
         </div>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {[
-          { label: "Current Age", value: age, onChange: setAge, placeholder: "30" },
-          { label: "Current Invested Assets", value: assets, onChange: setAssets, placeholder: "50000" },
-          { label: "Monthly Spend", value: monthlySpend, onChange: setMonthlySpend, placeholder: String(totalExp || 3000) },
-          { label: "Monthly Investment", value: monthlyContrib, onChange: setMonthlyContrib, placeholder: String(autoSavings || 1000) },
-        ].map((f) => (
-          <div key={f.label} className="uf-card">
-            <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 8 }}>{f.label}</div>
-            <NumberInput value={f.value} onChange={f.onChange} placeholder={f.placeholder} />
+        <div className="uf-card">
+          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 8 }}>Current Age</div>
+          <div style={{ display: "flex", alignItems: "center", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px" }}>
+            <input
+              type="number"
+              value={fireAge || ""}
+              onChange={(e) => setFireAge(Number(e.target.value))}
+              placeholder="30"
+              style={{ background: "none", border: "none", outline: "none", color: "#e8e8f2", fontSize: 14, width: "100%", fontFamily: "'DM Mono', monospace" }}
+            />
           </div>
-        ))}
+        </div>
+        <div className="uf-card">
+          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 8 }}>Current Invested Assets</div>
+          <NumberInput value={fireAssets} onChange={setFireAssets} placeholder="50000" />
+        </div>
+        <div className="uf-card">
+          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 8 }}>Monthly Spend</div>
+          <NumberInput value={monthlySpend} onChange={setMonthlySpend} placeholder={String(totalExp || 3000)} />
+        </div>
+        <div className="uf-card">
+          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 8 }}>Monthly Investment</div>
+          <NumberInput value={monthlyContrib} onChange={setMonthlyContrib} placeholder={String(autoSavings || 1000)} />
+        </div>
       </div>
 
-      {fireAge && (
+      {retireAge && (
         <div className="uf-card" style={{ background: "linear-gradient(135deg, #13131e, #1a1205)", border: "1px solid rgba(249,115,22,0.3)", boxShadow: "0 0 40px rgba(249,115,22,0.1)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 24, alignItems: "center" }}>
             <div>
               <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>🔥 Your FIRE Date</div>
-              <div style={{ color: "#f97316", fontSize: 56, fontWeight: 800, fontFamily: "'DM Mono', monospace", lineHeight: 1 }}>Age {fireAge}</div>
+              <div style={{ color: "#f97316", fontSize: 56, fontWeight: 800, fontFamily: "'DM Mono', monospace", lineHeight: 1 }}>Age {retireAge}</div>
               <div style={{ color: "#5e5e7a", fontSize: 13, marginTop: 6 }}>{Math.floor(months / 12)} years {months % 12} months to go</div>
             </div>
             <div><div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>FIRE Target</div><div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'DM Mono', monospace" }}>{fmt(fireTarget)}</div></div>
@@ -240,10 +265,88 @@ function DashTab({ income, expenses }: { income: number; expenses: Expenses }) {
   );
 }
 
+function UserNav() {
+  const [email, setEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setEmail(user?.email ?? null)
+    })
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
+
+  if (!email) {
+    return <Link href="/login" style={{ background: "#f97316", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <span style={{ color: "#5e5e7a", fontSize: 13 }}>{email}</span>
+      <button onClick={handleSignOut} style={{ background: "transparent", color: "#f97316", border: "1px solid #f97316", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Sign Out</button>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [tab, setTab] = useState<"dashboard" | "budget" | "fire">("budget");
-  const [income, setIncome] = useState(7000);
-  const [expenses, setExpenses] = useState<Expenses>({ housing: 1800, food: 600, transport: 400, subscriptions: 150, healthcare: 200, entertainment: 200, other: 150 });
+  const [income, setIncome] = useState(0);
+  const [expenses, setExpenses] = useState<Expenses>({ housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0 });
+  const [fireAge, setFireAge] = useState(30);
+  const [fireAssets, setFireAssets] = useState(0);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLoaded = useRef(false);
+
+  // Load data on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        window.location.href = '/login'
+        return
+      }
+      supabase
+        .from('user_budget')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setIncome(data.income || 0)
+            setExpenses(data.expenses || { housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0 })
+            setFireAge(data.fire_age || 30)
+            setFireAssets(data.fire_assets || 0)
+          }
+          isLoaded.current = true
+        })
+    })
+  }, [])
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!isLoaded.current) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    setSaveStatus("saving")
+    saveTimer.current = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await supabase
+        .from('user_budget')
+        .upsert({
+          user_id: session.user.id,
+          income,
+          expenses,
+          fire_age: fireAge,
+          fire_assets: fireAssets,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' })
+      setSaveStatus("saved")
+      setTimeout(() => setSaveStatus("idle"), 2000)
+    }, 1000)
+  }, [income, expenses, fireAge, fireAssets])
 
   const tabs = [
     { key: "dashboard", label: "📊 Dashboard" },
@@ -280,16 +383,21 @@ export default function Dashboard() {
       <nav className="uf-dash-nav">
         <Link href="/" className="uf-logo">Until<span>Fire</span></Link>
         <div className="uf-tabs">
-          {tabs.map((t) => (
-            <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
-          ))}
+  {tabs.map((t) => (
+    <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
+  ))}
+  <Link href="/expenses" className="uf-tab">💳 Expenses</Link>
+</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12 }}>Saving...</span>}
+          {saveStatus === "saved" && <span style={{ color: "#22d3a5", fontSize: 12 }}>✓ Saved</span>}
+          <UserNav />
         </div>
-        <Link href="/login" style={{ background: "#f97316", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>
       </nav>
 
       <div className="uf-content">
         {tab === "budget" && <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} />}
-        {tab === "fire" && <FIRETab income={income} expenses={expenses} />}
+        {tab === "fire" && <FIRETab income={income} expenses={expenses} fireAge={fireAge} setFireAge={setFireAge} fireAssets={fireAssets} setFireAssets={setFireAssets} />}
         {tab === "dashboard" && <DashTab income={income} expenses={expenses} />}
       </div>
     </>

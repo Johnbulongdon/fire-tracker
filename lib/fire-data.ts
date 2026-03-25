@@ -1,0 +1,521 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// CITY DATABASE — 263 cities worldwide
+// col = estimated annual living expenses in USD
+// state = key into STATE_TAX for local tax rate
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface City {
+  name: string;
+  key: string;
+  col: number;      // annual USD expenses
+  state: string;    // tax key
+  flag: string;
+}
+
+export const CITIES: City[] = [
+  // ── UNITED STATES ── California
+  { name: 'San Francisco, CA',    key: 'sf',            col: 110000, state: 'ca',     flag: '🇺🇸' },
+  { name: 'Los Angeles, CA',      key: 'la',            col: 88000,  state: 'ca',     flag: '🇺🇸' },
+  { name: 'San Diego, CA',        key: 'sandiego',      col: 78000,  state: 'ca',     flag: '🇺🇸' },
+  { name: 'San Jose, CA',         key: 'sanjose',       col: 96000,  state: 'ca',     flag: '🇺🇸' },
+  { name: 'Sacramento, CA',       key: 'sacramento',    col: 64000,  state: 'ca',     flag: '🇺🇸' },
+  { name: 'Oakland, CA',          key: 'oakland',       col: 84000,  state: 'ca',     flag: '🇺🇸' },
+  { name: 'Fresno, CA',           key: 'fresno',        col: 46000,  state: 'ca',     flag: '🇺🇸' },
+  { name: 'Long Beach, CA',       key: 'longbeach',     col: 82000,  state: 'ca',     flag: '🇺🇸' },
+  // New York
+  { name: 'New York City, NY',    key: 'nyc',           col: 95000,  state: 'nyc',    flag: '🇺🇸' },
+  { name: 'Brooklyn, NY',         key: 'brooklyn',      col: 82000,  state: 'nyc',    flag: '🇺🇸' },
+  { name: 'Buffalo, NY',          key: 'buffalo',       col: 46000,  state: 'ny',     flag: '🇺🇸' },
+  { name: 'Albany, NY',           key: 'albany',        col: 52000,  state: 'ny',     flag: '🇺🇸' },
+  // Texas
+  { name: 'Austin, TX',           key: 'austin',        col: 55000,  state: 'tx',     flag: '🇺🇸' },
+  { name: 'Dallas, TX',           key: 'dallas',        col: 52000,  state: 'tx',     flag: '🇺🇸' },
+  { name: 'Houston, TX',          key: 'houston',       col: 50000,  state: 'tx',     flag: '🇺🇸' },
+  { name: 'San Antonio, TX',      key: 'sanantonio',    col: 46000,  state: 'tx',     flag: '🇺🇸' },
+  { name: 'Fort Worth, TX',       key: 'fortworth',     col: 50000,  state: 'tx',     flag: '🇺🇸' },
+  { name: 'El Paso, TX',          key: 'elpaso',        col: 38000,  state: 'tx',     flag: '🇺🇸' },
+  { name: 'Plano, TX',            key: 'plano',         col: 54000,  state: 'tx',     flag: '🇺🇸' },
+  // Florida
+  { name: 'Miami, FL',            key: 'miami',         col: 68000,  state: 'fl',     flag: '🇺🇸' },
+  { name: 'Orlando, FL',          key: 'orlando',       col: 48000,  state: 'fl',     flag: '🇺🇸' },
+  { name: 'Tampa, FL',            key: 'tampa',         col: 50000,  state: 'fl',     flag: '🇺🇸' },
+  { name: 'Jacksonville, FL',     key: 'jacksonville',  col: 46000,  state: 'fl',     flag: '🇺🇸' },
+  { name: 'Fort Lauderdale, FL',  key: 'fortlauderdale',col: 60000,  state: 'fl',     flag: '🇺🇸' },
+  { name: 'St. Petersburg, FL',   key: 'stpete',        col: 48000,  state: 'fl',     flag: '🇺🇸' },
+  { name: 'Sarasota, FL',         key: 'sarasota',      col: 52000,  state: 'fl',     flag: '🇺🇸' },
+  // Pacific Northwest
+  { name: 'Seattle, WA',          key: 'seattle',       col: 82000,  state: 'wa',     flag: '🇺🇸' },
+  { name: 'Portland, OR',         key: 'portland',      col: 60000,  state: 'or',     flag: '🇺🇸' },
+  { name: 'Spokane, WA',          key: 'spokane',       col: 44000,  state: 'wa',     flag: '🇺🇸' },
+  { name: 'Tacoma, WA',           key: 'tacoma',        col: 60000,  state: 'wa',     flag: '🇺🇸' },
+  { name: 'Eugene, OR',           key: 'eugene',        col: 46000,  state: 'or',     flag: '🇺🇸' },
+  // Mountain West
+  { name: 'Denver, CO',           key: 'denver',        col: 62000,  state: 'co',     flag: '🇺🇸' },
+  { name: 'Boulder, CO',          key: 'boulder',       col: 70000,  state: 'co',     flag: '🇺🇸' },
+  { name: 'Colorado Springs, CO', key: 'cosprings',     col: 48000,  state: 'co',     flag: '🇺🇸' },
+  { name: 'Salt Lake City, UT',   key: 'slc',           col: 54000,  state: 'ut',     flag: '🇺🇸' },
+  { name: 'Provo, UT',            key: 'provo',         col: 46000,  state: 'ut',     flag: '🇺🇸' },
+  { name: 'Boise, ID',            key: 'boise',         col: 52000,  state: 'id',     flag: '🇺🇸' },
+  { name: 'Phoenix, AZ',          key: 'phoenix',       col: 52000,  state: 'az',     flag: '🇺🇸' },
+  { name: 'Tucson, AZ',           key: 'tucson',        col: 44000,  state: 'az',     flag: '🇺🇸' },
+  { name: 'Scottsdale, AZ',       key: 'scottsdale',    col: 62000,  state: 'az',     flag: '🇺🇸' },
+  { name: 'Las Vegas, NV',        key: 'lasvegas',      col: 52000,  state: 'nv',     flag: '🇺🇸' },
+  { name: 'Reno, NV',             key: 'reno',          col: 54000,  state: 'nv',     flag: '🇺🇸' },
+  { name: 'Albuquerque, NM',      key: 'albuquerque',   col: 44000,  state: 'nm',     flag: '🇺🇸' },
+  { name: 'Santa Fe, NM',         key: 'santafe',       col: 52000,  state: 'nm',     flag: '🇺🇸' },
+  // Southeast
+  { name: 'Atlanta, GA',          key: 'atlanta',       col: 54000,  state: 'ga',     flag: '🇺🇸' },
+  { name: 'Savannah, GA',         key: 'savannah',      col: 46000,  state: 'ga',     flag: '🇺🇸' },
+  { name: 'Charlotte, NC',        key: 'charlotte',     col: 50000,  state: 'nc',     flag: '🇺🇸' },
+  { name: 'Raleigh, NC',          key: 'raleigh',       col: 48000,  state: 'nc',     flag: '🇺🇸' },
+  { name: 'Asheville, NC',        key: 'asheville',     col: 48000,  state: 'nc',     flag: '🇺🇸' },
+  { name: 'Nashville, TN',        key: 'nashville',     col: 52000,  state: 'tn',     flag: '🇺🇸' },
+  { name: 'Memphis, TN',          key: 'memphis',       col: 42000,  state: 'tn',     flag: '🇺🇸' },
+  { name: 'Chattanooga, TN',      key: 'chattanooga',   col: 44000,  state: 'tn',     flag: '🇺🇸' },
+  { name: 'New Orleans, LA',      key: 'neworleans',    col: 48000,  state: 'la',     flag: '🇺🇸' },
+  { name: 'Baton Rouge, LA',      key: 'batonrouge',    col: 44000,  state: 'la',     flag: '🇺🇸' },
+  { name: 'Richmond, VA',         key: 'richmond',      col: 50000,  state: 'va',     flag: '🇺🇸' },
+  { name: 'Virginia Beach, VA',   key: 'vabeach',       col: 52000,  state: 'va',     flag: '🇺🇸' },
+  { name: 'Charleston, SC',       key: 'charleston',    col: 52000,  state: 'sc',     flag: '🇺🇸' },
+  { name: 'Columbia, SC',         key: 'columbia_sc',   col: 42000,  state: 'sc',     flag: '🇺🇸' },
+  { name: 'Birmingham, AL',       key: 'birmingham',    col: 40000,  state: 'al',     flag: '🇺🇸' },
+  { name: 'Huntsville, AL',       key: 'huntsville',    col: 42000,  state: 'al',     flag: '🇺🇸' },
+  { name: 'Jackson, MS',          key: 'jackson_ms',    col: 38000,  state: 'ms',     flag: '🇺🇸' },
+  { name: 'Little Rock, AR',      key: 'littlerock',    col: 40000,  state: 'ar_us',  flag: '🇺🇸' },
+  // Midwest
+  { name: 'Chicago, IL',          key: 'chicago',       col: 62000,  state: 'il',     flag: '🇺🇸' },
+  { name: 'Minneapolis, MN',      key: 'minneapolis',   col: 58000,  state: 'mn',     flag: '🇺🇸' },
+  { name: 'Columbus, OH',         key: 'columbus',      col: 44000,  state: 'oh',     flag: '🇺🇸' },
+  { name: 'Cleveland, OH',        key: 'cleveland',     col: 40000,  state: 'oh',     flag: '🇺🇸' },
+  { name: 'Cincinnati, OH',       key: 'cincinnati',    col: 44000,  state: 'oh',     flag: '🇺🇸' },
+  { name: 'Kansas City, MO',      key: 'kansascity',    col: 44000,  state: 'mo',     flag: '🇺🇸' },
+  { name: 'St. Louis, MO',        key: 'stlouis',       col: 42000,  state: 'mo',     flag: '🇺🇸' },
+  { name: 'Detroit, MI',          key: 'detroit',       col: 42000,  state: 'mi',     flag: '🇺🇸' },
+  { name: 'Grand Rapids, MI',     key: 'grandrapids',   col: 44000,  state: 'mi',     flag: '🇺🇸' },
+  { name: 'Indianapolis, IN',     key: 'indianapolis',  col: 42000,  state: 'in_us',  flag: '🇺🇸' },
+  { name: 'Milwaukee, WI',        key: 'milwaukee',     col: 46000,  state: 'wi',     flag: '🇺🇸' },
+  { name: 'Madison, WI',          key: 'madison',       col: 50000,  state: 'wi',     flag: '🇺🇸' },
+  { name: 'Omaha, NE',            key: 'omaha',         col: 42000,  state: 'ne',     flag: '🇺🇸' },
+  { name: 'Des Moines, IA',       key: 'desmoines',     col: 42000,  state: 'ia',     flag: '🇺🇸' },
+  { name: 'Sioux Falls, SD',      key: 'siouxfalls',    col: 40000,  state: 'sd',     flag: '🇺🇸' },
+  { name: 'Fargo, ND',            key: 'fargo',         col: 42000,  state: 'nd',     flag: '🇺🇸' },
+  { name: 'Oklahoma City, OK',    key: 'okc',           col: 40000,  state: 'ok',     flag: '🇺🇸' },
+  { name: 'Tulsa, OK',            key: 'tulsa',         col: 38000,  state: 'ok',     flag: '🇺🇸' },
+  { name: 'Wichita, KS',          key: 'wichita',       col: 40000,  state: 'ks',     flag: '🇺🇸' },
+  // Northeast
+  { name: 'Boston, MA',           key: 'boston',        col: 78000,  state: 'ma',     flag: '🇺🇸' },
+  { name: 'Cambridge, MA',        key: 'cambridge',     col: 82000,  state: 'ma',     flag: '🇺🇸' },
+  { name: 'Providence, RI',       key: 'providence',    col: 56000,  state: 'ri',     flag: '🇺🇸' },
+  { name: 'Hartford, CT',         key: 'hartford',      col: 60000,  state: 'ct',     flag: '🇺🇸' },
+  { name: 'New Haven, CT',        key: 'newhaven',      col: 58000,  state: 'ct',     flag: '🇺🇸' },
+  { name: 'Philadelphia, PA',     key: 'philadelphia',  col: 60000,  state: 'pa',     flag: '🇺🇸' },
+  { name: 'Pittsburgh, PA',       key: 'pittsburgh',    col: 48000,  state: 'pa',     flag: '🇺🇸' },
+  { name: 'Washington DC',        key: 'dc',            col: 80000,  state: 'dc',     flag: '🇺🇸' },
+  { name: 'Baltimore, MD',        key: 'baltimore',     col: 60000,  state: 'md',     flag: '🇺🇸' },
+  { name: 'Bethesda, MD',         key: 'bethesda',      col: 88000,  state: 'md',     flag: '🇺🇸' },
+  { name: 'Newark, NJ',           key: 'newark',        col: 68000,  state: 'nj',     flag: '🇺🇸' },
+  { name: 'Jersey City, NJ',      key: 'jerseycity',    col: 76000,  state: 'nj',     flag: '🇺🇸' },
+  { name: 'Hoboken, NJ',          key: 'hoboken',       col: 80000,  state: 'nj',     flag: '🇺🇸' },
+  { name: 'Burlington, VT',       key: 'burlington',    col: 54000,  state: 'vt',     flag: '🇺🇸' },
+  { name: 'Portland, ME',         key: 'portland_me',   col: 54000,  state: 'me',     flag: '🇺🇸' },
+  { name: 'Concord, NH',          key: 'concord_nh',    col: 56000,  state: 'nh',     flag: '🇺🇸' },
+  // ── CHINA
+  { name: 'Shanghai, China',      key: 'shanghai',      col: 32000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Beijing, China',       key: 'beijing',       col: 30000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Shenzhen, China',      key: 'shenzhen',      col: 28000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Guangzhou, China',     key: 'guangzhou',     col: 26000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Chengdu, China',       key: 'chengdu',       col: 20000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Hangzhou, China',      key: 'hangzhou',      col: 24000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Nanjing, China',       key: 'nanjing',       col: 22000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Wuhan, China',         key: 'wuhan',         col: 20000,  state: 'cn',     flag: '🇨🇳' },
+  { name: "Xi'an, China",         key: 'xian',          col: 18000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Chongqing, China',     key: 'chongqing',     col: 18000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Suzhou, China',        key: 'suzhou',        col: 22000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Tianjin, China',       key: 'tianjin',       col: 20000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Qingdao, China',       key: 'qingdao',       col: 20000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Xiamen, China',        key: 'xiamen',        col: 22000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Kunming, China',       key: 'kunming',       col: 16000,  state: 'cn',     flag: '🇨🇳' },
+  { name: 'Sanya, China',         key: 'sanya',         col: 20000,  state: 'cn',     flag: '🇨🇳' },
+  // ── INDIA
+  { name: 'Mumbai, India',        key: 'mumbai',        col: 12000,  state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Bangalore, India',     key: 'bangalore',     col: 11000,  state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Delhi, India',         key: 'delhi',         col: 10000,  state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Hyderabad, India',     key: 'hyderabad',     col: 10000,  state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Chennai, India',       key: 'chennai',       col: 10000,  state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Pune, India',          key: 'pune',          col: 9000,   state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Kolkata, India',       key: 'kolkata',       col: 8000,   state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Ahmedabad, India',     key: 'ahmedabad',     col: 8000,   state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Jaipur, India',        key: 'jaipur',        col: 7000,   state: 'in_ind', flag: '🇮🇳' },
+  { name: 'Goa, India',           key: 'goa',           col: 10000,  state: 'in_ind', flag: '🇮🇳' },
+  // ── SOUTHEAST ASIA
+  { name: 'Singapore',            key: 'singapore',     col: 72000,  state: 'sg',     flag: '🇸🇬' },
+  { name: 'Bangkok, Thailand',    key: 'bangkok',       col: 22000,  state: 'th',     flag: '🇹🇭' },
+  { name: 'Chiang Mai, Thailand', key: 'chiangmai',     col: 16000,  state: 'th',     flag: '🇹🇭' },
+  { name: 'Phuket, Thailand',     key: 'phuket',        col: 20000,  state: 'th',     flag: '🇹🇭' },
+  { name: 'Pattaya, Thailand',    key: 'pattaya',       col: 16000,  state: 'th',     flag: '🇹🇭' },
+  { name: 'Kuala Lumpur, Malaysia',key:'kualalumpur',   col: 20000,  state: 'my',     flag: '🇲🇾' },
+  { name: 'Penang, Malaysia',     key: 'penang',        col: 16000,  state: 'my',     flag: '🇲🇾' },
+  { name: 'Ho Chi Minh City, Vietnam', key: 'hcmc',     col: 12000,  state: 'vn',     flag: '🇻🇳' },
+  { name: 'Hanoi, Vietnam',       key: 'hanoi',         col: 12000,  state: 'vn',     flag: '🇻🇳' },
+  { name: 'Da Nang, Vietnam',     key: 'danang',        col: 10000,  state: 'vn',     flag: '🇻🇳' },
+  { name: 'Bali, Indonesia',      key: 'bali',          col: 14000,  state: 'id_idn', flag: '🇮🇩' },
+  { name: 'Jakarta, Indonesia',   key: 'jakarta',       col: 16000,  state: 'id_idn', flag: '🇮🇩' },
+  { name: 'Manila, Philippines',  key: 'manila',        col: 12000,  state: 'ph',     flag: '🇵🇭' },
+  { name: 'Cebu, Philippines',    key: 'cebu',          col: 10000,  state: 'ph',     flag: '🇵🇭' },
+  { name: 'Phnom Penh, Cambodia', key: 'phnompenh',     col: 10000,  state: 'kh',     flag: '🇰🇭' },
+  // ── JAPAN & KOREA
+  { name: 'Tokyo, Japan',         key: 'tokyo',         col: 58000,  state: 'jp',     flag: '🇯🇵' },
+  { name: 'Osaka, Japan',         key: 'osaka',         col: 48000,  state: 'jp',     flag: '🇯🇵' },
+  { name: 'Kyoto, Japan',         key: 'kyoto',         col: 46000,  state: 'jp',     flag: '🇯🇵' },
+  { name: 'Fukuoka, Japan',       key: 'fukuoka',       col: 40000,  state: 'jp',     flag: '🇯🇵' },
+  { name: 'Sapporo, Japan',       key: 'sapporo',       col: 38000,  state: 'jp',     flag: '🇯🇵' },
+  { name: 'Nagoya, Japan',        key: 'nagoya',        col: 44000,  state: 'jp',     flag: '🇯🇵' },
+  { name: 'Seoul, South Korea',   key: 'seoul',         col: 38000,  state: 'kr',     flag: '🇰🇷' },
+  { name: 'Busan, South Korea',   key: 'busan',         col: 32000,  state: 'kr',     flag: '🇰🇷' },
+  { name: 'Taipei, Taiwan',       key: 'taipei',        col: 28000,  state: 'tw',     flag: '🇹🇼' },
+  { name: 'Hong Kong',            key: 'hongkong',      col: 80000,  state: 'hk',     flag: '🇭🇰' },
+  { name: 'Macau',                key: 'macau',         col: 36000,  state: 'hk',     flag: '🇲🇴' },
+  // ── MIDDLE EAST
+  { name: 'Dubai, UAE',           key: 'dubai',         col: 60000,  state: 'ae',     flag: '🇦🇪' },
+  { name: 'Abu Dhabi, UAE',       key: 'abudhabi',      col: 64000,  state: 'ae',     flag: '🇦🇪' },
+  { name: 'Riyadh, Saudi Arabia', key: 'riyadh',        col: 36000,  state: 'sa',     flag: '🇸🇦' },
+  { name: 'Doha, Qatar',          key: 'doha',          col: 44000,  state: 'qa',     flag: '🇶🇦' },
+  { name: 'Tel Aviv, Israel',     key: 'telaviv',       col: 52000,  state: 'il_isr', flag: '🇮🇱' },
+  { name: 'Istanbul, Turkey',     key: 'istanbul',      col: 18000,  state: 'tr',     flag: '🇹🇷' },
+  { name: 'Ankara, Turkey',       key: 'ankara',        col: 14000,  state: 'tr',     flag: '🇹🇷' },
+  // ── UK
+  { name: 'London, UK',           key: 'london',        col: 80000,  state: 'uk',     flag: '🇬🇧' },
+  { name: 'Manchester, UK',       key: 'manchester',    col: 54000,  state: 'uk',     flag: '🇬🇧' },
+  { name: 'Edinburgh, UK',        key: 'edinburgh',     col: 52000,  state: 'uk',     flag: '🇬🇧' },
+  { name: 'Bristol, UK',          key: 'bristol',       col: 52000,  state: 'uk',     flag: '🇬🇧' },
+  { name: 'Birmingham, UK',       key: 'birmingham_uk', col: 48000,  state: 'uk',     flag: '🇬🇧' },
+  { name: 'Leeds, UK',            key: 'leeds',         col: 46000,  state: 'uk',     flag: '🇬🇧' },
+  { name: 'Glasgow, UK',          key: 'glasgow',       col: 44000,  state: 'uk',     flag: '🇬🇧' },
+  { name: 'Brighton, UK',         key: 'brighton',      col: 54000,  state: 'uk',     flag: '🇬🇧' },
+  // ── WESTERN EUROPE
+  { name: 'Paris, France',        key: 'paris',         col: 68000,  state: 'fr',     flag: '🇫🇷' },
+  { name: 'Lyon, France',         key: 'lyon',          col: 48000,  state: 'fr',     flag: '🇫🇷' },
+  { name: 'Nice, France',         key: 'nice',          col: 52000,  state: 'fr',     flag: '🇫🇷' },
+  { name: 'Bordeaux, France',     key: 'bordeaux',      col: 44000,  state: 'fr',     flag: '🇫🇷' },
+  { name: 'Berlin, Germany',      key: 'berlin',        col: 48000,  state: 'de',     flag: '🇩🇪' },
+  { name: 'Munich, Germany',      key: 'munich',        col: 62000,  state: 'de',     flag: '🇩🇪' },
+  { name: 'Hamburg, Germany',     key: 'hamburg',       col: 52000,  state: 'de',     flag: '🇩🇪' },
+  { name: 'Frankfurt, Germany',   key: 'frankfurt',     col: 54000,  state: 'de',     flag: '🇩🇪' },
+  { name: 'Cologne, Germany',     key: 'cologne',       col: 48000,  state: 'de',     flag: '🇩🇪' },
+  { name: 'Düsseldorf, Germany',  key: 'dusseldorf',    col: 50000,  state: 'de',     flag: '🇩🇪' },
+  { name: 'Amsterdam, Netherlands',key:'amsterdam',     col: 62000,  state: 'nl',     flag: '🇳🇱' },
+  { name: 'Rotterdam, Netherlands',key:'rotterdam',     col: 54000,  state: 'nl',     flag: '🇳🇱' },
+  { name: 'Barcelona, Spain',     key: 'barcelona',     col: 44000,  state: 'es',     flag: '🇪🇸' },
+  { name: 'Madrid, Spain',        key: 'madrid',        col: 42000,  state: 'es',     flag: '🇪🇸' },
+  { name: 'Valencia, Spain',      key: 'valencia',      col: 36000,  state: 'es',     flag: '🇪🇸' },
+  { name: 'Seville, Spain',       key: 'seville',       col: 34000,  state: 'es',     flag: '🇪🇸' },
+  { name: 'Málaga, Spain',        key: 'malaga',        col: 32000,  state: 'es',     flag: '🇪🇸' },
+  { name: 'Lisbon, Portugal',     key: 'lisbon',        col: 36000,  state: 'pt',     flag: '🇵🇹' },
+  { name: 'Porto, Portugal',      key: 'porto',         col: 32000,  state: 'pt',     flag: '🇵🇹' },
+  { name: 'Faro, Portugal',       key: 'faro',          col: 28000,  state: 'pt',     flag: '🇵🇹' },
+  { name: 'Dublin, Ireland',      key: 'dublin',        col: 68000,  state: 'ie',     flag: '🇮🇪' },
+  { name: 'Cork, Ireland',        key: 'cork',          col: 52000,  state: 'ie',     flag: '🇮🇪' },
+  { name: 'Zurich, Switzerland',  key: 'zurich',        col: 100000, state: 'ch',     flag: '🇨🇭' },
+  { name: 'Geneva, Switzerland',  key: 'geneva',        col: 98000,  state: 'ch',     flag: '🇨🇭' },
+  { name: 'Basel, Switzerland',   key: 'basel',         col: 90000,  state: 'ch',     flag: '🇨🇭' },
+  { name: 'Stockholm, Sweden',    key: 'stockholm',     col: 58000,  state: 'se',     flag: '🇸🇪' },
+  { name: 'Gothenburg, Sweden',   key: 'gothenburg',    col: 52000,  state: 'se',     flag: '🇸🇪' },
+  { name: 'Malmö, Sweden',        key: 'malmo',         col: 48000,  state: 'se',     flag: '🇸🇪' },
+  { name: 'Copenhagen, Denmark',  key: 'copenhagen',    col: 62000,  state: 'dk',     flag: '🇩🇰' },
+  { name: 'Oslo, Norway',         key: 'oslo',          col: 72000,  state: 'no',     flag: '🇳🇴' },
+  { name: 'Bergen, Norway',       key: 'bergen',        col: 64000,  state: 'no',     flag: '🇳🇴' },
+  { name: 'Helsinki, Finland',    key: 'helsinki',      col: 56000,  state: 'fi',     flag: '🇫🇮' },
+  { name: 'Vienna, Austria',      key: 'vienna',        col: 50000,  state: 'at',     flag: '🇦🇹' },
+  { name: 'Graz, Austria',        key: 'graz',          col: 44000,  state: 'at',     flag: '🇦🇹' },
+  { name: 'Brussels, Belgium',    key: 'brussels',      col: 58000,  state: 'be',     flag: '🇧🇪' },
+  { name: 'Antwerp, Belgium',     key: 'antwerp',       col: 52000,  state: 'be',     flag: '🇧🇪' },
+  { name: 'Milan, Italy',         key: 'milan',         col: 48000,  state: 'it',     flag: '🇮🇹' },
+  { name: 'Rome, Italy',          key: 'rome',          col: 44000,  state: 'it',     flag: '🇮🇹' },
+  { name: 'Florence, Italy',      key: 'florence',      col: 42000,  state: 'it',     flag: '🇮🇹' },
+  { name: 'Naples, Italy',        key: 'naples',        col: 34000,  state: 'it',     flag: '🇮🇹' },
+  { name: 'Athens, Greece',       key: 'athens',        col: 28000,  state: 'gr',     flag: '🇬🇷' },
+  { name: 'Thessaloniki, Greece', key: 'thessaloniki',  col: 24000,  state: 'gr',     flag: '🇬🇷' },
+  // ── EASTERN EUROPE
+  { name: 'Prague, Czech Republic',  key: 'prague',     col: 30000,  state: 'cz',     flag: '🇨🇿' },
+  { name: 'Brno, Czech Republic',    key: 'brno',       col: 26000,  state: 'cz',     flag: '🇨🇿' },
+  { name: 'Warsaw, Poland',          key: 'warsaw',     col: 28000,  state: 'pl',     flag: '🇵🇱' },
+  { name: 'Kraków, Poland',          key: 'krakow',     col: 24000,  state: 'pl',     flag: '🇵🇱' },
+  { name: 'Budapest, Hungary',       key: 'budapest',   col: 26000,  state: 'hu',     flag: '🇭🇺' },
+  { name: 'Bucharest, Romania',      key: 'bucharest',  col: 20000,  state: 'ro',     flag: '🇷🇴' },
+  { name: 'Sofia, Bulgaria',         key: 'sofia',      col: 18000,  state: 'bg',     flag: '🇧🇬' },
+  { name: 'Belgrade, Serbia',        key: 'belgrade',   col: 18000,  state: 'rs',     flag: '🇷🇸' },
+  { name: 'Zagreb, Croatia',         key: 'zagreb',     col: 24000,  state: 'hr',     flag: '🇭🇷' },
+  { name: 'Ljubljana, Slovenia',     key: 'ljubljana',  col: 28000,  state: 'si',     flag: '🇸🇮' },
+  { name: 'Tallinn, Estonia',        key: 'tallinn',    col: 28000,  state: 'ee',     flag: '🇪🇪' },
+  { name: 'Riga, Latvia',            key: 'riga',       col: 24000,  state: 'lv',     flag: '🇱🇻' },
+  { name: 'Vilnius, Lithuania',      key: 'vilnius',    col: 24000,  state: 'lt',     flag: '🇱🇹' },
+  // ── CANADA
+  { name: 'Toronto, Canada',         key: 'toronto',    col: 68000,  state: 'ca_on',  flag: '🇨🇦' },
+  { name: 'Vancouver, Canada',       key: 'vancouver',  col: 72000,  state: 'ca_bc',  flag: '🇨🇦' },
+  { name: 'Montreal, Canada',        key: 'montreal',   col: 52000,  state: 'ca_qc',  flag: '🇨🇦' },
+  { name: 'Calgary, Canada',         key: 'calgary',    col: 56000,  state: 'ca_ab',  flag: '🇨🇦' },
+  { name: 'Ottawa, Canada',          key: 'ottawa',     col: 56000,  state: 'ca_on',  flag: '🇨🇦' },
+  { name: 'Edmonton, Canada',        key: 'edmonton',   col: 52000,  state: 'ca_ab',  flag: '🇨🇦' },
+  { name: 'Winnipeg, Canada',        key: 'winnipeg',   col: 46000,  state: 'ca_mb',  flag: '🇨🇦' },
+  { name: 'Halifax, Canada',         key: 'halifax',    col: 44000,  state: 'ca_ns',  flag: '🇨🇦' },
+  // ── AUSTRALIA & NZ
+  { name: 'Sydney, Australia',       key: 'sydney',     col: 72000,  state: 'au',     flag: '🇦🇺' },
+  { name: 'Melbourne, Australia',    key: 'melbourne',  col: 66000,  state: 'au',     flag: '🇦🇺' },
+  { name: 'Brisbane, Australia',     key: 'brisbane',   col: 58000,  state: 'au',     flag: '🇦🇺' },
+  { name: 'Perth, Australia',        key: 'perth',      col: 60000,  state: 'au',     flag: '🇦🇺' },
+  { name: 'Adelaide, Australia',     key: 'adelaide',   col: 54000,  state: 'au',     flag: '🇦🇺' },
+  { name: 'Gold Coast, Australia',   key: 'goldcoast',  col: 58000,  state: 'au',     flag: '🇦🇺' },
+  { name: 'Auckland, New Zealand',   key: 'auckland',   col: 60000,  state: 'nz',     flag: '🇳🇿' },
+  { name: 'Wellington, New Zealand', key: 'wellington', col: 56000,  state: 'nz',     flag: '🇳🇿' },
+  { name: 'Christchurch, New Zealand',key:'christchurch',col:48000,  state: 'nz',     flag: '🇳🇿' },
+  // ── LATIN AMERICA
+  { name: 'Mexico City, Mexico',     key: 'mexicocity',      col: 18000, state: 'mx',     flag: '🇲🇽' },
+  { name: 'Guadalajara, Mexico',     key: 'guadalajara',     col: 14000, state: 'mx',     flag: '🇲🇽' },
+  { name: 'Monterrey, Mexico',       key: 'monterrey',       col: 16000, state: 'mx',     flag: '🇲🇽' },
+  { name: 'Playa del Carmen, Mexico',key: 'playadelcarmen',  col: 16000, state: 'mx',     flag: '🇲🇽' },
+  { name: 'Bogotá, Colombia',        key: 'bogota',          col: 12000, state: 'co_col', flag: '🇨🇴' },
+  { name: 'Medellín, Colombia',      key: 'medellin',        col: 10000, state: 'co_col', flag: '🇨🇴' },
+  { name: 'Cartagena, Colombia',     key: 'cartagena',       col: 10000, state: 'co_col', flag: '🇨🇴' },
+  { name: 'Buenos Aires, Argentina', key: 'buenosaires',     col: 8000,  state: 'ar_lat', flag: '🇦🇷' },
+  { name: 'São Paulo, Brazil',       key: 'saopaulo',        col: 14000, state: 'br',     flag: '🇧🇷' },
+  { name: 'Rio de Janeiro, Brazil',  key: 'rio',             col: 13000, state: 'br',     flag: '🇧🇷' },
+  { name: 'Florianópolis, Brazil',   key: 'florianopolis',   col: 12000, state: 'br',     flag: '🇧🇷' },
+  { name: 'Santiago, Chile',         key: 'santiago',        col: 16000, state: 'cl',     flag: '🇨🇱' },
+  { name: 'Lima, Peru',              key: 'lima',            col: 10000, state: 'pe',     flag: '🇵🇪' },
+  { name: 'Montevideo, Uruguay',     key: 'montevideo',      col: 16000, state: 'uy',     flag: '🇺🇾' },
+  { name: 'Panama City, Panama',     key: 'panamacity',      col: 18000, state: 'pa_pan', flag: '🇵🇦' },
+  { name: 'San José, Costa Rica',    key: 'sanjose_cr',      col: 16000, state: 'cr',     flag: '🇨🇷' },
+  // ── AFRICA
+  { name: 'Cape Town, South Africa', key: 'capetown',     col: 18000, state: 'za',     flag: '🇿🇦' },
+  { name: 'Johannesburg, South Africa',key:'johannesburg',col: 16000, state: 'za',     flag: '🇿🇦' },
+  { name: 'Nairobi, Kenya',          key: 'nairobi',      col: 12000, state: 'ke',     flag: '🇰🇪' },
+  { name: 'Lagos, Nigeria',          key: 'lagos',        col: 12000, state: 'ng',     flag: '🇳🇬' },
+  { name: 'Accra, Ghana',            key: 'accra',        col: 10000, state: 'gh',     flag: '🇬🇭' },
+  { name: 'Cairo, Egypt',            key: 'cairo',        col: 10000, state: 'eg',     flag: '🇪🇬' },
+  { name: 'Casablanca, Morocco',     key: 'casablanca',   col: 12000, state: 'ma_mar', flag: '🇲🇦' },
+  // ── DIGITAL NOMAD HOTSPOTS
+  { name: 'Tbilisi, Georgia',        key: 'tbilisi',      col: 12000, state: 'ge',     flag: '🇬🇪' },
+  { name: 'Split, Croatia',          key: 'split',        col: 22000, state: 'hr',     flag: '🇭🇷' },
+  { name: 'Madeira, Portugal',       key: 'madeira',      col: 26000, state: 'pt',     flag: '🇵🇹' },
+  { name: 'Canary Islands, Spain',   key: 'canary',       col: 28000, state: 'es',     flag: '🇪🇸' },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAX RATES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TaxInfo { rate: number; label: string; }
+
+export const STATE_TAX: Record<string, TaxInfo> = {
+  // US – no income tax
+  tx:  { rate: 0,      label: 'Texas — no state income tax' },
+  fl:  { rate: 0,      label: 'Florida — no state income tax' },
+  tn:  { rate: 0,      label: 'Tennessee — no state income tax' },
+  wa:  { rate: 0,      label: 'Washington — no state income tax' },
+  nv:  { rate: 0,      label: 'Nevada — no state income tax' },
+  sd:  { rate: 0,      label: 'South Dakota — no state income tax' },
+  nh:  { rate: 0,      label: 'New Hampshire — no income tax on wages' },
+  // US – flat / effective
+  co:  { rate: 0.044,  label: 'Colorado — 4.40% flat' },
+  nc:  { rate: 0.045,  label: 'North Carolina — 4.50% flat' },
+  ma:  { rate: 0.05,   label: 'Massachusetts — 5.00% flat' },
+  ga:  { rate: 0.0549, label: 'Georgia — 5.49% flat' },
+  mi:  { rate: 0.0425, label: 'Michigan — 4.25% flat' },
+  in_us:{ rate: 0.0305,label: 'Indiana — 3.05% flat' },
+  az:  { rate: 0.025,  label: 'Arizona — 2.50% flat' },
+  ut:  { rate: 0.0465, label: 'Utah — 4.65% flat' },
+  pa:  { rate: 0.0307, label: 'Pennsylvania — 3.07% flat' },
+  il:  { rate: 0.0495, label: 'Illinois — 4.95% flat' },
+  ms:  { rate: 0.05,   label: 'Mississippi — 5.0% flat' },
+  or:  { rate: 0.0875, label: 'Oregon — ~8.75% effective' },
+  ca:  { rate: 0.072,  label: 'California — ~7.20% effective' },
+  nyc: { rate: 0.1021, label: 'NY State + NYC city tax' },
+  ny:  { rate: 0.0633, label: 'New York State — ~6.33% effective' },
+  mn:  { rate: 0.0685, label: 'Minnesota — ~6.85% effective' },
+  oh:  { rate: 0.0399, label: 'Ohio — ~3.99% effective' },
+  mo:  { rate: 0.048,  label: 'Missouri — ~4.80% effective' },
+  wi:  { rate: 0.065,  label: 'Wisconsin — ~6.50% effective' },
+  ne:  { rate: 0.0584, label: 'Nebraska — ~5.84% effective' },
+  dc:  { rate: 0.085,  label: 'Washington DC — ~8.50% effective' },
+  md:  { rate: 0.06,   label: 'Maryland — ~6.00% effective' },
+  ct:  { rate: 0.065,  label: 'Connecticut — ~6.50% effective' },
+  ri:  { rate: 0.0599, label: 'Rhode Island — ~5.99% effective' },
+  va:  { rate: 0.0575, label: 'Virginia — 5.75% top rate' },
+  la:  { rate: 0.0425, label: 'Louisiana — ~4.25% effective' },
+  id:  { rate: 0.058,  label: 'Idaho — ~5.80% effective' },
+  nm:  { rate: 0.049,  label: 'New Mexico — ~4.90% effective' },
+  sc:  { rate: 0.07,   label: 'South Carolina — ~7.0% effective' },
+  al:  { rate: 0.05,   label: 'Alabama — ~5.0% effective' },
+  ar_us:{ rate:0.047,  label: 'Arkansas — ~4.7% effective' },
+  ia:  { rate: 0.06,   label: 'Iowa — ~6.0% effective' },
+  nd:  { rate: 0.027,  label: 'North Dakota — ~2.7% effective' },
+  ok:  { rate: 0.045,  label: 'Oklahoma — ~4.5% effective' },
+  ks:  { rate: 0.053,  label: 'Kansas — ~5.3% effective' },
+  vt:  { rate: 0.066,  label: 'Vermont — ~6.6% effective' },
+  me:  { rate: 0.072,  label: 'Maine — ~7.2% effective' },
+  nj:  { rate: 0.063,  label: 'New Jersey — ~6.3% effective' },
+  // International
+  ae:  { rate: 0,      label: 'UAE — no personal income tax' },
+  sa:  { rate: 0,      label: 'Saudi Arabia — no personal income tax' },
+  qa:  { rate: 0,      label: 'Qatar — no personal income tax' },
+  jp:  { rate: 0.18,   label: 'Japan — ~18% effective' },
+  uk:  { rate: 0.20,   label: 'UK — ~20% effective' },
+  de:  { rate: 0.22,   label: 'Germany — ~22% effective' },
+  nl:  { rate: 0.25,   label: 'Netherlands — ~25% effective' },
+  fr:  { rate: 0.24,   label: 'France — ~24% effective' },
+  es:  { rate: 0.18,   label: 'Spain — ~18% effective' },
+  pt:  { rate: 0.15,   label: 'Portugal — ~15% effective' },
+  ie:  { rate: 0.20,   label: 'Ireland — ~20% effective' },
+  ch:  { rate: 0.20,   label: 'Switzerland — ~20% effective' },
+  se:  { rate: 0.30,   label: 'Sweden — ~30% effective' },
+  dk:  { rate: 0.35,   label: 'Denmark — ~35% effective' },
+  no:  { rate: 0.28,   label: 'Norway — ~28% effective' },
+  at:  { rate: 0.22,   label: 'Austria — ~22% effective' },
+  fi:  { rate: 0.30,   label: 'Finland — ~30% effective' },
+  be:  { rate: 0.32,   label: 'Belgium — ~32% effective' },
+  it:  { rate: 0.25,   label: 'Italy — ~25% effective' },
+  gr:  { rate: 0.22,   label: 'Greece — ~22% effective' },
+  cz:  { rate: 0.15,   label: 'Czech Republic — 15% flat' },
+  pl:  { rate: 0.12,   label: 'Poland — 12% lower bracket' },
+  hu:  { rate: 0.15,   label: 'Hungary — 15% flat' },
+  ro:  { rate: 0.10,   label: 'Romania — 10% flat' },
+  bg:  { rate: 0.10,   label: 'Bulgaria — 10% flat' },
+  rs:  { rate: 0.10,   label: 'Serbia — 10% flat' },
+  hr:  { rate: 0.20,   label: 'Croatia — ~20% effective' },
+  si:  { rate: 0.20,   label: 'Slovenia — ~20% effective' },
+  ee:  { rate: 0.20,   label: 'Estonia — 20% flat' },
+  lv:  { rate: 0.20,   label: 'Latvia — 20% flat' },
+  lt:  { rate: 0.20,   label: 'Lithuania — 20% flat' },
+  sg:  { rate: 0.10,   label: 'Singapore — ~10% effective' },
+  hk:  { rate: 0.12,   label: 'Hong Kong — ~12% effective' },
+  au:  { rate: 0.22,   label: 'Australia — ~22% effective' },
+  nz:  { rate: 0.20,   label: 'New Zealand — ~20% effective' },
+  th:  { rate: 0.05,   label: 'Thailand — ~5% effective' },
+  id_idn:{ rate: 0.05, label: 'Indonesia — ~5% effective' },
+  my:  { rate: 0.08,   label: 'Malaysia — ~8% effective' },
+  vn:  { rate: 0.10,   label: 'Vietnam — ~10% effective' },
+  ph:  { rate: 0.15,   label: 'Philippines — ~15% effective' },
+  kh:  { rate: 0.20,   label: 'Cambodia — 20% flat' },
+  kr:  { rate: 0.15,   label: 'South Korea — ~15% effective' },
+  tw:  { rate: 0.12,   label: 'Taiwan — ~12% effective' },
+  in_ind:{ rate: 0.15, label: 'India — ~15% effective' },
+  cn:  { rate: 0.06,   label: 'China — ~6% effective' },
+  il_isr:{ rate: 0.20, label: 'Israel — ~20% effective' },
+  tr:  { rate: 0.20,   label: 'Turkey — ~20% effective' },
+  ca_on:{ rate: 0.113, label: 'Ontario — ~11.3% effective' },
+  ca_bc:{ rate: 0.102, label: 'British Columbia — ~10.2% effective' },
+  ca_qc:{ rate: 0.149, label: 'Quebec — ~14.9% effective' },
+  ca_ab:{ rate: 0.10,  label: 'Alberta — ~10.0% effective' },
+  ca_mb:{ rate: 0.108, label: 'Manitoba — ~10.8% effective' },
+  ca_ns:{ rate: 0.135, label: 'Nova Scotia — ~13.5% effective' },
+  mx:  { rate: 0.07,   label: 'Mexico — ~7% effective' },
+  co_col:{ rate: 0.08, label: 'Colombia — ~8% effective' },
+  ar_lat:{ rate: 0.10, label: 'Argentina — ~10% effective' },
+  br:  { rate: 0.18,   label: 'Brazil — ~18% effective' },
+  cl:  { rate: 0.10,   label: 'Chile — ~10% effective' },
+  pe:  { rate: 0.15,   label: 'Peru — ~15% effective' },
+  uy:  { rate: 0.12,   label: 'Uruguay — ~12% effective' },
+  pa_pan:{ rate: 0.10, label: 'Panama — ~10% effective' },
+  cr:  { rate: 0.15,   label: 'Costa Rica — ~15% effective' },
+  za:  { rate: 0.18,   label: 'South Africa — ~18% effective' },
+  ke:  { rate: 0.20,   label: 'Kenya — ~20% effective' },
+  ng:  { rate: 0.15,   label: 'Nigeria — ~15% effective' },
+  gh:  { rate: 0.15,   label: 'Ghana — ~15% effective' },
+  eg:  { rate: 0.15,   label: 'Egypt — ~15% effective' },
+  ma_mar:{ rate: 0.15, label: 'Morocco — ~15% effective' },
+  ge:  { rate: 0.20,   label: 'Georgia — 20% flat' },
+};
+
+const US_INTL = new Set([
+  'jp','uk','de','nl','fr','es','pt','ie','ch','se','dk','no','at','fi','be','it','gr',
+  'cz','pl','hu','ro','bg','rs','hr','si','ee','lv','lt',
+  'sg','hk','au','nz','th','id_idn','my','vn','ph','kh','kr','tw','in_ind','cn',
+  'il_isr','tr','ae','sa','qa',
+  'ca_on','ca_bc','ca_qc','ca_ab','ca_mb','ca_ns',
+  'mx','co_col','ar_lat','br','cl','pe','uy','pa_pan','cr',
+  'za','ke','ng','gh','eg','ma_mar','ge',
+]);
+export function isUS(stateKey: string) { return !US_INTL.has(stateKey); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAX CALC
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 2025 US Federal brackets (MFS/single, standard deduction $15,000)
+const BRACKETS = [
+  { l: 11925,  r: 0.10 },
+  { l: 48475,  r: 0.12 },
+  { l: 103350, r: 0.22 },
+  { l: 197300, r: 0.24 },
+  { l: 250525, r: 0.32 },
+  { l: 626350, r: 0.35 },
+  { l: Infinity,r: 0.37 },
+];
+
+function fedTax(gross: number): number {
+  const taxable = Math.max(0, gross - 15000);
+  let tax = 0, prev = 0;
+  for (const b of BRACKETS) {
+    if (taxable <= prev) break;
+    tax += (Math.min(taxable, b.l) - prev) * b.r;
+    prev = b.l;
+  }
+  return Math.round(tax);
+}
+
+function fica(gross: number): number {
+  return Math.round(
+    Math.min(gross, 176100) * 0.062 +
+    gross * 0.0145 +
+    (gross > 200000 ? (gross - 200000) * 0.009 : 0)
+  );
+}
+
+export interface TaxResult {
+  fedTax: number;
+  fica: number;
+  stateTax: number;
+  takeHome: number;
+  effectiveRate: number;
+  stateInfo: TaxInfo;
+  isUSCity: boolean;
+}
+
+export function calcTakeHome(gross: number, stateKey: string): TaxResult {
+  const si = STATE_TAX[stateKey] ?? { rate: 0, label: 'Unknown' };
+  const usCity = isUS(stateKey);
+  if (usCity) {
+    const f = fedTax(gross);
+    const fi = fica(gross);
+    const st = Math.round(gross * si.rate);
+    const th = gross - f - fi - st;
+    return { fedTax: f, fica: fi, stateTax: st, takeHome: th,
+             effectiveRate: ((f + fi + st) / gross) * 100, stateInfo: si, isUSCity: true };
+  } else {
+    const st = Math.round(gross * si.rate);
+    const th = gross - st;
+    return { fedTax: 0, fica: 0, stateTax: st, takeHome: th,
+             effectiveRate: si.rate * 100, stateInfo: si, isUSCity: false };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIRE CALC
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface FIREResult {
+  fireTarget: number;
+  years: number;
+  retireYear: number;
+  age: number;
+}
+
+export function calcFIRE(monthlySavings: number, annualExpenses: number): FIREResult {
+  const target = annualExpenses * 25;
+  let bal = 27400, yrs = 0;
+  while (bal < target && yrs < 65) {
+    bal = bal * 1.07 + monthlySavings * 12;
+    yrs++;
+  }
+  return { fireTarget: target, years: yrs, retireYear: 2026 + yrs, age: 26 + yrs };
+}
