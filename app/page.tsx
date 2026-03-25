@@ -862,6 +862,9 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               <Link href="/dashboard" className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
                 Make this more accurate — it&apos;s free →
               </Link>
+              <Link href="/calculator" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                See full wealth projection + charts →
+              </Link>
 
               {/* SECONDARY CTA — waitlist */}
               <WaitlistInline fireTarget={result.fireTarget} retireYear={result.retireYear} />
