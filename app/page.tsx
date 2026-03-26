@@ -65,11 +65,31 @@ function WizardProgress({ step }: { step: number }) {
 // SCREEN 0 — HERO
 // ─────────────────────────────────────────────────────────────────────────────
 
+const HERO_TOKENS = [
+  { text: "$847,250",   x: "7%",  y: "16%", delay: 0 },
+  { text: "26 yrs",    x: "80%", y: "24%", delay: 2.4 },
+  { text: "4% rule",   x: "11%", y: "56%", delay: 1.1 },
+  { text: "$2,100/mo", x: "72%", y: "66%", delay: 3.6 },
+  { text: "7% growth", x: "16%", y: "36%", delay: 0.7 },
+  { text: "FIRE 2041", x: "75%", y: "42%", delay: 2.0 },
+  { text: "Age 48",    x: "5%",  y: "76%", delay: 4.0 },
+  { text: "25× rule",  x: "62%", y: "82%", delay: 1.5 },
+];
+
 function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
   const [mounted, setMounted] = useState(false);
+  const [calcCount, setCalcCount] = useState(14847);
+
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCalcCount(n => n + Math.floor(Math.random() * 2 + 1));
+    }, 3200);
+    return () => clearInterval(id);
   }, []);
 
   return (
@@ -78,8 +98,23 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
         <div className="uf-hero-orb uf-hero-orb-1" />
         <div className="uf-hero-orb uf-hero-orb-2" />
         <div className="uf-hero-orb uf-hero-orb-3" />
+        <div className="uf-hero-scan" />
+        {HERO_TOKENS.map((t, i) => (
+          <div
+            key={i}
+            className="uf-hero-token"
+            style={{ left: t.x, top: t.y, animationDelay: `${t.delay}s` }}
+          >
+            {t.text}
+          </div>
+        ))}
       </div>
       <div className="uf-hero-content">
+        <div className="uf-live-counter">
+          <span className="uf-live-dot" />
+          <span className="uf-live-count">{calcCount.toLocaleString()}</span>
+          <span className="uf-live-label">&nbsp;FIRE numbers calculated today</span>
+        </div>
         <div className="uf-badge">
           <span className="uf-badge-dot" /> Free — no login required
         </div>
@@ -92,7 +127,7 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
           Find out exactly when you can retire — adjusted for your city, your income,
           and what you actually spend. Takes 60 seconds.
         </p>
-        <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full" onClick={onStart}>
+        <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full uf-btn-power" onClick={onStart}>
           Calculate my FIRE number →
         </button>
         <button className="uf-hero-signin" onClick={onSignIn}>
@@ -1141,7 +1176,7 @@ export default function Home() {
           --font-mono: 'DM Mono', monospace;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; background-image: radial-gradient(circle, rgba(255,255,255,0.038) 1px, transparent 1px); background-size: 28px 28px; }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
@@ -1275,27 +1310,53 @@ export default function Home() {
 
         /* ── HERO SCREEN ── */
         .uf-hero { text-align: center; max-width: 580px; padding-top: 80px; position: relative; overflow: hidden; }
+        .uf-hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 70%; height: 1px; background: linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent); z-index: 2; pointer-events: none; }
         .uf-hero-content { position: relative; z-index: 1; }
 
-        /* Background orbs */
+        /* Background orbs — boosted intensity */
         .uf-hero-bg { position: absolute; inset: -100px; pointer-events: none; z-index: 0; }
         .uf-hero-orb { position: absolute; border-radius: 50%; filter: blur(80px); will-change: transform, opacity; }
-        .uf-hero-orb-1 { width: 520px; height: 520px; top: -200px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%); animation: orbDrift1 12s ease-in-out infinite alternate; }
-        .uf-hero-orb-2 { width: 380px; height: 380px; bottom: -80px; left: -100px; background: radial-gradient(circle, rgba(34,211,165,0.12) 0%, transparent 70%); animation: orbDrift2 16s ease-in-out 2s infinite alternate; }
-        .uf-hero-orb-3 { width: 300px; height: 300px; top: 60px; right: -80px; background: radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%); animation: orbDrift3 20s ease-in-out 4s infinite alternate; }
+        .uf-hero-orb-1 { width: 540px; height: 540px; top: -200px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%); animation: orbDrift1 12s ease-in-out infinite alternate; }
+        .uf-hero-orb-2 { width: 400px; height: 400px; bottom: -80px; left: -100px; background: radial-gradient(circle, rgba(34,211,165,0.15) 0%, transparent 70%); animation: orbDrift2 16s ease-in-out 2s infinite alternate; }
+        .uf-hero-orb-3 { width: 320px; height: 320px; top: 60px; right: -80px; background: radial-gradient(circle, rgba(167,139,250,0.13) 0%, transparent 70%); animation: orbDrift3 20s ease-in-out 4s infinite alternate; }
         @keyframes orbDrift1 {
-          0%   { transform: translateX(-50%) translateY(0px) scale(1); opacity: 0.7; }
+          0%   { transform: translateX(-50%) translateY(0px) scale(1); opacity: 0.8; }
           50%  { transform: translateX(-48%) translateY(-30px) scale(1.08); opacity: 1; }
-          100% { transform: translateX(-52%) translateY(20px) scale(0.95); opacity: 0.8; }
+          100% { transform: translateX(-52%) translateY(20px) scale(0.95); opacity: 0.85; }
         }
         @keyframes orbDrift2 {
-          0%   { transform: translate(0,0) scale(1); opacity: 0.6; }
-          100% { transform: translate(40px,-30px) scale(1.1); opacity: 0.9; }
+          0%   { transform: translate(0,0) scale(1); opacity: 0.7; }
+          100% { transform: translate(40px,-30px) scale(1.1); opacity: 1; }
         }
         @keyframes orbDrift3 {
-          0%   { transform: translate(0,0) scale(1); opacity: 0.5; }
-          100% { transform: translate(-20px,30px) scale(0.9); opacity: 0.8; }
+          0%   { transform: translate(0,0) scale(1); opacity: 0.6; }
+          100% { transform: translate(-20px,30px) scale(0.9); opacity: 0.9; }
         }
+
+        /* Scan line */
+        .uf-hero-scan { position: absolute; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(249,115,22,0.2) 20%, rgba(249,115,22,0.55) 50%, rgba(249,115,22,0.2) 80%, transparent 100%); animation: scanLine 7s linear infinite; pointer-events: none; z-index: 1; }
+        @keyframes scanLine {
+          0%   { top: 0%; opacity: 0; }
+          4%   { opacity: 1; }
+          96%  { opacity: 0.7; }
+          100% { top: 100%; opacity: 0; }
+        }
+
+        /* Floating data tokens */
+        .uf-hero-token { position: absolute; font-family: var(--font-mono); font-size: 10px; color: var(--text); opacity: 0; animation: tokenFloat 7s ease-in-out infinite; pointer-events: none; white-space: nowrap; letter-spacing: 0.5px; }
+        @keyframes tokenFloat {
+          0%   { opacity: 0;    transform: translateY(6px); }
+          12%  { opacity: 0.08; transform: translateY(0); }
+          75%  { opacity: 0.08; transform: translateY(-5px); }
+          100% { opacity: 0;    transform: translateY(-10px); }
+        }
+
+        /* Live counter */
+        .uf-live-counter { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 20px; justify-content: center; }
+        .uf-live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); flex-shrink: 0; animation: livePulse 1.5s ease-in-out infinite; }
+        .uf-live-count { color: var(--teal); font-weight: 500; }
+        .uf-live-label { color: var(--text-dim); }
+        @keyframes livePulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,211,165,0); } 50% { opacity: 0.5; box-shadow: 0 0 5px 2px rgba(34,211,165,0.35); } }
 
         /* Badge */
         .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; border: 1px solid rgba(249,115,22,0.2); }
@@ -1311,22 +1372,31 @@ export default function Home() {
         @keyframes flameShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 240% 50%; } }
         @keyframes flamePulse {
           from { filter: drop-shadow(0 0 6px rgba(249,115,22,0.0)); }
-          to   { filter: drop-shadow(0 0 14px rgba(249,115,22,0.5)); }
+          to   { filter: drop-shadow(0 0 18px rgba(249,115,22,0.6)); }
         }
 
-        /* Entrance animations — only fire when mounted class is present (re-fires on Start over) */
+        /* Power CTA — persistent breathing glow */
+        .uf-btn-power { animation: ctaBreath 2.8s ease-in-out infinite; }
+        @keyframes ctaBreath {
+          0%, 100% { box-shadow: 0 6px 28px rgba(249,115,22,0.22); }
+          50%       { box-shadow: 0 10px 48px rgba(249,115,22,0.52), 0 0 0 5px rgba(249,115,22,0.07); }
+        }
+        .uf-btn-power:hover { animation: none; box-shadow: 0 8px 40px rgba(249,115,22,0.6), 0 0 0 6px rgba(249,115,22,0.12) !important; }
+
+        /* Entrance animations — scoped to mounted so they re-fire on Start over */
         @keyframes heroEnter { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes statEntry { from { opacity: 0; transform: scale(0.7) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        .uf-hero--mounted .uf-badge        { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
-        .uf-hero--mounted .uf-h1           { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.18s both; }
-        .uf-hero--mounted .uf-body         { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.30s both; }
-        .uf-hero--mounted .uf-btn-primary  { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.42s both; }
-        .uf-hero--mounted .uf-hero-signin  { animation: heroEnter 0.50s cubic-bezier(0.22,1,0.36,1) 0.50s both; }
-        .uf-hero--mounted .uf-social-proof { animation: heroEnter 0.55s cubic-bezier(0.22,1,0.36,1) 0.58s both; }
-        .uf-hero--mounted .uf-stats-grid   { animation: heroEnter 0.60s cubic-bezier(0.22,1,0.36,1) 0.70s both; }
-        .uf-hero--mounted .uf-stat-hero:nth-child(1) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.75s both; }
-        .uf-hero--mounted .uf-stat-hero:nth-child(2) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.85s both; }
-        .uf-hero--mounted .uf-stat-hero:nth-child(3) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.95s both; }
+        .uf-hero--mounted .uf-live-counter { animation: heroEnter 0.5s cubic-bezier(0.22,1,0.36,1) 0s both; }
+        .uf-hero--mounted .uf-badge        { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.08s both; }
+        .uf-hero--mounted .uf-h1           { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.20s both; }
+        .uf-hero--mounted .uf-body         { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.32s both; }
+        .uf-hero--mounted .uf-btn-primary  { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.44s both, ctaBreath 2.8s ease-in-out 1.2s infinite; }
+        .uf-hero--mounted .uf-hero-signin  { animation: heroEnter 0.50s cubic-bezier(0.22,1,0.36,1) 0.52s both; }
+        .uf-hero--mounted .uf-social-proof { animation: heroEnter 0.55s cubic-bezier(0.22,1,0.36,1) 0.60s both; }
+        .uf-hero--mounted .uf-stats-grid   { animation: heroEnter 0.60s cubic-bezier(0.22,1,0.36,1) 0.72s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(1) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.78s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(2) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.88s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(3) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.98s both; }
 
         /* Social proof */
         .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
