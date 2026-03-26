@@ -20,8 +20,8 @@ function fmtUSD(n: number) {
 // NAV
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Nav({ step, totalSteps, onRestart }: {
-  step: number; totalSteps: number; onRestart: () => void;
+function Nav({ step, totalSteps, onRestart, onSignIn }: {
+  step: number; totalSteps: number; onRestart: () => void; onSignIn: () => void;
 }) {
   return (
     <nav className="uf-nav">
@@ -34,7 +34,9 @@ function Nav({ step, totalSteps, onRestart }: {
       {step > 0 && (
         <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
       )}
-      {step === 0 && <div style={{ width: 90 }} />}
+      {step === 0 && (
+        <button className="uf-nav-signin" onClick={onSignIn}>Sign in →</button>
+      )}
     </nav>
   );
 }
@@ -63,7 +65,7 @@ function WizardProgress({ step }: { step: number }) {
 // SCREEN 0 — HERO
 // ─────────────────────────────────────────────────────────────────────────────
 
-function HeroScreen({ onStart }: { onStart: () => void }) {
+function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
   return (
     <div className="uf-screen uf-hero">
       <div className="uf-badge">
@@ -80,6 +82,9 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
       </p>
       <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full" onClick={onStart}>
         Calculate my FIRE number →
+      </button>
+      <button className="uf-hero-signin" onClick={onSignIn}>
+        Already have an account? Sign in →
       </button>
       <div className="uf-social-proof">
         <div className="uf-avatars">
@@ -1085,6 +1090,13 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  async function signIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+  }
+
   const STEP_MAP: Record<Screen, number> = { hero: 0, city: 1, income: 2, savings: 3, reveal: 4 };
   const totalDots = 5;
 
@@ -1131,6 +1143,10 @@ export default function Home() {
         .uf-nav-dot.done { background: var(--teal); }
         .uf-nav-restart { font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
         .uf-nav-restart:hover { color: var(--text); }
+        .uf-nav-signin { font-size: 13px; font-weight: 500; color: var(--text-muted); background: none; border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
+        .uf-nav-signin:hover { color: var(--text); border-color: var(--text-dim); background: var(--bg-elevated); }
+        .uf-hero-signin { display: block; width: 100%; margin-top: 14px; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 14px; cursor: pointer; padding: 8px; transition: color 0.2s; }
+        .uf-hero-signin:hover { color: var(--text); }
 
         /* ── SCREEN ── */
         .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
@@ -1389,11 +1405,12 @@ export default function Home() {
         step={STEP_MAP[screen]}
         totalSteps={totalDots}
         onRestart={() => setScreen("hero")}
+        onSignIn={signIn}
       />
 
       <div className="uf-page">
         {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("city")} />
+          <HeroScreen onStart={() => setScreen("city")} onSignIn={signIn} />
         )}
         {screen === "city" && (
           <CityScreen
