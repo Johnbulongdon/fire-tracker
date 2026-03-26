@@ -910,7 +910,13 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
   );
 }
 
-function TransactionList({ transactions, onDelete }: { transactions: Transaction[]; onDelete: (id: string) => void }) {
+function TransactionList({ transactions, onDelete, onUpdateDate }: {
+  transactions: Transaction[];
+  onDelete: (id: string) => void;
+  onUpdateDate: (id: string, newDate: string) => void;
+}) {
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
+
   const grouped = transactions.reduce((acc, t) => {
     const month = t.date.slice(0, 7);
     if (!acc[month]) acc[month] = [];
@@ -969,7 +975,30 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
                         <span style={{ color: cat?.color || "#6b6b85", fontSize: 11, fontWeight: 600 }}>{cat?.label || txn.category}</span>
                         {txn.is_work_related && <span style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>💼 work</span>}
                         {txn.tags?.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>#{t}</span>)}
-                        <span style={{ color: "#5e5e7a", fontSize: 11 }}>{new Date(txn.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                        {editingDateId === txn.id ? (
+                          <input
+                            type="date"
+                            defaultValue={txn.date}
+                            autoFocus
+                            onBlur={async e => {
+                              const newDate = e.target.value;
+                              if (newDate && newDate !== txn.date) {
+                                await supabase.from("expenses").update({ date: newDate }).eq("id", txn.id);
+                                onUpdateDate(txn.id, newDate);
+                              }
+                              setEditingDateId(null);
+                            }}
+                            style={{ background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 6, padding: "2px 6px", color: "#e8e8f2", fontSize: 11, outline: "none", fontFamily: "inherit", cursor: "pointer" }}
+                          />
+                        ) : (
+                          <span
+                            onClick={() => setEditingDateId(txn.id)}
+                            style={{ color: "#5e5e7a", fontSize: 11, cursor: "pointer", borderBottom: "1px dashed #2a2a3e" }}
+                            title="Click to edit date"
+                          >
+                            {new Date(txn.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1288,7 +1317,13 @@ function TransactionTab({
         budgetExpenses={budgetExpenses}
       />
       <AddTransactionForm onAdd={onTransactionAdded} />
-      <TransactionList transactions={transactions} onDelete={handleDelete} />
+      <TransactionList
+        transactions={transactions}
+        onDelete={handleDelete}
+        onUpdateDate={(id, newDate) =>
+          setTransactions(prev => prev.map(t => t.id === id ? { ...t, date: newDate } : t))
+        }
+      />
     </div>
   );
 }
