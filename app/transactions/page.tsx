@@ -490,7 +490,7 @@ function NetWorthCard({ profile, onSave }: {
   );
 }
 
-
+function MonthlySummary({
   transactions,
   viewMonth,
   onPrevMonth,
