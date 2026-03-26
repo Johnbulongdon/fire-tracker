@@ -20,8 +20,8 @@ function fmtUSD(n: number) {
 // NAV
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Nav({ step, totalSteps, onRestart }: {
-  step: number; totalSteps: number; onRestart: () => void;
+function Nav({ step, totalSteps, onRestart, onSignIn }: {
+  step: number; totalSteps: number; onRestart: () => void; onSignIn: () => void;
 }) {
   return (
     <nav className="uf-nav">
@@ -34,7 +34,9 @@ function Nav({ step, totalSteps, onRestart }: {
       {step > 0 && (
         <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
       )}
-      {step === 0 && <div style={{ width: 90 }} />}
+      {step === 0 && (
+        <button className="uf-nav-signin" onClick={onSignIn}>Sign in →</button>
+      )}
     </nav>
   );
 }
@@ -63,38 +65,84 @@ function WizardProgress({ step }: { step: number }) {
 // SCREEN 0 — HERO
 // ─────────────────────────────────────────────────────────────────────────────
 
-function HeroScreen({ onStart }: { onStart: () => void }) {
+const HERO_TOKENS = [
+  { text: "$847,250",   x: "7%",  y: "16%", delay: 0 },
+  { text: "26 yrs",    x: "80%", y: "24%", delay: 2.4 },
+  { text: "4% rule",   x: "11%", y: "56%", delay: 1.1 },
+  { text: "$2,100/mo", x: "72%", y: "66%", delay: 3.6 },
+  { text: "7% growth", x: "16%", y: "36%", delay: 0.7 },
+  { text: "FIRE 2041", x: "75%", y: "42%", delay: 2.0 },
+  { text: "Age 48",    x: "5%",  y: "76%", delay: 4.0 },
+  { text: "25× rule",  x: "62%", y: "82%", delay: 1.5 },
+];
+
+function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  const [calcCount, setCalcCount] = useState(14847);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCalcCount(n => n + Math.floor(Math.random() * 2 + 1));
+    }, 3200);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <div className="uf-screen uf-hero">
-      <div className="uf-badge">
-        <span className="uf-badge-dot" /> Free — no login required
+    <div className={`uf-screen uf-hero${mounted ? " uf-hero--mounted" : ""}`}>
+      <div className="uf-hero-bg" aria-hidden="true">
+        {HERO_TOKENS.map((t, i) => (
+          <div
+            key={i}
+            className="uf-hero-token"
+            style={{ left: t.x, top: t.y, animationDelay: `${t.delay}s` }}
+          >
+            {t.text}
+          </div>
+        ))}
       </div>
-      <h1 className="uf-h1">
-        Your spending is<br />
-        <span className="uf-accent">costing you years</span><br />
-        of freedom.
-      </h1>
-      <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 32px" }}>
-        Find out exactly when you can retire — adjusted for your city, your income,
-        and what you actually spend. Takes 60 seconds.
-      </p>
-      <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full" onClick={onStart}>
-        Calculate my FIRE number →
-      </button>
-      <div className="uf-social-proof">
-        <div className="uf-avatars">
-          {["#f97316","#22d3a5","#a78bfa","#fb923c"].map((c, i) => (
-            <div key={i} className="uf-avatar" style={{ background: c }} />
-          ))}
+      <div className="uf-hero-content">
+        <div className="uf-live-counter">
+          <span className="uf-live-count">{calcCount.toLocaleString()}</span>
+          <span className="uf-live-label">&nbsp;FIRE numbers calculated today</span>
         </div>
-        <span className="uf-proof-text">
-          Joined by <strong>2,400+</strong> FIRE seekers this month
-        </span>
-      </div>
-      <div className="uf-stats-grid">
-        <div className="uf-stat-hero"><span className="uf-accent">$5.8B</span><div>market growing 10.3% CAGR</div></div>
-        <div className="uf-stat-hero"><span style={{ color: "var(--teal)" }}>2.2M</span><div>r/financialindependence members</div></div>
-        <div className="uf-stat-hero"><span style={{ color: "var(--purple)" }}>25%</span><div>Gen Z targeting retirement under 55</div></div>
+        <div className="uf-badge">
+          <span className="uf-badge-dot" /> Free — no login required
+        </div>
+        <h1 className="uf-h1">
+          Your spending is<br />
+          <span className="uf-accent-flame">costing you years</span><br />
+          of freedom.
+        </h1>
+        <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 24px" }}>
+          Find out exactly when you can retire — adjusted for your city, your income,
+          and what you actually spend. Takes 60 seconds.
+        </p>
+        <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full uf-btn-power" onClick={onStart}>
+          Calculate my FIRE number →
+        </button>
+        <button className="uf-hero-signin" onClick={onSignIn}>
+          Already have an account? Sign in →
+        </button>
+        <div className="uf-social-proof">
+          <div className="uf-avatars">
+            {["#f97316","#22d3a5","#a78bfa","#fb923c"].map((c, i) => (
+              <div key={i} className="uf-avatar" style={{ background: c }} />
+            ))}
+          </div>
+          <span className="uf-proof-text">
+            Joined by <strong>2,400+</strong> FIRE seekers this month
+          </span>
+        </div>
+        <div className="uf-stats-grid">
+          <div className="uf-stat-hero"><span className="uf-accent">$5.8B</span><div>market growing 10.3% CAGR</div></div>
+          <div className="uf-stat-hero"><span style={{ color: "var(--teal)" }}>2.2M</span><div>r/financialindependence members</div></div>
+          <div className="uf-stat-hero"><span style={{ color: "var(--purple)" }}>25%</span><div>Gen Z targeting retirement under 55</div></div>
+        </div>
       </div>
     </div>
   );
@@ -708,6 +756,107 @@ function WaitlistInline({ fireTarget, retireYear }: { fireTarget: number; retire
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SHARE MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ShareModal({
+  fireTarget, retireYear, age, cityName, onClose,
+}: {
+  fireTarget: number; retireYear: number; age: number; cityName: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const shareText = `My FIRE number is ${fmtUSD(fireTarget)}. I could retire in ${retireYear} at age ${age}, living in ${cityName}. Calculate yours free:`;
+  const shareUrl = "https://untilfire.com";
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function openShare(platform: "x" | "facebook" | "reddit") {
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const urls = {
+      x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(`My FIRE number is ${fmtUSD(fireTarget)} — retire in ${retireYear} at age ${age} in ${cityName}`)}`,
+    };
+    window.open(urls[platform], "_blank", "noopener,noreferrer,width=620,height=520");
+  }
+
+  return (
+    <div
+      className="uf-share-overlay"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="uf-share-modal">
+        <button className="uf-share-close" onClick={onClose} aria-label="Close">✕</button>
+
+        <div className="uf-share-heading">Share your FIRE number</div>
+
+        {/* Preview card */}
+        <div className="uf-share-card">
+          <div className="uf-share-card-brand">
+            <span className="uf-share-card-logo">until<span>fire</span></span>
+            <span style={{ fontSize: 13 }}>🔥</span>
+          </div>
+          <div className="uf-share-card-label">My FIRE Number</div>
+          <div className="uf-share-card-number">{fmtUSD(fireTarget)}</div>
+          <div className="uf-share-card-meta">Retire in {retireYear} · Age {age}</div>
+          <div className="uf-share-card-city">{cityName}</div>
+          <div className="uf-share-card-divider" />
+          <div className="uf-share-card-url">untilfire.com</div>
+        </div>
+
+        {/* Platform buttons */}
+        <div className="uf-share-btns">
+          <button className="uf-share-btn uf-share-x" onClick={() => openShare("x")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.254 5.622L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
+            </svg>
+            Post on X
+          </button>
+          <button className="uf-share-btn uf-share-facebook" onClick={() => openShare("facebook")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+            Share on Facebook
+          </button>
+          <button className="uf-share-btn uf-share-reddit" onClick={() => openShare("reddit")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+            </svg>
+            Post on Reddit
+          </button>
+          <button className="uf-share-btn uf-share-copy" onClick={copyToClipboard}>
+            {copied ? (
+              <>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy to clipboard
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SCREEN 4 — REVEAL
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -742,6 +891,7 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
   // Phase 2: number reveal
   const [counting, setCounting] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const numRef = useRef<HTMLDivElement>(null);
 
   const counted = useCountUp(result.fireTarget, 2200, counting);
@@ -793,6 +943,15 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
 
   return (
     <div className="uf-screen uf-reveal-screen">
+      {showShare && (
+        <ShareModal
+          fireTarget={result.fireTarget}
+          retireYear={result.retireYear}
+          age={result.age}
+          cityName={city.name}
+          onClose={() => setShowShare(false)}
+        />
+      )}
       {/* PHASE 1 */}
       {calcPhase && (
         <div className="uf-calc-phase">
@@ -828,6 +987,15 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               <div className="uf-fire-date-line" />
             </div>
             <div className="uf-fire-city">{city.name}</div>
+            {revealed && (
+              <button className="uf-share-trigger" onClick={() => setShowShare(true)}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                Share my FIRE number
+              </button>
+            )}
           </div>
 
           {revealed && (
@@ -965,6 +1133,13 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  async function signIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+  }
+
   const STEP_MAP: Record<Screen, number> = { hero: 0, city: 1, income: 2, savings: 3, reveal: 4 };
   const totalDots = 5;
 
@@ -996,7 +1171,7 @@ export default function Home() {
           --font-mono: 'DM Mono', monospace;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; background-image: radial-gradient(circle, rgba(255,255,255,0.038) 1px, transparent 1px); background-size: 28px 28px; }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
@@ -1011,15 +1186,25 @@ export default function Home() {
         .uf-nav-dot.done { background: var(--teal); }
         .uf-nav-restart { font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
         .uf-nav-restart:hover { color: var(--text); }
+        .uf-nav-signin { font-size: 13px; font-weight: 500; color: var(--text-muted); background: none; border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
+        .uf-nav-signin:hover { color: var(--text); border-color: var(--text-dim); background: var(--bg-elevated); }
+        .uf-hero-signin { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 14px; cursor: pointer; padding: 8px; transition: color 0.2s; }
+        .uf-hero-signin:hover { color: var(--text); }
 
         /* ── SCREEN ── */
-        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-        .uf-screen { width: 100%; max-width: 540px; padding: 48px 24px 40px; }
+        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform, opacity; }
+        .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
+        .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(34,211,165,0.11) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
+        .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
+        .uf-screen { width: 100%; max-width: 540px; padding: 40px 24px 24px; position: relative; z-index: 1; }
         .uf-reveal-screen { max-width: 680px; }
+        .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
 
         /* ── TYPOGRAPHY ── */
         .uf-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
-        .uf-h1 { font-family: var(--font-display); font-size: clamp(32px,5vw,52px); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; color: var(--text); margin-bottom: 20px; }
+        .uf-h1 { font-family: var(--font-display); font-size: clamp(32px,5vw,52px); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; color: var(--text); margin-bottom: 14px; }
         .uf-h2 { font-family: var(--font-display); font-size: clamp(24px,4vw,38px); font-weight: 700; line-height: 1.1; letter-spacing: -1px; color: var(--text); margin-bottom: 8px; }
         .uf-accent { color: var(--accent); }
         .uf-body { font-size: 16px; line-height: 1.6; color: var(--text-muted); }
@@ -1125,16 +1310,74 @@ export default function Home() {
         .uf-rate-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
 
         /* ── HERO SCREEN ── */
-        .uf-hero { text-align: center; max-width: 580px; padding-top: 80px; }
-        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; }
-        .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
+        .uf-hero { text-align: center; max-width: 580px; padding-top: 36px; position: relative; }
+        .uf-hero-content { position: relative; z-index: 1; }
+
+        /* Hero local bg — scan line + tokens only; orbs are now viewport-fixed */
+        .uf-hero-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+
+        /* Floating data tokens */
+        .uf-hero-token { position: absolute; font-family: var(--font-mono); font-size: 10px; color: var(--text); opacity: 0; animation: tokenFloat 7s ease-in-out infinite; pointer-events: none; white-space: nowrap; letter-spacing: 0.5px; }
+        @keyframes tokenFloat {
+          0%   { opacity: 0;    transform: translateY(6px); }
+          12%  { opacity: 0.08; transform: translateY(0); }
+          75%  { opacity: 0.08; transform: translateY(-5px); }
+          100% { opacity: 0;    transform: translateY(-10px); }
+        }
+
+        /* Live counter */
+        .uf-live-counter { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 10px; justify-content: center; }
+        .uf-live-count { color: var(--teal); font-weight: 500; }
+        .uf-live-label { color: var(--text-dim); }
+
+        /* Badge */
+        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 14px; border: 1px solid rgba(249,115,22,0.2); }
+        .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+        /* Flame headline span */
+        .uf-accent-flame { background: linear-gradient(92deg, #f97316 0%, #fb923c 30%, #fbbf24 52%, #f97316 68%, #ea580c 85%, #f97316 100%); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline; animation: flameShimmer 4s linear infinite, flamePulse 3s ease-in-out infinite alternate; }
+        @keyframes flameShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 240% 50%; } }
+        @keyframes flamePulse {
+          from { filter: drop-shadow(0 0 6px rgba(249,115,22,0.0)); }
+          to   { filter: drop-shadow(0 0 18px rgba(249,115,22,0.6)); }
+        }
+
+        /* Power CTA — persistent breathing glow */
+        .uf-btn-power { animation: ctaBreath 2.8s ease-in-out infinite; }
+        @keyframes ctaBreath {
+          0%, 100% { box-shadow: 0 6px 28px rgba(249,115,22,0.22); }
+          50%       { box-shadow: 0 10px 48px rgba(249,115,22,0.52), 0 0 0 5px rgba(249,115,22,0.07); }
+        }
+        .uf-btn-power:hover { animation: none; box-shadow: 0 8px 40px rgba(249,115,22,0.6), 0 0 0 6px rgba(249,115,22,0.12) !important; }
+
+        /* Entrance animations — scoped to mounted so they re-fire on Start over */
+        @keyframes heroEnter { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes statEntry { from { opacity: 0; transform: scale(0.7) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .uf-hero--mounted .uf-live-counter { animation: heroEnter 0.5s cubic-bezier(0.22,1,0.36,1) 0s both; }
+        .uf-hero--mounted .uf-badge        { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.08s both; }
+        .uf-hero--mounted .uf-h1           { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.20s both; }
+        .uf-hero--mounted .uf-body         { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.32s both; }
+        .uf-hero--mounted .uf-btn-primary  { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.44s both, ctaBreath 2.8s ease-in-out 1.2s infinite; }
+        .uf-hero--mounted .uf-hero-signin  { animation: heroEnter 0.50s cubic-bezier(0.22,1,0.36,1) 0.52s both; }
+        .uf-hero--mounted .uf-social-proof { animation: heroEnter 0.55s cubic-bezier(0.22,1,0.36,1) 0.60s both; }
+        .uf-hero--mounted .uf-stats-grid   { animation: heroEnter 0.60s cubic-bezier(0.22,1,0.36,1) 0.72s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(1) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.78s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(2) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.88s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(3) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.98s both; }
+
+        /* Social proof */
+        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
         .uf-avatars { display: flex; }
         .uf-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); margin-left: -6px; }
         .uf-avatar:first-child { margin-left: 0; }
         .uf-proof-text { font-size: 13px; color: var(--text-muted); }
-        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 40px; }
-        .uf-stat-hero { text-align: center; font-size: 12px; color: var(--text-muted); }
+
+        /* Stats grid */
+        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
+        .uf-stat-hero { text-align: center; font-size: 12px; color: var(--text-muted); position: relative; transition: transform 0.2s ease; cursor: default; }
+        .uf-stat-hero:hover { transform: translateY(-2px); }
+        .uf-stat-hero:hover span { filter: brightness(1.15); }
+        .uf-stat-hero:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 10%; height: 80%; width: 1px; background: var(--border); }
         .uf-stat-hero span { display: block; font-family: var(--font-display); font-size: 28px; font-weight: 800; margin-bottom: 4px; }
 
         /* ── REVEAL ── */
@@ -1219,23 +1462,66 @@ export default function Home() {
         .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(34,211,165,0.25); }
 
         /* ── WAITLIST ── */
-        .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 80px 24px; }
+        .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 48px 24px 64px; position: relative; z-index: 1; }
         .uf-waitlist-success { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); border-radius: 14px; padding: 20px 24px; color: var(--teal); font-weight: 700; font-size: 16px; text-align: center; }
         .uf-waitlist-form { display: flex; gap: 10px; }
 
+        /* ── SHARE TRIGGER ── */
+        .uf-share-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 18px auto 0; padding: 10px 22px; border-radius: 10px; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .uf-share-trigger:hover { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.45); transform: translateY(-1px); }
+
+        /* ── SHARE MODAL ── */
+        .uf-share-overlay { position: fixed; inset: 0; background: rgba(8,8,14,0.88); backdrop-filter: blur(10px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.15s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .uf-share-modal { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 22px; padding: 32px; width: 100%; max-width: 460px; position: relative; animation: slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .uf-share-close { position: absolute; top: 14px; right: 14px; background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s; }
+        .uf-share-close:hover { background: var(--bg-elevated); color: var(--text); }
+        .uf-share-heading { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 20px; letter-spacing: -0.3px; }
+
+        /* Share preview card */
+        .uf-share-card { background: radial-gradient(ellipse at 50% -10%, rgba(249,115,22,0.18) 0%, transparent 65%), #0c0c16; border: 1px solid rgba(249,115,22,0.2); border-radius: 16px; padding: 26px 24px 20px; margin-bottom: 20px; text-align: center; position: relative; overflow: hidden; }
+        .uf-share-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent); }
+        .uf-share-card-brand { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 18px; }
+        .uf-share-card-logo { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-muted); letter-spacing: -0.3px; }
+        .uf-share-card-logo span { color: var(--accent); }
+        .uf-share-card-label { font-size: 10px; font-weight: 500; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+        .uf-share-card-number { font-family: var(--font-mono); font-size: clamp(30px, 7vw, 46px); font-weight: 500; color: var(--accent); text-shadow: 0 0 40px rgba(249,115,22,0.45), 0 0 80px rgba(249,115,22,0.15); margin-bottom: 10px; line-height: 1; }
+        .uf-share-card-meta { font-family: var(--font-mono); font-size: 12px; color: var(--teal); margin-bottom: 5px; letter-spacing: 0.3px; }
+        .uf-share-card-city { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+        .uf-share-card-divider { height: 1px; background: var(--border); margin-bottom: 14px; }
+        .uf-share-card-url { font-size: 11px; color: var(--text-dim); letter-spacing: 0.8px; font-family: var(--font-mono); }
+
+        /* Platform share buttons */
+        .uf-share-btns { display: flex; flex-direction: column; gap: 9px; }
+        .uf-share-btn { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 18px; border-radius: 10px; font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.18s; }
+        .uf-share-x { background: #0f0f0f; color: #fff; border: 1px solid #222; }
+        .uf-share-x:hover { background: #1a1a1a; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+        .uf-share-facebook { background: #1877F2; color: #fff; }
+        .uf-share-facebook:hover { background: #1565d8; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(24,119,242,0.35); }
+        .uf-share-reddit { background: #FF4500; color: #fff; }
+        .uf-share-reddit:hover { background: #e03d00; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,69,0,0.35); }
+        .uf-share-copy { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-light); }
+        .uf-share-copy:hover { color: var(--text); background: var(--bg-card); border-color: var(--text-dim); }
+
         /* ── FOOTER DIVIDER ── */
-        .uf-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
       `}</style>
 
       <Nav
         step={STEP_MAP[screen]}
         totalSteps={totalDots}
         onRestart={() => setScreen("hero")}
+        onSignIn={signIn}
       />
 
       <div className="uf-page">
+        <div className="uf-page-bg" aria-hidden="true">
+          <div className="uf-atm-orb uf-atm-orb-1" />
+          <div className="uf-atm-orb uf-atm-orb-2" />
+          <div className="uf-atm-orb uf-atm-orb-3" />
+        </div>
         {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("city")} />
+          <HeroScreen onStart={() => setScreen("city")} onSignIn={signIn} />
         )}
         {screen === "city" && (
           <CityScreen
@@ -1268,7 +1554,7 @@ export default function Home() {
           />
         )}
 
-        <hr className="uf-divider" style={{ width: "100%" }} />
+        <div className="uf-section-sep" aria-hidden="true" />
         <WaitlistSection />
       </div>
     </>
