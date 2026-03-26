@@ -916,6 +916,7 @@ function TransactionList({ transactions, onDelete, onUpdateDate }: {
   onUpdateDate: (id: string, newDate: string) => void;
 }) {
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [editingDateValue, setEditingDateValue] = useState("");
 
   const grouped = transactions.reduce((acc, t) => {
     const month = t.date.slice(0, 7);
@@ -976,25 +977,35 @@ function TransactionList({ transactions, onDelete, onUpdateDate }: {
                         {txn.is_work_related && <span style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>💼 work</span>}
                         {txn.tags?.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>#{t}</span>)}
                         {editingDateId === txn.id ? (
-                          <input
-                            type="date"
-                            defaultValue={txn.date}
-                            autoFocus
-                            onChange={async e => {
-                              const newDate = e.target.value;
-                              if (!newDate) return;
-                              if (newDate !== txn.date) {
-                                await supabase.from("expenses").update({ date: newDate }).eq("id", txn.id);
-                                onUpdateDate(txn.id, newDate);
-                              }
-                              setEditingDateId(null);
-                            }}
-                            onKeyDown={e => { if (e.key === "Escape") setEditingDateId(null); }}
-                            style={{ background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 6, padding: "2px 6px", color: "#e8e8f2", fontSize: 11, outline: "none", fontFamily: "inherit", cursor: "pointer" }}
-                          />
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <input
+                              type="date"
+                              value={editingDateValue}
+                              onChange={e => setEditingDateValue(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === "Escape") setEditingDateId(null);
+                              }}
+                              autoFocus
+                              style={{ background: "#08080e", border: "1px solid #f97316", borderRadius: 6, padding: "2px 6px", color: "#e8e8f2", fontSize: 11, outline: "none", fontFamily: "inherit" }}
+                            />
+                            <button
+                              onClick={async () => {
+                                if (editingDateValue && editingDateValue !== txn.date) {
+                                  await supabase.from("expenses").update({ date: editingDateValue }).eq("id", txn.id);
+                                  onUpdateDate(txn.id, editingDateValue);
+                                }
+                                setEditingDateId(null);
+                              }}
+                              style={{ background: "none", border: "none", color: "#22d3a5", fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1 }}
+                            >✓</button>
+                            <button
+                              onClick={() => setEditingDateId(null)}
+                              style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 12, cursor: "pointer", padding: "0 2px", lineHeight: 1 }}
+                            >✕</button>
+                          </span>
                         ) : (
                           <span
-                            onClick={() => setEditingDateId(txn.id)}
+                            onClick={() => { setEditingDateId(txn.id); setEditingDateValue(txn.date); }}
                             style={{ color: "#5e5e7a", fontSize: 11, cursor: "pointer", borderBottom: "1px dashed #2a2a3e" }}
                             title="Click to edit date"
                           >
