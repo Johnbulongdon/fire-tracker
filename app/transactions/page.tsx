@@ -5,25 +5,35 @@ import { supabase } from '@/lib/supabase';
 import Link from "next/link";
 import { PieChart, Pie, Cell, Tooltip as ChartTooltip, ResponsiveContainer } from "recharts";
 
-const CATEGORIES = [
-  { key: "food", label: "🍔 Food & Dining", color: "#f97316" },
-  { key: "transport", label: "🚗 Transport", color: "#22d3a5" },
-  { key: "housing", label: "🏠 Housing", color: "#818cf8" },
-  { key: "subscriptions", label: "📱 Subscriptions", color: "#a78bfa" },
-  { key: "healthcare", label: "🏥 Healthcare", color: "#ef4444" },
-  { key: "entertainment", label: "🎬 Entertainment", color: "#fbbf24" },
-  { key: "shopping", label: "🛍️ Shopping", color: "#ec4899" },
-  { key: "work", label: "💼 Work Expense", color: "#6366f1" },
-  { key: "other", label: "📦 Other", color: "#6b6b85" },
+const EXPENSE_CATEGORIES = [
+  { key: "food",          label: "🍔 Food & Dining",  color: "#f97316" },
+  { key: "transport",     label: "🚗 Transport",       color: "#22d3a5" },
+  { key: "housing",       label: "🏠 Housing",         color: "#818cf8" },
+  { key: "subscriptions", label: "📱 Subscriptions",   color: "#a78bfa" },
+  { key: "healthcare",    label: "🏥 Healthcare",      color: "#ef4444" },
+  { key: "entertainment", label: "🎬 Entertainment",   color: "#fbbf24" },
+  { key: "shopping",      label: "🛍️ Shopping",        color: "#ec4899" },
+  { key: "work",          label: "💼 Work Expense",    color: "#6366f1" },
+  { key: "other",         label: "📦 Other",           color: "#6b6b85" },
 ];
 
-const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "HKD"];
+const INCOME_CATEGORIES = [
+  { key: "salary",       label: "💵 Salary",        color: "#22d3a5" },
+  { key: "freelance",    label: "💻 Freelance",      color: "#34d399" },
+  { key: "investment",   label: "📈 Investment",     color: "#818cf8" },
+  { key: "gift",         label: "🎁 Gift",           color: "#a78bfa" },
+  { key: "other_income", label: "📦 Other Income",   color: "#6b6b85" },
+];
+
+const ALL_CATEGORIES = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES];
+
+const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "CNY", "AUD", "CAD", "SGD", "HKD"];
 
 const fmt = (n: number, currency = "USD") => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
 };
 
-type Expense = {
+type Transaction = {
   id: string;
   date: string;
   amount: number;
@@ -32,9 +42,13 @@ type Expense = {
   category: string;
   tags: string[];
   is_work_related: boolean;
+  transaction_type: "expense" | "income";
 };
 
-async function aiCategorize(description: string): Promise<{ category: string; tags: string[]; is_work_related: boolean }> {
+async function aiCategorize(description: string, type: "expense" | "income"): Promise<{ category: string; tags: string[]; is_work_related: boolean }> {
+  const categories = type === "income"
+    ? "salary, freelance, investment, gift, other_income"
+    : "food, transport, housing, subscriptions, healthcare, entertainment, shopping, work, other";
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -44,45 +58,29 @@ async function aiCategorize(description: string): Promise<{ category: string; ta
         max_tokens: 200,
         messages: [{
           role: "user",
-          content: `Categorize this expense and respond ONLY with valid JSON, no markdown, no explanation:
+          content: `Categorize this ${type} transaction and respond ONLY with valid JSON, no markdown:
 Description: "${description}"
-
-Categories: food, transport, housing, subscriptions, healthcare, entertainment, shopping, work, other
-
-Respond with exactly this JSON format:
-{"category": "food", "tags": ["lunch", "restaurant"], "is_work_related": false}
-
-Rules:
-- tags: 1-3 short descriptive tags
-- is_work_related: true if this could be a work expense (lunch on weekday, commute, office supplies, etc)
-- Pick the most specific category`
+Categories: ${categories}
+Respond with exactly: {"category": "...", "tags": ["tag1"], "is_work_related": false}
+Rules: tags: 1-3 short tags; is_work_related: true only for expense type work items; pick most specific category`
         }]
       })
     });
     const data = await response.json();
-    const text = data.content[0].text.trim();
-    return JSON.parse(text);
+    return JSON.parse(data.content[0].text.trim());
   } catch {
-    return { category: "other", tags: [], is_work_related: false };
+    return { category: type === "income" ? "other_income" : "other", tags: [], is_work_related: false };
   }
 }
 
 function UserNav() {
   const [email, setEmail] = useState<string | null>(null);
-
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setEmail(user?.email ?? null);
-    });
+    supabase.auth.getUser().then(({ data: { user } }) => setEmail(user?.email ?? null));
   }, []);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/';
-  };
+  const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = '/'; };
 
   if (!email) return <Link href="/login" style={{ background: "#f97316", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>;
-
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <span style={{ color: "#5e5e7a", fontSize: 13 }}>{email}</span>
@@ -91,7 +89,8 @@ function UserNav() {
   );
 }
 
-function AddExpenseForm({ onAdd }: { onAdd: (e: Expense) => void }) {
+function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
+  const [transactionType, setTransactionType] = useState<"expense" | "income">("expense");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -103,10 +102,21 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: Expense) => void }) {
   const [saving, setSaving] = useState(false);
   const [aiUsed, setAiUsed] = useState(false);
 
+  const categories = transactionType === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const catInfo = categories.find(c => c.key === category);
+
+  const switchType = (t: "expense" | "income") => {
+    setTransactionType(t);
+    setCategory("");
+    setTags([]);
+    setIsWorkRelated(false);
+    setAiUsed(false);
+  };
+
   const handleDescriptionBlur = async () => {
     if (!description || category) return;
     setCategorizing(true);
-    const result = await aiCategorize(description);
+    const result = await aiCategorize(description, transactionType);
     setCategory(result.category);
     setTags(result.tags);
     setIsWorkRelated(result.is_work_related);
@@ -117,16 +127,14 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: Expense) => void }) {
   const handleSubmit = async () => {
     if (!date || !amount || !description) return;
     setSaving(true);
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
     let finalCategory = category;
     let finalTags = tags;
     let finalWorkRelated = isWorkRelated;
-
     if (!finalCategory) {
-      const result = await aiCategorize(description);
+      const result = await aiCategorize(description, transactionType);
       finalCategory = result.category;
       finalTags = result.tags;
       finalWorkRelated = result.is_work_related;
@@ -141,6 +149,7 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: Expense) => void }) {
       category: finalCategory,
       tags: finalTags,
       is_work_related: finalWorkRelated,
+      transaction_type: transactionType,
     }).select().single();
 
     if (!error && data) {
@@ -155,11 +164,27 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: Expense) => void }) {
     setSaving(false);
   };
 
-  const catInfo = CATEGORIES.find(c => c.key === category);
+  const isIncome = transactionType === "income";
 
   return (
     <div className="uf-card" style={{ marginBottom: 24 }}>
-      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>➕ Add Expense</div>
+      {/* Type toggle */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>➕ Add Transaction</div>
+        <div style={{ display: "flex", background: "#0f0f18", borderRadius: 8, padding: 3, gap: 2 }}>
+          {(["expense", "income"] as const).map(t => (
+            <button key={t} onClick={() => switchType(t)} style={{
+              background: transactionType === t ? (t === "income" ? "rgba(34,211,165,0.15)" : "rgba(239,68,68,0.12)") : "transparent",
+              border: transactionType === t ? `1px solid ${t === "income" ? "rgba(34,211,165,0.3)" : "rgba(239,68,68,0.25)"}` : "1px solid transparent",
+              color: transactionType === t ? (t === "income" ? "#22d3a5" : "#ef4444") : "#5e5e7a",
+              borderRadius: 6, padding: "5px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}>
+              {t === "expense" ? "💸 Expense" : "📥 Income"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div>
           <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Date</div>
@@ -179,65 +204,71 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: Expense) => void }) {
           </select>
         </div>
       </div>
+
       <div style={{ marginBottom: 12 }}>
         <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>
           Description
           {categorizing && <span style={{ color: "#f97316", marginLeft: 8, fontSize: 11 }}>✨ AI categorizing...</span>}
           {aiUsed && !categorizing && <span style={{ color: "#22d3a5", marginLeft: 8, fontSize: 11 }}>✨ AI categorized</span>}
         </div>
-        <input type="text" placeholder="e.g. Starbucks latte, Uber to office, Netflix..."
+        <input type="text"
+          placeholder={isIncome ? "e.g. Monthly salary, Freelance project, Dividend..." : "e.g. Starbucks latte, Uber to office, Netflix..."}
           value={description} onChange={e => { setDescription(e.target.value); setAiUsed(false); setCategory(""); }}
           onBlur={handleDescriptionBlur}
           style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "10px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
       </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
         <div>
           <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Category</div>
           <select value={category} onChange={e => setCategory(e.target.value)}
             style={{ width: "100%", background: "#08080e", border: `1px solid ${catInfo ? catInfo.color + '66' : '#1c1c2e'}`, borderRadius: 8, padding: "8px 12px", color: catInfo ? catInfo.color : "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
             <option value="">Select category...</option>
-            {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+            {categories.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
           </select>
         </div>
         <div>
           <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Tags</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minHeight: 38, alignItems: "center", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "6px 12px" }}>
-            {tags.length === 0 ? <span style={{ color: "#5e5e7a", fontSize: 13 }}>AI will suggest tags</span> :
-              tags.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.15)", color: "#f97316", borderRadius: 4, padding: "2px 8px", fontSize: 12 }}>#{t}</span>)}
+            {tags.length === 0
+              ? <span style={{ color: "#5e5e7a", fontSize: 13 }}>AI will suggest tags</span>
+              : tags.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.15)", color: "#f97316", borderRadius: 4, padding: "2px 8px", fontSize: 12 }}>#{t}</span>)}
           </div>
         </div>
       </div>
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#5e5e7a" }}>
-          <input type="checkbox" checked={isWorkRelated} onChange={e => setIsWorkRelated(e.target.checked)}
-            style={{ accentColor: "#6366f1" }} />
-          💼 Work expense
-        </label>
+        {!isIncome ? (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#5e5e7a" }}>
+            <input type="checkbox" checked={isWorkRelated} onChange={e => setIsWorkRelated(e.target.checked)} style={{ accentColor: "#6366f1" }} />
+            💼 Work expense
+          </label>
+        ) : <div />}
         <button onClick={handleSubmit} disabled={saving || !amount || !description}
-          style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", opacity: saving || !amount || !description ? 0.5 : 1 }}>
-          {saving ? "Saving..." : "Add expense →"}
+          style={{ background: isIncome ? "#22d3a5" : "#f97316", color: isIncome ? "#08080e" : "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", opacity: saving || !amount || !description ? 0.5 : 1 }}>
+          {saving ? "Saving..." : "Add transaction →"}
         </button>
       </div>
     </div>
   );
 }
 
-function ExpenseList({ expenses, onDelete }: { expenses: Expense[]; onDelete: (id: string) => void }) {
-  const grouped = expenses.reduce((acc, e) => {
-    const month = e.date.slice(0, 7);
+function TransactionList({ transactions, onDelete }: { transactions: Transaction[]; onDelete: (id: string) => void }) {
+  const grouped = transactions.reduce((acc, t) => {
+    const month = t.date.slice(0, 7);
     if (!acc[month]) acc[month] = [];
-    acc[month].push(e);
+    acc[month].push(t);
     return acc;
-  }, {} as Record<string, Expense[]>);
+  }, {} as Record<string, Transaction[]>);
 
   const months = Object.keys(grouped).sort().reverse();
 
-  if (expenses.length === 0) {
+  if (transactions.length === 0) {
     return (
       <div className="uf-card" style={{ textAlign: "center", padding: "48px 24px" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>No expenses yet</div>
-        <div style={{ color: "#5e5e7a", fontSize: 14 }}>Add your first expense above — AI will categorize it automatically</div>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>No transactions yet</div>
+        <div style={{ color: "#5e5e7a", fontSize: 14 }}>Add your first transaction above — AI will categorize it automatically</div>
       </div>
     );
   }
@@ -245,9 +276,10 @@ function ExpenseList({ expenses, onDelete }: { expenses: Expense[]; onDelete: (i
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {months.map(month => {
-        const monthExpenses = grouped[month];
-        const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
-        const workTotal = monthExpenses.filter(e => e.is_work_related).reduce((s, e) => s + e.amount, 0);
+        const monthTxns = grouped[month];
+        const income = monthTxns.filter(t => t.transaction_type === "income").reduce((s, t) => s + t.amount, 0);
+        const spent = monthTxns.filter(t => t.transaction_type !== "income").reduce((s, t) => s + t.amount, 0);
+        const net = income - spent;
         const date = new Date(month + '-01');
         const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -255,37 +287,39 @@ function ExpenseList({ expenses, onDelete }: { expenses: Expense[]; onDelete: (i
           <div key={month}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{monthLabel}</div>
-              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                {workTotal > 0 && (
-                  <span style={{ color: "#6366f1", fontSize: 12, fontWeight: 600 }}>
-                    💼 Work: {fmt(workTotal)}
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                {income > 0 && <span style={{ fontFamily: "'DM Mono', monospace", color: "#22d3a5", fontSize: 13, fontWeight: 600 }}>+{fmt(income)}</span>}
+                {spent > 0 && <span style={{ fontFamily: "'DM Mono', monospace", color: "#ef4444", fontSize: 13, fontWeight: 600 }}>−{fmt(spent)}</span>}
+                {income > 0 && spent > 0 && (
+                  <span style={{ fontFamily: "'DM Mono', monospace", color: net >= 0 ? "#22d3a5" : "#ef4444", fontSize: 13, fontWeight: 700, borderLeft: "1px solid #1c1c2e", paddingLeft: 14 }}>
+                    Net {net >= 0 ? "+" : "−"}{fmt(Math.abs(net))}
                   </span>
                 )}
-                <span style={{ fontFamily: "'DM Mono', monospace", color: "#f97316", fontWeight: 700 }}>
-                  {fmt(total)}
-                </span>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {monthExpenses.sort((a, b) => b.date.localeCompare(a.date)).map(expense => {
-                const cat = CATEGORIES.find(c => c.key === expense.category);
+              {monthTxns.sort((a, b) => b.date.localeCompare(a.date)).map(txn => {
+                const isIncome = txn.transaction_type === "income";
+                const cat = ALL_CATEGORIES.find(c => c.key === txn.category);
                 return (
-                  <div key={expense.id} className="uf-card" style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div key={txn.id} className="uf-card" style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `${cat?.color || '#6b6b85'}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-                      {cat?.label.split(' ')[0] || '📦'}
+                      {cat?.label.split(' ')[0] || (isIncome ? '📥' : '📦')}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{expense.description}</div>
+                      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{txn.description}</div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                        <span style={{ color: cat?.color || '#6b6b85', fontSize: 11, fontWeight: 600 }}>{cat?.label || expense.category}</span>
-                        {expense.is_work_related && <span style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>💼 work</span>}
-                        {expense.tags?.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>#{t}</span>)}
-                        <span style={{ color: "#5e5e7a", fontSize: 11 }}>{new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        <span style={{ color: cat?.color || '#6b6b85', fontSize: 11, fontWeight: 600 }}>{cat?.label || txn.category}</span>
+                        {txn.is_work_related && <span style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>💼 work</span>}
+                        {txn.tags?.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>#{t}</span>)}
+                        <span style={{ color: "#5e5e7a", fontSize: 11 }}>{new Date(txn.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: 15 }}>{fmt(expense.amount, expense.currency)}</div>
-                      <button onClick={() => onDelete(expense.id)}
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: 15, color: isIncome ? "#22d3a5" : "#e8e8f2" }}>
+                        {isIncome ? "+" : ""}{fmt(txn.amount, txn.currency)}
+                      </div>
+                      <button onClick={() => onDelete(txn.id)}
                         style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 11, cursor: "pointer", marginTop: 4 }}>
                         delete
                       </button>
@@ -302,13 +336,13 @@ function ExpenseList({ expenses, onDelete }: { expenses: Expense[]; onDelete: (i
 }
 
 function MonthlySummary({
-  expenses,
+  transactions,
   viewMonth,
   onPrevMonth,
   onNextMonth,
   budgetExpenses,
 }: {
-  expenses: Expense[];
+  transactions: Transaction[];
   viewMonth: string;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -320,13 +354,15 @@ function MonthlySummary({
   const [y, m] = viewMonth.split('-').map(Number);
   const monthLabel = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  const monthExpenses = expenses.filter(e => e.date.startsWith(viewMonth));
-  const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
-  const workTotal = monthExpenses.filter(e => e.is_work_related).reduce((s, e) => s + e.amount, 0);
+  const monthTxns = transactions.filter(t => t.date.startsWith(viewMonth));
+  const incomeTotal = monthTxns.filter(t => t.transaction_type === "income").reduce((s, t) => s + t.amount, 0);
+  const expenseTotal = monthTxns.filter(t => t.transaction_type !== "income").reduce((s, t) => s + t.amount, 0);
+  const net = incomeTotal - expenseTotal;
+  const workTotal = monthTxns.filter(t => t.is_work_related).reduce((s, t) => s + t.amount, 0);
 
-  const byCat = CATEGORIES.map(cat => ({
+  const byCat = EXPENSE_CATEGORIES.map(cat => ({
     ...cat,
-    total: monthExpenses.filter(e => e.category === cat.key).reduce((s, e) => s + e.amount, 0)
+    total: monthTxns.filter(t => t.transaction_type !== "income" && t.category === cat.key).reduce((s, t) => s + t.amount, 0)
   })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
   return (
@@ -342,77 +378,85 @@ function MonthlySummary({
         </div>
       </div>
 
-      {monthExpenses.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "32px 0", color: "#5e5e7a", fontSize: 14 }}>No expenses for this month</div>
+      {monthTxns.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "32px 0", color: "#5e5e7a", fontSize: 14 }}>No transactions for this month</div>
       ) : (
         <>
           {/* KPI cards */}
-          <div style={{ display: "grid", gridTemplateColumns: workTotal > 0 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 12, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: workTotal > 0 ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
             <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Spent</div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmt(total)}</div>
+              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Income</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#22d3a5" }}>{fmt(incomeTotal)}</div>
             </div>
             <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Transactions</div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#e8e8f2" }}>{monthExpenses.length}</div>
+              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Spent</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmt(expenseTotal)}</div>
+            </div>
+            <div style={{ background: net >= 0 ? "rgba(34,211,165,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${net >= 0 ? "rgba(34,211,165,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: net >= 0 ? "#22d3a5" : "#ef4444" }}>
+                {net >= 0 ? "+" : "−"}{fmt(Math.abs(net))}
+              </div>
             </div>
             {workTotal > 0 && (
               <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "14px 16px" }}>
-                <div style={{ color: "#6366f1", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💼 Work Costs</div>
+                <div style={{ color: "#6366f1", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💼 Work</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#6366f1" }}>{fmt(workTotal)}</div>
               </div>
             )}
           </div>
 
-          {/* Donut chart + category breakdown */}
-          <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-            <div style={{ flexShrink: 0 }}>
-              <ResponsiveContainer width={176} height={176}>
-                <PieChart>
-                  <Pie data={byCat} cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={2} dataKey="total">
-                    {byCat.map((cat) => <Cell key={cat.key} fill={cat.color} />)}
-                  </Pie>
-                  <ChartTooltip
-                    formatter={(v: number) => [fmt(v), ""]}
-                    contentStyle={{ background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, paddingTop: 4 }}>
-              {byCat.map(cat => {
-                const budget = budgetExpenses?.[cat.key] || 0;
-                const over = budget > 0 && cat.total > budget;
-                const barPct = budget > 0 ? Math.min(100, (cat.total / budget) * 100) : (cat.total / total) * 100;
-                return (
-                  <div key={cat.key}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                      <span style={{ color: "#9090a8" }}>{cat.label}</span>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 600, color: over ? "#ef4444" : cat.color }}>
-                        {fmt(cat.total)}
-                        {budget > 0
-                          ? <span style={{ color: "#5e5e7a", fontWeight: 400 }}> / {fmt(budget)}</span>
-                          : <span style={{ color: "#5e5e7a", fontWeight: 400 }}> ({((cat.total / total) * 100).toFixed(0)}%)</span>
-                        }
-                      </span>
+          {/* Donut chart + expense category breakdown */}
+          {byCat.length > 0 && (
+            <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+              <div style={{ flexShrink: 0 }}>
+                <ResponsiveContainer width={176} height={176}>
+                  <PieChart>
+                    <Pie data={byCat} cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={2} dataKey="total">
+                      {byCat.map((cat) => <Cell key={cat.key} fill={cat.color} />)}
+                    </Pie>
+                    <ChartTooltip
+                      formatter={(v: number) => [fmt(v), ""]}
+                      contentStyle={{ background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, paddingTop: 4 }}>
+                {byCat.map(cat => {
+                  const budget = budgetExpenses?.[cat.key] || 0;
+                  const over = budget > 0 && cat.total > budget;
+                  const barPct = budget > 0 ? Math.min(100, (cat.total / budget) * 100) : (cat.total / expenseTotal) * 100;
+                  return (
+                    <div key={cat.key}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                        <span style={{ color: "#9090a8" }}>{cat.label}</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 600, color: over ? "#ef4444" : cat.color }}>
+                          {fmt(cat.total)}
+                          {budget > 0
+                            ? <span style={{ color: "#5e5e7a", fontWeight: 400 }}> / {fmt(budget)}</span>
+                            : <span style={{ color: "#5e5e7a", fontWeight: 400 }}> ({((cat.total / expenseTotal) * 100).toFixed(0)}%)</span>
+                          }
+                        </span>
+                      </div>
+                      <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${barPct}%`, background: over ? "#ef4444" : cat.color, borderRadius: 4, transition: "width 0.4s" }} />
+                      </div>
+                      {over && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>over by {fmt(cat.total - budget)}</div>}
                     </div>
-                    <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${barPct}%`, background: over ? "#ef4444" : cat.color, borderRadius: 4, transition: "width 0.4s" }} />
-                    </div>
-                    {over && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>over by {fmt(cat.total - budget)}</div>}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>
   );
 }
 
-export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+export default function TransactionsPage() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -425,7 +469,7 @@ export default function ExpensesPage() {
       supabase.from('expenses').select('*').eq('user_id', session.user.id)
         .order('date', { ascending: false })
         .then(({ data }) => {
-          if (data) setExpenses(data);
+          if (data) setTransactions(data);
           setLoading(false);
         });
       supabase.from('user_budget').select('income, expenses').eq('user_id', session.user.id).maybeSingle()
@@ -438,14 +482,12 @@ export default function ExpensesPage() {
     });
   }, []);
 
-  const handleAdd = (expense: Expense) => {
-    setExpenses(prev => [expense, ...prev]);
-  };
+  const handleAdd = (txn: Transaction) => setTransactions(prev => [txn, ...prev]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this expense?")) return;
+    if (!window.confirm("Delete this transaction?")) return;
     await supabase.from('expenses').delete().eq('id', id);
-    setExpenses(prev => prev.filter(e => e.id !== id));
+    setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
   const handlePrevMonth = () => {
@@ -461,9 +503,9 @@ export default function ExpensesPage() {
   };
 
   const tabs = [
-    { key: "dashboard", label: "📊 Dashboard", href: "/dashboard" },
-    { key: "budget",    label: "💰 Budget",    href: "/dashboard?tab=budget" },
-    { key: "expenses",  label: "💳 Expenses",  href: "/expenses" },
+    { key: "dashboard",    label: "📊 Dashboard",    href: "/dashboard" },
+    { key: "budget",       label: "💰 Budget",        href: "/dashboard?tab=budget" },
+    { key: "transactions", label: "💳 Transactions",  href: "/transactions" },
   ];
 
   return (
@@ -494,7 +536,7 @@ export default function ExpensesPage() {
         <Link href="/" className="uf-logo">Until<span>Fire</span></Link>
         <div className="uf-tabs">
           {tabs.map(t => (
-            <Link key={t.key} href={t.href} className={`uf-tab ${t.key === 'expenses' ? 'active' : ''}`}>{t.label}</Link>
+            <Link key={t.key} href={t.href} className={`uf-tab ${t.key === 'transactions' ? 'active' : ''}`}>{t.label}</Link>
           ))}
         </div>
         <UserNav />
@@ -502,18 +544,18 @@ export default function ExpensesPage() {
 
       <div className="uf-content">
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#5e5e7a" }}>Loading expenses...</div>
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#5e5e7a" }}>Loading transactions...</div>
         ) : (
           <>
             <MonthlySummary
-              expenses={expenses}
+              transactions={transactions}
               viewMonth={viewMonth}
               onPrevMonth={handlePrevMonth}
               onNextMonth={handleNextMonth}
               budgetExpenses={budgetExpenses}
             />
-            <AddExpenseForm onAdd={handleAdd} />
-            <ExpenseList expenses={expenses} onDelete={handleDelete} />
+            <AddTransactionForm onAdd={handleAdd} />
+            <TransactionList transactions={transactions} onDelete={handleDelete} />
           </>
         )}
       </div>

@@ -838,7 +838,7 @@ export default function Dashboard() {
           {navTabs.map(t => (
             <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
           ))}
-          <Link href="/expenses" className="uf-tab">💳 Expenses</Link>
+          <Link href="/transactions" className="uf-tab">💳 Transactions</Link>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace" }}>Saving…</span>}
