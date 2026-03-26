@@ -1566,6 +1566,7 @@ export default function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace" }}>Saving…</span>}
           {saveStatus === "saved"  && <span style={{ color: "#22d3a5", fontSize: 12, fontFamily: "DM Mono, monospace" }}>✓ Saved</span>}
+          <Link href="/learn/fire-calculator" style={{ color: "#5e5e7a", fontSize: 13, textDecoration: "none" }}>Learn</Link>
           <UserNav />
         </div>
       </nav>

@@ -35,7 +35,10 @@ function Nav({ step, totalSteps, onRestart, onSignIn }: {
         <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
       )}
       {step === 0 && (
-        <button className="uf-nav-signin" onClick={onSignIn}>Sign in →</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <a href="/learn/fire-calculator" style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "6px 12px" }}>Learn</a>
+          <button className="uf-nav-signin" onClick={onSignIn}>Sign in →</button>
+        </div>
       )}
     </nav>
   );
