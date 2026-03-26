@@ -747,7 +747,7 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
 }
 
 // ─── Transaction Components ───────────────────────────────────────────────────
-function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
+function AddTransactionForm({ onAdd, baselineDate }: { onAdd: (t: Transaction) => void; baselineDate: string | null }) {
   const [transactionType, setTransactionType] = useState<"expense" | "income">("expense");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [amount, setAmount] = useState("");
@@ -847,6 +847,11 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
           <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Date</div>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+          {baselineDate && date < baselineDate.slice(0, 10) && (
+            <div style={{ color: "#f97316", fontSize: 11, marginTop: 4 }}>
+              ⚠ Before your tracking start date — won&apos;t affect net worth.
+            </div>
+          )}
         </div>
         <div>
           <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Amount</div>
@@ -894,6 +899,12 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
         </div>
       </div>
 
+      {baselineDate && (
+        <div style={{ background: "rgba(249,115,22,0.05)", border: "1px solid rgba(249,115,22,0.12)", borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 12, color: "#5e5e7a" }}>
+          💡 Avoid logging internal money movements (e.g. moving cash to a savings account) as income or expenses — they&apos;ll distort your net worth.
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {!isIncome ? (
           <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#5e5e7a" }}>
@@ -910,13 +921,15 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
   );
 }
 
-function TransactionList({ transactions, onDelete, onUpdateDate }: {
+function TransactionList({ transactions, onDelete, onUpdateDate, baselineDate }: {
   transactions: Transaction[];
   onDelete: (id: string) => void;
   onUpdateDate: (id: string, newDate: string) => void;
+  baselineDate: string | null;
 }) {
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [editingDateValue, setEditingDateValue] = useState("");
+  const baselineDateStr = baselineDate ? baselineDate.slice(0, 10) : null;
 
   const grouped = transactions.reduce((acc, t) => {
     const month = t.date.slice(0, 7);
@@ -962,11 +975,22 @@ function TransactionList({ transactions, onDelete, onUpdateDate }: {
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {monthTxns.sort((a, b) => b.date.localeCompare(a.date)).map(txn => {
+              {monthTxns.sort((a, b) => b.date.localeCompare(a.date)).flatMap((txn, idx, arr) => {
                 const isIncomeTxn = txn.transaction_type === "income";
                 const cat = ALL_CATEGORIES.find(c => c.key === txn.category);
-                return (
-                  <div key={txn.id} className="uf-card" style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+                const isPreBaseline = !!baselineDateStr && txn.date < baselineDateStr;
+                const prevTxn = arr[idx - 1];
+                const showDivider = baselineDateStr && isPreBaseline && prevTxn && prevTxn.date >= baselineDateStr;
+                const elements = [];
+                if (showDivider) elements.push(
+                  <div key={`divider-${txn.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}>
+                    <div style={{ flex: 1, height: 1, background: "#1c1c2e" }} />
+                    <span style={{ color: "#3a3a5a", fontSize: 11, whiteSpace: "nowrap" }}>before tracking started</span>
+                    <div style={{ flex: 1, height: 1, background: "#1c1c2e" }} />
+                  </div>
+                );
+                elements.push(
+                  <div key={txn.id} className="uf-card" style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, opacity: isPreBaseline ? 0.45 : 1 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `${cat?.color || "#6b6b85"}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
                       {cat?.label.split(" ")[0] || (isIncomeTxn ? "📥" : "📦")}
                     </div>
@@ -1025,6 +1049,7 @@ function TransactionList({ transactions, onDelete, onUpdateDate }: {
                     </div>
                   </div>
                 );
+                return elements;
               })}
             </div>
           </div>
@@ -1034,139 +1059,142 @@ function TransactionList({ transactions, onDelete, onUpdateDate }: {
   );
 }
 
-function NetWorthCard({ k401, setK401, taxable, setTaxable, totalDebt, setTotalDebt }: {
-  k401: number; setK401: (v: number) => void;
-  taxable: number; setTaxable: (v: number) => void;
-  totalDebt: number; setTotalDebt: (v: number) => void;
+function NetWorthCard({ baselineNetWorth, baselineDate, transactions, onSetBaseline }: {
+  baselineNetWorth: number;
+  baselineDate: string | null;
+  transactions: Transaction[];
+  onSetBaseline: (amount: number, date: string) => void;
 }) {
-  const isEmpty = k401 + taxable + totalDebt === 0;
-  const [editing, setEditing] = useState(true);
-  const [retirement, setRetirement] = useState(k401);
-  const [brokerage, setBrokerage] = useState(taxable);
-  const [debt, setDebt] = useState(totalDebt);
-  const initialized = useRef(false);
+  const today = new Date().toISOString().split("T")[0];
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(today);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetAmount, setResetAmount] = useState("");
+  const [resetDate, setResetDate] = useState(today);
 
-  useEffect(() => {
-    if (!initialized.current && (k401 + taxable + totalDebt > 0)) {
-      setRetirement(k401);
-      setBrokerage(taxable);
-      setDebt(totalDebt);
-      setEditing(false);
-      initialized.current = true;
-    }
-  }, [k401, taxable, totalDebt]);
+  const baselineDateStr = baselineDate ? baselineDate.slice(0, 10) : null;
+  const cashflow = !baselineDateStr ? 0 : transactions
+    .filter(t => t.date >= baselineDateStr)
+    .reduce((s, t) => s + (t.transaction_type === "income" ? t.amount : -t.amount), 0);
+  const currentNetWorth = baselineNetWorth + cashflow;
 
-  const investable = k401 + taxable;
-  const netWorth = investable - totalDebt;
-
-  const handleSave = () => {
-    setK401(retirement);
-    setTaxable(brokerage);
-    setTotalDebt(debt);
-    setEditing(false);
-  };
-
-  const inputStyle = {
-    width: "100%", background: "#08080e", border: "1px solid #1c1c2e",
-    borderRadius: 8, padding: "9px 12px", color: "#e8e8f2",
-    fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace",
-  };
-
-  if (editing) {
+  // No baseline — show first-time setup
+  if (!baselineDate) {
     return (
-      <div className="uf-card" style={{ marginBottom: 24, border: isEmpty ? "1px dashed #2a2a3e" : "1px solid #1c1c2e" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>🏦 Net Worth Snapshot</div>
-            <div style={{ color: "#5e5e7a", fontSize: 13 }}>
-              {isEmpty
-                ? "Tell us where you stand — helps us show your true financial picture alongside cash flow."
-                : "Update your balances."}
-            </div>
-          </div>
-          {!isEmpty && (
-            <button onClick={() => setEditing(false)} style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 13, cursor: "pointer" }}>Cancel</button>
-          )}
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 8 }}>
-          <div>
-            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Retirement Accounts</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
-              <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
-              <input type="number" placeholder="0" value={retirement || ""} onChange={e => setRetirement(Number(e.target.value))}
-                style={{ ...inputStyle, padding: 0, border: "none", background: "none" }} />
-            </div>
-            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 4 }}>401(k), IRA, pension — all brokerages combined</div>
-          </div>
-          <div>
-            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Brokerage & Cash</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
-              <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
-              <input type="number" placeholder="0" value={brokerage || ""} onChange={e => setBrokerage(Number(e.target.value))}
-                style={{ ...inputStyle, padding: 0, border: "none", background: "none" }} />
-            </div>
-            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 4 }}>Taxable brokerage + savings accounts</div>
-          </div>
-          <div>
-            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Total Debt</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
-              <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
-              <input type="number" placeholder="0" value={debt || ""} onChange={e => setDebt(Number(e.target.value))}
-                style={{ ...inputStyle, padding: 0, border: "none", background: "none" }} />
-            </div>
-            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 4 }}>Credit cards, loans, mortgage balance</div>
+      <div className="uf-card" style={{ marginBottom: 24, border: "1px dashed #2a2a3e" }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>🏦 Set Your Net Worth Baseline</div>
+          <div style={{ color: "#5e5e7a", fontSize: 13 }}>
+            What is your net worth right now? This becomes your T0 — we&apos;ll track changes forward from your transactions.
           </div>
         </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
-          <div style={{ color: "#5e5e7a", fontSize: 12 }}>
-            Net worth = <span style={{ color: (retirement + brokerage - debt) >= 0 ? "#22d3a5" : "#ef4444", fontFamily: "'DM Mono', monospace", fontWeight: 700 }}>
-              {(retirement + brokerage - debt) >= 0 ? "" : "−"}{fmtCurrency(Math.abs(retirement + brokerage - debt))}
-            </span>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <div>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Net Worth Today</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
+              <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
+              <input type="number" placeholder="50,000" value={amount} onChange={e => setAmount(e.target.value)}
+                style={{ flex: 1, background: "none", border: "none", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }} />
+            </div>
+            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 4 }}>Total assets minus total liabilities</div>
           </div>
-          <button onClick={handleSave}
-            style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
-            Save snapshot →
+          <div>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>As of Date</div>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "9px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+          </div>
+        </div>
+        <div style={{ background: "rgba(249,115,22,0.05)", border: "1px solid rgba(249,115,22,0.15)", borderRadius: 8, padding: "9px 14px", marginBottom: 16, fontSize: 12, color: "#5e5e7a", lineHeight: 1.5 }}>
+          💡 Don&apos;t log internal money movements (e.g. cash → savings account) as income or expenses — they&apos;ll distort your net worth.
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button onClick={() => { if (amount) onSetBaseline(parseFloat(amount), date); }} disabled={!amount}
+            style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: !amount ? "default" : "pointer", fontFamily: "'Syne', sans-serif", opacity: !amount ? 0.5 : 1 }}>
+            Start tracking →
           </button>
         </div>
       </div>
     );
   }
 
+  const baseDateLabel = new Date(baselineDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
   return (
-    <div className="uf-card" style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>🏦 Net Worth</div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link href="/dashboard?tab=fire" style={{ color: "#5e5e7a", fontSize: 12, textDecoration: "none" }}>Full breakdown →</Link>
-          <button onClick={() => setEditing(true)} style={{ background: "#1c1c2e", border: "none", color: "#9090a8", borderRadius: 6, padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>Edit</button>
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-        <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Investable</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#22d3a5" }}>{fmtCurrency(investable)}</div>
-          <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>Retirement + brokerage</div>
-        </div>
-        <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Debt</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmtCurrency(totalDebt)}</div>
-          <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>Loans + mortgage</div>
-        </div>
-        <div style={{
-          background: netWorth >= 0 ? "rgba(34,211,165,0.06)" : "rgba(239,68,68,0.06)",
-          border: `1px solid ${netWorth >= 0 ? "rgba(34,211,165,0.2)" : "rgba(239,68,68,0.2)"}`,
-          borderRadius: 12, padding: "14px 16px",
-        }}>
-          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net Worth</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: netWorth >= 0 ? "#22d3a5" : "#ef4444" }}>
-            {netWorth >= 0 ? "" : "−"}{fmtCurrency(Math.abs(netWorth))}
+    <>
+      {showResetModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div className="uf-card" style={{ maxWidth: 460, width: "100%", padding: 32 }}>
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>Reset Net Worth Baseline?</div>
+            <div style={{ color: "#9090a8", fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
+              This will reset your tracking to the new date. Transactions before the new baseline date will no longer affect your net worth calculation.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+              <div>
+                <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>New Net Worth</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
+                  <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
+                  <input type="number" placeholder="0" value={resetAmount} onChange={e => setResetAmount(e.target.value)} autoFocus
+                    style={{ flex: 1, background: "none", border: "none", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }} />
+                </div>
+              </div>
+              <div>
+                <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>New Baseline Date</div>
+                <input type="date" value={resetDate} onChange={e => setResetDate(e.target.value)}
+                  style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "9px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button onClick={() => setShowResetModal(false)}
+                style={{ background: "transparent", border: "1px solid #1c1c2e", color: "#9090a8", borderRadius: 8, padding: "9px 20px", fontSize: 14, cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button onClick={() => { if (resetAmount) { onSetBaseline(parseFloat(resetAmount), resetDate); setShowResetModal(false); } }} disabled={!resetAmount}
+                style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 8, padding: "9px 24px", fontSize: 14, fontWeight: 700, cursor: !resetAmount ? "default" : "pointer", opacity: !resetAmount ? 0.5 : 1 }}>
+                Confirm reset
+              </button>
+            </div>
           </div>
-          <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>Assets minus debt</div>
+        </div>
+      )}
+
+      <div className="uf-card" style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>🏦 Net Worth</div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ color: "#3a3a5a", fontSize: 11 }}>tracking since {baseDateLabel}</span>
+            <button onClick={() => { setResetAmount(String(baselineNetWorth)); setResetDate(today); setShowResetModal(true); }}
+              style={{ background: "#1c1c2e", border: "none", color: "#9090a8", borderRadius: 6, padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>
+              Reset
+            </button>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Baseline</div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#9090a8" }}>{fmtCurrency(baselineNetWorth)}</div>
+            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>as of {baseDateLabel}</div>
+          </div>
+          <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Cashflow Since</div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: cashflow >= 0 ? "#22d3a5" : "#ef4444" }}>
+              {cashflow >= 0 ? "+" : "−"}{fmtCurrency(Math.abs(cashflow))}
+            </div>
+            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>income − expenses</div>
+          </div>
+          <div style={{
+            background: currentNetWorth >= 0 ? "rgba(34,211,165,0.06)" : "rgba(239,68,68,0.06)",
+            border: `1px solid ${currentNetWorth >= 0 ? "rgba(34,211,165,0.2)" : "rgba(239,68,68,0.2)"}`,
+            borderRadius: 12, padding: "14px 16px",
+          }}>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net Worth</div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: currentNetWorth >= 0 ? "#22d3a5" : "#ef4444" }}>
+              {currentNetWorth >= 0 ? "" : "−"}{fmtCurrency(Math.abs(currentNetWorth))}
+            </div>
+            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>baseline + cashflow</div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1285,17 +1313,16 @@ function TransactionSummary({
 
 function TransactionTab({
   transactions, setTransactions, viewMonth, setViewMonth,
-  budgetExpenses, k401, setK401, taxable, setTaxable,
-  totalDebt, setTotalDebt, onTransactionAdded,
+  budgetExpenses, baselineNetWorth, baselineDate, onSetBaseline, onTransactionAdded,
 }: {
   transactions: Transaction[];
   setTransactions: (updater: (prev: Transaction[]) => Transaction[]) => void;
   viewMonth: string;
   setViewMonth: (v: string) => void;
   budgetExpenses: Expenses;
-  k401: number; setK401: (v: number) => void;
-  taxable: number; setTaxable: (v: number) => void;
-  totalDebt: number; setTotalDebt: (v: number) => void;
+  baselineNetWorth: number;
+  baselineDate: string | null;
+  onSetBaseline: (amount: number, date: string) => void;
   onTransactionAdded: (t: Transaction) => void;
 }) {
   const now = new Date();
@@ -1321,7 +1348,12 @@ function TransactionTab({
 
   return (
     <div>
-      <NetWorthCard k401={k401} setK401={setK401} taxable={taxable} setTaxable={setTaxable} totalDebt={totalDebt} setTotalDebt={setTotalDebt} />
+      <NetWorthCard
+        baselineNetWorth={baselineNetWorth}
+        baselineDate={baselineDate}
+        transactions={transactions}
+        onSetBaseline={onSetBaseline}
+      />
       <TransactionSummary
         transactions={transactions}
         viewMonth={viewMonth}
@@ -1329,10 +1361,11 @@ function TransactionTab({
         onNextMonth={handleNextMonth}
         budgetExpenses={budgetExpenses}
       />
-      <AddTransactionForm onAdd={onTransactionAdded} />
+      <AddTransactionForm onAdd={onTransactionAdded} baselineDate={baselineDate} />
       <TransactionList
         transactions={transactions}
         onDelete={handleDelete}
+        baselineDate={baselineDate}
         onUpdateDate={(id, newDate) =>
           setTransactions(prev => prev.map(t => t.id === id ? { ...t, date: newDate } : t))
         }
@@ -1391,6 +1424,8 @@ export default function Dashboard() {
   const [mortgageMonthly, setMortgageMonthly] = useState(0);
   const [growthRate,      setGrowthRate]      = useState(0.07);
   const [withdrawalRate,  setWithdrawalRate]  = useState(0.04);
+  const [baselineNetWorth, setBaselineNetWorth] = useState(0);
+  const [baselineDate,     setBaselineDate]     = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [actuals, setActuals] = useState<Record<string, number>>({});
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1434,6 +1469,8 @@ export default function Dashboard() {
           setMortgageMonthly(fp.mortgageMonthly || 0);
           setGrowthRate(fp.growthRate || 0.07);
           setWithdrawalRate(fp.withdrawalRate || 0.04);
+          setBaselineNetWorth(data.baseline_net_worth || 0);
+          setBaselineDate(data.baseline_date || null);
         }
         isLoaded.current = true;
       });
@@ -1450,17 +1487,24 @@ export default function Dashboard() {
       if (!session) return;
       const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate };
       await supabase.from("user_budget").upsert({
-        user_id:     session.user.id,
+        user_id:              session.user.id,
         income,
-        expenses:    { ...expenses, _fire_profile: fireProfile },
-        fire_age:    fireAge,
-        fire_assets: k401, // keep backwards-compatible
-        updated_at:  new Date().toISOString(),
+        expenses:             { ...expenses, _fire_profile: fireProfile },
+        fire_age:             fireAge,
+        fire_assets:          k401,
+        baseline_net_worth:   baselineNetWorth,
+        baseline_date:        baselineDate,
+        updated_at:           new Date().toISOString(),
       }, { onConflict: "user_id" });
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1000);
-  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
+  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, baselineNetWorth, baselineDate]);
+
+  const handleSetBaseline = (amount: number, date: string) => {
+    setBaselineNetWorth(amount);
+    setBaselineDate(date);
+  };
 
   const handleTransactionAdded = (txn: Transaction) => {
     setTransactions(prev => [txn, ...prev]);
@@ -1558,9 +1602,9 @@ export default function Dashboard() {
             transactions={transactions} setTransactions={setTransactions}
             viewMonth={viewMonth} setViewMonth={setViewMonth}
             budgetExpenses={expenses}
-            k401={k401} setK401={setK401}
-            taxable={taxable} setTaxable={setTaxable}
-            totalDebt={totalDebt} setTotalDebt={setTotalDebt}
+            baselineNetWorth={baselineNetWorth}
+            baselineDate={baselineDate}
+            onSetBaseline={handleSetBaseline}
             onTransactionAdded={handleTransactionAdded}
           />
         )}
