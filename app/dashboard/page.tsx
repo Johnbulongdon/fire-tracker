@@ -980,14 +980,16 @@ function TransactionList({ transactions, onDelete, onUpdateDate }: {
                             type="date"
                             defaultValue={txn.date}
                             autoFocus
-                            onBlur={async e => {
+                            onChange={async e => {
                               const newDate = e.target.value;
-                              if (newDate && newDate !== txn.date) {
+                              if (!newDate) return;
+                              if (newDate !== txn.date) {
                                 await supabase.from("expenses").update({ date: newDate }).eq("id", txn.id);
                                 onUpdateDate(txn.id, newDate);
                               }
                               setEditingDateId(null);
                             }}
+                            onKeyDown={e => { if (e.key === "Escape") setEditingDateId(null); }}
                             style={{ background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 6, padding: "2px 6px", color: "#e8e8f2", fontSize: 11, outline: "none", fontFamily: "inherit", cursor: "pointer" }}
                           />
                         ) : (
