@@ -66,40 +66,53 @@ function WizardProgress({ step }: { step: number }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   return (
-    <div className="uf-screen uf-hero">
-      <div className="uf-badge">
-        <span className="uf-badge-dot" /> Free — no login required
+    <div className={`uf-screen uf-hero${mounted ? " uf-hero--mounted" : ""}`}>
+      <div className="uf-hero-bg" aria-hidden="true">
+        <div className="uf-hero-orb uf-hero-orb-1" />
+        <div className="uf-hero-orb uf-hero-orb-2" />
+        <div className="uf-hero-orb uf-hero-orb-3" />
       </div>
-      <h1 className="uf-h1">
-        Your spending is<br />
-        <span className="uf-accent">costing you years</span><br />
-        of freedom.
-      </h1>
-      <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 32px" }}>
-        Find out exactly when you can retire — adjusted for your city, your income,
-        and what you actually spend. Takes 60 seconds.
-      </p>
-      <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full" onClick={onStart}>
-        Calculate my FIRE number →
-      </button>
-      <button className="uf-hero-signin" onClick={onSignIn}>
-        Already have an account? Sign in →
-      </button>
-      <div className="uf-social-proof">
-        <div className="uf-avatars">
-          {["#f97316","#22d3a5","#a78bfa","#fb923c"].map((c, i) => (
-            <div key={i} className="uf-avatar" style={{ background: c }} />
-          ))}
+      <div className="uf-hero-content">
+        <div className="uf-badge">
+          <span className="uf-badge-dot" /> Free — no login required
         </div>
-        <span className="uf-proof-text">
-          Joined by <strong>2,400+</strong> FIRE seekers this month
-        </span>
-      </div>
-      <div className="uf-stats-grid">
-        <div className="uf-stat-hero"><span className="uf-accent">$5.8B</span><div>market growing 10.3% CAGR</div></div>
-        <div className="uf-stat-hero"><span style={{ color: "var(--teal)" }}>2.2M</span><div>r/financialindependence members</div></div>
-        <div className="uf-stat-hero"><span style={{ color: "var(--purple)" }}>25%</span><div>Gen Z targeting retirement under 55</div></div>
+        <h1 className="uf-h1">
+          Your spending is<br />
+          <span className="uf-accent-flame">costing you years</span><br />
+          of freedom.
+        </h1>
+        <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 32px" }}>
+          Find out exactly when you can retire — adjusted for your city, your income,
+          and what you actually spend. Takes 60 seconds.
+        </p>
+        <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full" onClick={onStart}>
+          Calculate my FIRE number →
+        </button>
+        <button className="uf-hero-signin" onClick={onSignIn}>
+          Already have an account? Sign in →
+        </button>
+        <div className="uf-social-proof">
+          <div className="uf-avatars">
+            {["#f97316","#22d3a5","#a78bfa","#fb923c"].map((c, i) => (
+              <div key={i} className="uf-avatar" style={{ background: c }} />
+            ))}
+          </div>
+          <span className="uf-proof-text">
+            Joined by <strong>2,400+</strong> FIRE seekers this month
+          </span>
+        </div>
+        <div className="uf-stats-grid">
+          <div className="uf-stat-hero"><span className="uf-accent">$5.8B</span><div>market growing 10.3% CAGR</div></div>
+          <div className="uf-stat-hero"><span style={{ color: "var(--teal)" }}>2.2M</span><div>r/financialindependence members</div></div>
+          <div className="uf-stat-hero"><span style={{ color: "var(--purple)" }}>25%</span><div>Gen Z targeting retirement under 55</div></div>
+        </div>
       </div>
     </div>
   );
@@ -1261,16 +1274,73 @@ export default function Home() {
         .uf-rate-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
 
         /* ── HERO SCREEN ── */
-        .uf-hero { text-align: center; max-width: 580px; padding-top: 80px; }
-        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; }
-        .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+        .uf-hero { text-align: center; max-width: 580px; padding-top: 80px; position: relative; overflow: hidden; }
+        .uf-hero-content { position: relative; z-index: 1; }
+
+        /* Background orbs */
+        .uf-hero-bg { position: absolute; inset: -100px; pointer-events: none; z-index: 0; }
+        .uf-hero-orb { position: absolute; border-radius: 50%; filter: blur(80px); will-change: transform, opacity; }
+        .uf-hero-orb-1 { width: 520px; height: 520px; top: -200px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%); animation: orbDrift1 12s ease-in-out infinite alternate; }
+        .uf-hero-orb-2 { width: 380px; height: 380px; bottom: -80px; left: -100px; background: radial-gradient(circle, rgba(34,211,165,0.12) 0%, transparent 70%); animation: orbDrift2 16s ease-in-out 2s infinite alternate; }
+        .uf-hero-orb-3 { width: 300px; height: 300px; top: 60px; right: -80px; background: radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%); animation: orbDrift3 20s ease-in-out 4s infinite alternate; }
+        @keyframes orbDrift1 {
+          0%   { transform: translateX(-50%) translateY(0px) scale(1); opacity: 0.7; }
+          50%  { transform: translateX(-48%) translateY(-30px) scale(1.08); opacity: 1; }
+          100% { transform: translateX(-52%) translateY(20px) scale(0.95); opacity: 0.8; }
+        }
+        @keyframes orbDrift2 {
+          0%   { transform: translate(0,0) scale(1); opacity: 0.6; }
+          100% { transform: translate(40px,-30px) scale(1.1); opacity: 0.9; }
+        }
+        @keyframes orbDrift3 {
+          0%   { transform: translate(0,0) scale(1); opacity: 0.5; }
+          100% { transform: translate(-20px,30px) scale(0.9); opacity: 0.8; }
+        }
+
+        /* Badge */
+        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; border: 1px solid rgba(249,115,22,0.2); }
+        .uf-badge-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+        .uf-badge-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--accent); opacity: 0; animation: radarPulse 2.2s ease-out infinite; }
+        @keyframes radarPulse {
+          0%   { opacity: 0.8; transform: scale(1); }
+          100% { opacity: 0;   transform: scale(2.6); }
+        }
+
+        /* Flame headline span */
+        .uf-accent-flame { background: linear-gradient(92deg, #f97316 0%, #fb923c 30%, #fbbf24 52%, #f97316 68%, #ea580c 85%, #f97316 100%); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline; animation: flameShimmer 4s linear infinite, flamePulse 3s ease-in-out infinite alternate; }
+        @keyframes flameShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 240% 50%; } }
+        @keyframes flamePulse {
+          from { filter: drop-shadow(0 0 6px rgba(249,115,22,0.0)); }
+          to   { filter: drop-shadow(0 0 14px rgba(249,115,22,0.5)); }
+        }
+
+        /* Entrance animations — only fire when mounted class is present (re-fires on Start over) */
+        @keyframes heroEnter { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes statEntry { from { opacity: 0; transform: scale(0.7) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .uf-hero--mounted .uf-badge        { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
+        .uf-hero--mounted .uf-h1           { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.18s both; }
+        .uf-hero--mounted .uf-body         { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.30s both; }
+        .uf-hero--mounted .uf-btn-primary  { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.42s both; }
+        .uf-hero--mounted .uf-hero-signin  { animation: heroEnter 0.50s cubic-bezier(0.22,1,0.36,1) 0.50s both; }
+        .uf-hero--mounted .uf-social-proof { animation: heroEnter 0.55s cubic-bezier(0.22,1,0.36,1) 0.58s both; }
+        .uf-hero--mounted .uf-stats-grid   { animation: heroEnter 0.60s cubic-bezier(0.22,1,0.36,1) 0.70s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(1) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.75s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(2) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.85s both; }
+        .uf-hero--mounted .uf-stat-hero:nth-child(3) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.95s both; }
+
+        /* Social proof */
         .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
         .uf-avatars { display: flex; }
         .uf-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); margin-left: -6px; }
         .uf-avatar:first-child { margin-left: 0; }
         .uf-proof-text { font-size: 13px; color: var(--text-muted); }
-        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 40px; }
-        .uf-stat-hero { text-align: center; font-size: 12px; color: var(--text-muted); }
+
+        /* Stats grid */
+        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 28px; }
+        .uf-stat-hero { text-align: center; font-size: 12px; color: var(--text-muted); position: relative; transition: transform 0.2s ease; cursor: default; }
+        .uf-stat-hero:hover { transform: translateY(-2px); }
+        .uf-stat-hero:hover span { filter: brightness(1.15); }
+        .uf-stat-hero:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 10%; height: 80%; width: 1px; background: var(--border); }
         .uf-stat-hero span { display: block; font-family: var(--font-display); font-size: 28px; font-weight: 800; margin-bottom: 4px; }
 
         /* ── REVEAL ── */
