@@ -95,9 +95,6 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
   return (
     <div className={`uf-screen uf-hero${mounted ? " uf-hero--mounted" : ""}`}>
       <div className="uf-hero-bg" aria-hidden="true">
-        <div className="uf-hero-orb uf-hero-orb-1" />
-        <div className="uf-hero-orb uf-hero-orb-2" />
-        <div className="uf-hero-orb uf-hero-orb-3" />
         <div className="uf-hero-scan" />
         {HERO_TOKENS.map((t, i) => (
           <div
@@ -123,7 +120,7 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
           <span className="uf-accent-flame">costing you years</span><br />
           of freedom.
         </h1>
-        <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 32px" }}>
+        <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 24px" }}>
           Find out exactly when you can retire — adjusted for your city, your income,
           and what you actually spend. Takes 60 seconds.
         </p>
@@ -1193,17 +1190,23 @@ export default function Home() {
         .uf-nav-restart:hover { color: var(--text); }
         .uf-nav-signin { font-size: 13px; font-weight: 500; color: var(--text-muted); background: none; border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
         .uf-nav-signin:hover { color: var(--text); border-color: var(--text-dim); background: var(--bg-elevated); }
-        .uf-hero-signin { display: block; width: 100%; margin-top: 14px; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 14px; cursor: pointer; padding: 8px; transition: color 0.2s; }
+        .uf-hero-signin { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 14px; cursor: pointer; padding: 8px; transition: color 0.2s; }
         .uf-hero-signin:hover { color: var(--text); }
 
         /* ── SCREEN ── */
-        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-        .uf-screen { width: 100%; max-width: 540px; padding: 48px 24px 40px; }
+        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform, opacity; }
+        .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
+        .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(34,211,165,0.11) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
+        .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
+        .uf-screen { width: 100%; max-width: 540px; padding: 40px 24px 24px; position: relative; z-index: 1; }
         .uf-reveal-screen { max-width: 680px; }
+        .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
 
         /* ── TYPOGRAPHY ── */
         .uf-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
-        .uf-h1 { font-family: var(--font-display); font-size: clamp(32px,5vw,52px); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; color: var(--text); margin-bottom: 20px; }
+        .uf-h1 { font-family: var(--font-display); font-size: clamp(32px,5vw,52px); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; color: var(--text); margin-bottom: 14px; }
         .uf-h2 { font-family: var(--font-display); font-size: clamp(24px,4vw,38px); font-weight: 700; line-height: 1.1; letter-spacing: -1px; color: var(--text); margin-bottom: 8px; }
         .uf-accent { color: var(--accent); }
         .uf-body { font-size: 16px; line-height: 1.6; color: var(--text-muted); }
@@ -1309,29 +1312,11 @@ export default function Home() {
         .uf-rate-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
 
         /* ── HERO SCREEN ── */
-        .uf-hero { text-align: center; max-width: 580px; padding-top: 80px; position: relative; overflow: hidden; }
-        .uf-hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 70%; height: 1px; background: linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent); z-index: 2; pointer-events: none; }
+        .uf-hero { text-align: center; max-width: 580px; padding-top: 36px; position: relative; }
         .uf-hero-content { position: relative; z-index: 1; }
 
-        /* Background orbs — boosted intensity */
-        .uf-hero-bg { position: absolute; inset: -100px; pointer-events: none; z-index: 0; }
-        .uf-hero-orb { position: absolute; border-radius: 50%; filter: blur(80px); will-change: transform, opacity; }
-        .uf-hero-orb-1 { width: 540px; height: 540px; top: -200px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%); animation: orbDrift1 12s ease-in-out infinite alternate; }
-        .uf-hero-orb-2 { width: 400px; height: 400px; bottom: -80px; left: -100px; background: radial-gradient(circle, rgba(34,211,165,0.15) 0%, transparent 70%); animation: orbDrift2 16s ease-in-out 2s infinite alternate; }
-        .uf-hero-orb-3 { width: 320px; height: 320px; top: 60px; right: -80px; background: radial-gradient(circle, rgba(167,139,250,0.13) 0%, transparent 70%); animation: orbDrift3 20s ease-in-out 4s infinite alternate; }
-        @keyframes orbDrift1 {
-          0%   { transform: translateX(-50%) translateY(0px) scale(1); opacity: 0.8; }
-          50%  { transform: translateX(-48%) translateY(-30px) scale(1.08); opacity: 1; }
-          100% { transform: translateX(-52%) translateY(20px) scale(0.95); opacity: 0.85; }
-        }
-        @keyframes orbDrift2 {
-          0%   { transform: translate(0,0) scale(1); opacity: 0.7; }
-          100% { transform: translate(40px,-30px) scale(1.1); opacity: 1; }
-        }
-        @keyframes orbDrift3 {
-          0%   { transform: translate(0,0) scale(1); opacity: 0.6; }
-          100% { transform: translate(-20px,30px) scale(0.9); opacity: 0.9; }
-        }
+        /* Hero local bg — scan line + tokens only; orbs are now viewport-fixed */
+        .uf-hero-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 
         /* Scan line */
         .uf-hero-scan { position: absolute; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(249,115,22,0.2) 20%, rgba(249,115,22,0.55) 50%, rgba(249,115,22,0.2) 80%, transparent 100%); animation: scanLine 7s linear infinite; pointer-events: none; z-index: 1; }
@@ -1352,14 +1337,14 @@ export default function Home() {
         }
 
         /* Live counter */
-        .uf-live-counter { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 20px; justify-content: center; }
+        .uf-live-counter { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 10px; justify-content: center; }
         .uf-live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); flex-shrink: 0; animation: livePulse 1.5s ease-in-out infinite; }
         .uf-live-count { color: var(--teal); font-weight: 500; }
         .uf-live-label { color: var(--text-dim); }
         @keyframes livePulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,211,165,0); } 50% { opacity: 0.5; box-shadow: 0 0 5px 2px rgba(34,211,165,0.35); } }
 
         /* Badge */
-        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; border: 1px solid rgba(249,115,22,0.2); }
+        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 14px; border: 1px solid rgba(249,115,22,0.2); }
         .uf-badge-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
         .uf-badge-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--accent); opacity: 0; animation: radarPulse 2.2s ease-out infinite; }
         @keyframes radarPulse {
@@ -1399,14 +1384,14 @@ export default function Home() {
         .uf-hero--mounted .uf-stat-hero:nth-child(3) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.98s both; }
 
         /* Social proof */
-        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
+        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
         .uf-avatars { display: flex; }
         .uf-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); margin-left: -6px; }
         .uf-avatar:first-child { margin-left: 0; }
         .uf-proof-text { font-size: 13px; color: var(--text-muted); }
 
         /* Stats grid */
-        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 28px; }
+        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
         .uf-stat-hero { text-align: center; font-size: 12px; color: var(--text-muted); position: relative; transition: transform 0.2s ease; cursor: default; }
         .uf-stat-hero:hover { transform: translateY(-2px); }
         .uf-stat-hero:hover span { filter: brightness(1.15); }
@@ -1495,7 +1480,7 @@ export default function Home() {
         .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(34,211,165,0.25); }
 
         /* ── WAITLIST ── */
-        .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 80px 24px; }
+        .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 48px 24px 64px; position: relative; z-index: 1; }
         .uf-waitlist-success { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); border-radius: 14px; padding: 20px 24px; color: var(--teal); font-weight: 700; font-size: 16px; text-align: center; }
         .uf-waitlist-form { display: flex; gap: 10px; }
 
@@ -1538,7 +1523,6 @@ export default function Home() {
         .uf-share-copy:hover { color: var(--text); background: var(--bg-card); border-color: var(--text-dim); }
 
         /* ── FOOTER DIVIDER ── */
-        .uf-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
       `}</style>
 
       <Nav
@@ -1549,6 +1533,11 @@ export default function Home() {
       />
 
       <div className="uf-page">
+        <div className="uf-page-bg" aria-hidden="true">
+          <div className="uf-atm-orb uf-atm-orb-1" />
+          <div className="uf-atm-orb uf-atm-orb-2" />
+          <div className="uf-atm-orb uf-atm-orb-3" />
+        </div>
         {screen === "hero" && (
           <HeroScreen onStart={() => setScreen("city")} onSignIn={signIn} />
         )}
@@ -1583,7 +1572,7 @@ export default function Home() {
           />
         )}
 
-        <hr className="uf-divider" style={{ width: "100%" }} />
+        <div className="uf-section-sep" aria-hidden="true" />
         <WaitlistSection />
       </div>
     </>
