@@ -462,7 +462,8 @@ export default function ExpensesPage() {
 
   const tabs = [
     { key: "dashboard", label: "📊 Dashboard", href: "/dashboard" },
-    { key: "expenses", label: "💳 Expenses", href: "/expenses" },
+    { key: "budget",    label: "💰 Budget",    href: "/dashboard?tab=budget" },
+    { key: "expenses",  label: "💳 Expenses",  href: "/expenses" },
   ];
 
   return (

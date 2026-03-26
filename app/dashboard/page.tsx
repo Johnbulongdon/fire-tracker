@@ -704,6 +704,13 @@ function UserNav() {
 export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("dashboard");
 
+  // Read initial tab from URL query string (e.g. ?tab=budget)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("tab") as TabKey | null;
+    if (t && ["dashboard", "budget", "fire"].includes(t)) setTab(t);
+  }, []);
+
   // Budget state
   const [income,   setIncome]   = useState(0);
   const [expenses, setExpenses] = useState<Expenses>({ housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0 });
