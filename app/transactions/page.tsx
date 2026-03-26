@@ -335,7 +335,162 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
   );
 }
 
-function MonthlySummary({
+type FireProfile = { k401: number; taxable: number; totalDebt: number };
+
+function NetWorthCard({ profile, onSave }: {
+  profile: FireProfile | null;
+  onSave: (p: FireProfile) => void;
+}) {
+  const isEmpty = !profile || (profile.k401 + profile.taxable + profile.totalDebt === 0);
+  const [editing, setEditing] = useState(isEmpty);
+  const [retirement, setRetirement] = useState(profile?.k401 ?? 0);
+  const [brokerage, setBrokerage] = useState(profile?.taxable ?? 0);
+  const [debt, setDebt]           = useState(profile?.totalDebt ?? 0);
+  const [saving, setSaving]       = useState(false);
+
+  // sync if profile loads after mount
+  useEffect(() => {
+    if (profile && !editing) {
+      setRetirement(profile.k401);
+      setBrokerage(profile.taxable);
+      setDebt(profile.totalDebt);
+    }
+  }, [profile]);
+
+  const investable = (profile?.k401 ?? 0) + (profile?.taxable ?? 0);
+  const netWorth   = investable - (profile?.totalDebt ?? 0);
+
+  const inputStyle = {
+    width: "100%", background: "#08080e", border: "1px solid #1c1c2e",
+    borderRadius: 8, padding: "9px 12px", color: "#e8e8f2",
+    fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace",
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setSaving(false); return; }
+    const { data: existing } = await supabase.from('user_budget')
+      .select('income, expenses').eq('user_id', session.user.id).maybeSingle();
+    const currentExpenses = (existing?.expenses as Record<string, unknown>) || {};
+    const currentProfile  = (currentExpenses._fire_profile as Record<string, unknown>) || {};
+    await supabase.from('user_budget').upsert({
+      user_id:    session.user.id,
+      income:     (existing as { income?: number })?.income || 0,
+      expenses:   { ...currentExpenses, _fire_profile: { ...currentProfile, k401: retirement, taxable: brokerage, totalDebt: debt } },
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    onSave({ k401: retirement, taxable: brokerage, totalDebt: debt });
+    setSaving(false);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="uf-card" style={{ marginBottom: 24, border: isEmpty ? "1px dashed #2a2a3e" : "1px solid #1c1c2e" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>🏦 Net Worth Snapshot</div>
+            <div style={{ color: "#5e5e7a", fontSize: 13 }}>
+              {isEmpty
+                ? "Tell us where you stand — helps us show your true financial picture alongside cash flow."
+                : "Update your balances."}
+            </div>
+          </div>
+          {!isEmpty && (
+            <button onClick={() => setEditing(false)} style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 13, cursor: "pointer" }}>Cancel</button>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 8 }}>
+          <div>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+              Retirement Accounts
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
+              <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
+              <input type="number" placeholder="0" value={retirement || ""} onChange={e => setRetirement(Number(e.target.value))}
+                style={{ ...inputStyle, padding: 0, border: "none", background: "none" }} />
+            </div>
+            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 4 }}>401(k), IRA, pension — all brokerages combined</div>
+          </div>
+          <div>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+              Brokerage & Cash
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
+              <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
+              <input type="number" placeholder="0" value={brokerage || ""} onChange={e => setBrokerage(Number(e.target.value))}
+                style={{ ...inputStyle, padding: 0, border: "none", background: "none" }} />
+            </div>
+            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 4 }}>Taxable brokerage + savings accounts</div>
+          </div>
+          <div>
+            <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+              Total Debt
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#08080e", borderRadius: 8, padding: "9px 12px", border: "1px solid #1c1c2e" }}>
+              <span style={{ color: "#5e5e7a", fontSize: 13 }}>$</span>
+              <input type="number" placeholder="0" value={debt || ""} onChange={e => setDebt(Number(e.target.value))}
+                style={{ ...inputStyle, padding: 0, border: "none", background: "none" }} />
+            </div>
+            <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 4 }}>Credit cards, loans, mortgage balance</div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+          <div style={{ color: "#5e5e7a", fontSize: 12 }}>
+            Net worth = <span style={{ color: (retirement + brokerage - debt) >= 0 ? "#22d3a5" : "#ef4444", fontFamily: "'DM Mono', monospace", fontWeight: 700 }}>
+              {(retirement + brokerage - debt) >= 0 ? "" : "−"}{fmt(Math.abs(retirement + brokerage - debt))}
+            </span>
+          </div>
+          <button onClick={handleSave} disabled={saving}
+            style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", opacity: saving ? 0.6 : 1 }}>
+            {saving ? "Saving..." : "Save snapshot →"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Summary view
+  return (
+    <div className="uf-card" style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>🏦 Net Worth</div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Link href="/dashboard?tab=fire" style={{ color: "#5e5e7a", fontSize: 12, textDecoration: "none" }}>Full breakdown →</Link>
+          <button onClick={() => setEditing(true)} style={{ background: "#1c1c2e", border: "none", color: "#9090a8", borderRadius: 6, padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>Edit</button>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Investable</div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#22d3a5" }}>{fmt(investable)}</div>
+          <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>Retirement + brokerage</div>
+        </div>
+        <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Debt</div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmt(profile?.totalDebt ?? 0)}</div>
+          <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>Loans + mortgage</div>
+        </div>
+        <div style={{
+          background: netWorth >= 0 ? "rgba(34,211,165,0.06)" : "rgba(239,68,68,0.06)",
+          border: `1px solid ${netWorth >= 0 ? "rgba(34,211,165,0.2)" : "rgba(239,68,68,0.2)"}`,
+          borderRadius: 12, padding: "14px 16px",
+        }}>
+          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net Worth</div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: netWorth >= 0 ? "#22d3a5" : "#ef4444" }}>
+            {netWorth >= 0 ? "" : "−"}{fmt(Math.abs(netWorth))}
+          </div>
+          <div style={{ color: "#3a3a5a", fontSize: 11, marginTop: 3 }}>Assets minus debt</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
   transactions,
   viewMonth,
   onPrevMonth,
@@ -462,6 +617,7 @@ export default function TransactionsPage() {
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [viewMonth, setViewMonth] = useState(currentMonth);
   const [budgetExpenses, setBudgetExpenses] = useState<Record<string, number> | null>(null);
+  const [fireProfile, setFireProfile] = useState<FireProfile | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -475,8 +631,12 @@ export default function TransactionsPage() {
       supabase.from('user_budget').select('income, expenses').eq('user_id', session.user.id).maybeSingle()
         .then(({ data }) => {
           if (data?.expenses) {
-            const { _fire_profile: _, ...budgetCats } = data.expenses as Record<string, unknown>;
+            const { _fire_profile: fp, ...budgetCats } = data.expenses as Record<string, unknown>;
             setBudgetExpenses(budgetCats as Record<string, number>);
+            const p = (fp as Record<string, number>) || {};
+            setFireProfile({ k401: p.k401 || 0, taxable: p.taxable || 0, totalDebt: p.totalDebt || 0 });
+          } else {
+            setFireProfile({ k401: 0, taxable: 0, totalDebt: 0 });
           }
         });
     });
@@ -547,6 +707,10 @@ export default function TransactionsPage() {
           <div style={{ textAlign: "center", padding: "60px 0", color: "#5e5e7a" }}>Loading transactions...</div>
         ) : (
           <>
+            <NetWorthCard
+              profile={fireProfile}
+              onSave={setFireProfile}
+            />
             <MonthlySummary
               transactions={transactions}
               viewMonth={viewMonth}
