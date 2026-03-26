@@ -95,7 +95,6 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
   return (
     <div className={`uf-screen uf-hero${mounted ? " uf-hero--mounted" : ""}`}>
       <div className="uf-hero-bg" aria-hidden="true">
-        <div className="uf-hero-scan" />
         {HERO_TOKENS.map((t, i) => (
           <div
             key={i}
@@ -108,7 +107,6 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
       </div>
       <div className="uf-hero-content">
         <div className="uf-live-counter">
-          <span className="uf-live-dot" />
           <span className="uf-live-count">{calcCount.toLocaleString()}</span>
           <span className="uf-live-label">&nbsp;FIRE numbers calculated today</span>
         </div>
@@ -1318,15 +1316,6 @@ export default function Home() {
         /* Hero local bg — scan line + tokens only; orbs are now viewport-fixed */
         .uf-hero-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 
-        /* Scan line */
-        .uf-hero-scan { position: absolute; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(249,115,22,0.2) 20%, rgba(249,115,22,0.55) 50%, rgba(249,115,22,0.2) 80%, transparent 100%); animation: scanLine 7s linear infinite; pointer-events: none; z-index: 1; }
-        @keyframes scanLine {
-          0%   { top: 0%; opacity: 0; }
-          4%   { opacity: 1; }
-          96%  { opacity: 0.7; }
-          100% { top: 100%; opacity: 0; }
-        }
-
         /* Floating data tokens */
         .uf-hero-token { position: absolute; font-family: var(--font-mono); font-size: 10px; color: var(--text); opacity: 0; animation: tokenFloat 7s ease-in-out infinite; pointer-events: none; white-space: nowrap; letter-spacing: 0.5px; }
         @keyframes tokenFloat {
@@ -1338,19 +1327,12 @@ export default function Home() {
 
         /* Live counter */
         .uf-live-counter { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 10px; justify-content: center; }
-        .uf-live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); flex-shrink: 0; animation: livePulse 1.5s ease-in-out infinite; }
         .uf-live-count { color: var(--teal); font-weight: 500; }
         .uf-live-label { color: var(--text-dim); }
-        @keyframes livePulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,211,165,0); } 50% { opacity: 0.5; box-shadow: 0 0 5px 2px rgba(34,211,165,0.35); } }
 
         /* Badge */
         .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 14px; border: 1px solid rgba(249,115,22,0.2); }
-        .uf-badge-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-        .uf-badge-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--accent); opacity: 0; animation: radarPulse 2.2s ease-out infinite; }
-        @keyframes radarPulse {
-          0%   { opacity: 0.8; transform: scale(1); }
-          100% { opacity: 0;   transform: scale(2.6); }
-        }
+        .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 
         /* Flame headline span */
         .uf-accent-flame { background: linear-gradient(92deg, #f97316 0%, #fb923c 30%, #fbbf24 52%, #f97316 68%, #ea580c 85%, #f97316 100%); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline; animation: flameShimmer 4s linear infinite, flamePulse 3s ease-in-out infinite alternate; }
