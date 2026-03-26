@@ -31,10 +31,14 @@ function Nav({ step, totalSteps, onRestart }: {
           <div key={i} className={`uf-nav-dot ${i === step ? "active" : i < step ? "done" : ""}`} />
         ))}
       </div>
-      {step > 0 && (
-        <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
-      )}
-      {step === 0 && <div style={{ width: 90 }} />}
+      <div className="uf-nav-right">
+        {step > 0 && (
+          <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
+        )}
+        {step === 0 && (
+          <Link href="/login" className="uf-nav-signin">Sign in →</Link>
+        )}
+      </div>
     </nav>
   );
 }
@@ -66,19 +70,34 @@ function WizardProgress({ step }: { step: number }) {
 function HeroScreen({ onStart }: { onStart: () => void }) {
   return (
     <div className="uf-screen uf-hero">
+      {/* Floating decorative elements */}
+      <div className="uf-float-el uf-float-dollar">$</div>
+      <div className="uf-float-el uf-float-percent">%</div>
+      <div className="uf-float-el uf-float-dot1" />
+      <div className="uf-float-el uf-float-dot2" />
+      <div className="uf-float-el uf-float-star1">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0l2 6h6l-5 3.5 2 6.5-5-4-5 4 2-6.5L0 6h6z"/></svg>
+      </div>
+      <div className="uf-float-el uf-float-star2">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0l2 6h6l-5 3.5 2 6.5-5-4-5 4 2-6.5L0 6h6z"/></svg>
+      </div>
+
+      {/* Radial glow */}
+      <div className="uf-hero-glow" />
+
       <div className="uf-badge">
         <span className="uf-badge-dot" /> Free — no login required
       </div>
       <h1 className="uf-h1">
         Your spending is<br />
-        <span className="uf-accent">costing you years</span><br />
+        <span className="uf-accent-gradient">costing you years</span><br />
         of freedom.
       </h1>
-      <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 32px" }}>
+      <p className="uf-body" style={{ maxWidth: 480, margin: "0 auto 36px" }}>
         Find out exactly when you can retire — adjusted for your city, your income,
         and what you actually spend. Takes 60 seconds.
       </p>
-      <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full" onClick={onStart}>
+      <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full uf-btn-glow" onClick={onStart}>
         Calculate my FIRE number →
       </button>
       <div className="uf-social-proof">
@@ -95,6 +114,13 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
         <div className="uf-stat-hero"><span className="uf-accent">$5.8B</span><div>market growing 10.3% CAGR</div></div>
         <div className="uf-stat-hero"><span style={{ color: "var(--teal)" }}>2.2M</span><div>r/financialindependence members</div></div>
         <div className="uf-stat-hero"><span style={{ color: "var(--purple)" }}>25%</span><div>Gen Z targeting retirement under 55</div></div>
+      </div>
+
+      {/* Scroll indicator chevron */}
+      <div className="uf-scroll-indicator">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </div>
     </div>
   );
@@ -163,7 +189,7 @@ function CityScreen({ onNext, onBack }: {
   const diff = selected ? selected.col - 52000 : 0;
 
   return (
-    <div className="uf-screen">
+    <div className="uf-screen uf-screen-animated">
       <WizardProgress step={0} />
       <p className="uf-step-label">Step 1 of 3</p>
       <div className="uf-eyebrow">Location</div>
@@ -381,7 +407,7 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
     : annualGross > 0;
 
   return (
-    <div className="uf-screen">
+    <div className="uf-screen uf-screen-animated">
       <WizardProgress step={1} />
       <p className="uf-step-label">Step 2 of 3</p>
       <div className="uf-eyebrow">Income</div>
@@ -568,7 +594,7 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
     : rate < 40 ? "Good" : rate < 50 ? "Strong" : "FIRE pace! 🔥";
 
   return (
-    <div className="uf-screen">
+    <div className="uf-screen uf-screen-animated">
       <WizardProgress step={2} />
       <p className="uf-step-label">Step 3 of 3</p>
       <div className="uf-eyebrow">Savings</div>
@@ -792,7 +818,7 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
   const calcLabels = ["City cost-of-living", "After-tax income", "Compound growth at 7%", "25× withdrawal rule"];
 
   return (
-    <div className="uf-screen uf-reveal-screen">
+    <div className="uf-screen uf-reveal-screen uf-screen-animated">
       {/* PHASE 1 */}
       {calcPhase && (
         <div className="uf-calc-phase">
@@ -816,6 +842,14 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
         <div className="uf-number-phase">
           {/* Hero number */}
           <div className="uf-fire-hero">
+            {/* Sparkle decorations around number */}
+            <div className="uf-sparkle uf-sparkle-1" />
+            <div className="uf-sparkle uf-sparkle-2" />
+            <div className="uf-sparkle uf-sparkle-3" />
+            <div className="uf-sparkle uf-sparkle-4" />
+            <div className="uf-sparkle uf-sparkle-5" />
+            <div className="uf-sparkle uf-sparkle-6" />
+
             <div className="uf-fire-eyebrow">Your estimated FIRE number</div>
             <div ref={numRef} className="uf-fire-num">
               {fmtUSD(counted)}
@@ -907,34 +941,46 @@ function WaitlistSection() {
   }
 
   return (
-    <div className="uf-waitlist">
-      <div className="uf-eyebrow" style={{ textAlign: "center", marginBottom: 16 }}>🔥 Coming Soon</div>
-      <h2 className="uf-h2" style={{ textAlign: "center", marginBottom: 12 }}>Get the AI roadmap</h2>
-      <p className="uf-body" style={{ textAlign: "center", marginBottom: 32 }}>
-        Join the waitlist for the AI-powered FIRE roadmap — personalized monthly plan to retire faster. Launching at $9/mo.
-      </p>
-      {status === "done" ? (
-        <div className="uf-waitlist-success">🎉 You&apos;re on the list! We&apos;ll email you when we launch.</div>
-      ) : (
-        <div className="uf-waitlist-form">
-          <input
-            type="email" placeholder="your@email.com" value={email}
-            onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSubmit()}
-            className="uf-input"
-          />
-          <button
-            className="uf-btn uf-btn-primary"
-            disabled={status === "loading"}
-            onClick={handleSubmit}
-            style={{ whiteSpace: "nowrap" }}
-          >
-            {status === "loading" ? "Joining…" : "Join waitlist →"}
-          </button>
+    <div className="uf-waitlist-cta">
+      <div className="uf-waitlist-cta-inner">
+        <div className="uf-waitlist-overline">TRUSTED BY 2,400+ FIRE SEEKERS</div>
+        <h2 className="uf-waitlist-headline">Start your path to freedom.</h2>
+        <div className="uf-waitlist-card">
+          {status === "done" ? (
+            <div className="uf-waitlist-success-card">
+              <span style={{ fontSize: 24 }}>🎉</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#1a1a1a" }}>You&apos;re on the list!</div>
+                <div style={{ fontSize: 13, color: "#6b6b6b", marginTop: 4 }}>We&apos;ll email you when we launch.</div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a", marginBottom: 4 }}>Get the AI-powered FIRE roadmap</div>
+              <div style={{ fontSize: 13, color: "#6b6b6b", marginBottom: 16 }}>Personalized monthly plan to retire faster. Launching at $9/mo.</div>
+              <div className="uf-waitlist-form">
+                <input
+                  type="email" placeholder="your@email.com" value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                  className="uf-input uf-waitlist-input"
+                />
+                <button
+                  className="uf-btn uf-btn-primary uf-btn-waitlist"
+                  disabled={status === "loading"}
+                  onClick={handleSubmit}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {status === "loading" ? "Joining…" : "Join waitlist →"}
+                </button>
+              </div>
+              <p className="uf-waitlist-note">No spam. Unsubscribe anytime.</p>
+            </>
+          )}
+          {status === "error" && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 8 }}>Something went wrong — try again.</p>}
         </div>
-      )}
-      {status === "error" && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 12 }}>Something went wrong — try again.</p>}
-      <p className="uf-hint" style={{ textAlign: "center", marginTop: 16 }}>No spam. Unsubscribe anytime.</p>
+        <div className="uf-waitlist-footer">© 2026 UntilFire</div>
+      </div>
     </div>
   );
 }
@@ -979,12 +1025,17 @@ export default function Home() {
           --bg: #08080e;
           --bg-card: #13131e;
           --bg-elevated: #1a1a28;
+          --bg-light: #f5f0e8;
+          --bg-light-card: #ffffff;
+          --text-on-light: #1a1a1a;
+          --text-muted-light: #6b6b6b;
           --border: #1c1c2e;
           --border-light: #2a2a3e;
           --text: #e8e8f2;
           --text-muted: #6e6e8e;
           --text-dim: #3a3a5a;
           --accent: #f97316;
+          --accent-deep: #c2410c;
           --accent-dim: rgba(249,115,22,0.12);
           --accent-glow: rgba(249,115,22,0.25);
           --teal: #22d3a5;
@@ -1001,16 +1052,59 @@ export default function Home() {
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
 
+        /* ── ANIMATIONS ── */
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(3deg); }
+        }
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 0 20px rgba(249,115,22,0.3); }
+          50% { box-shadow: 0 0 40px rgba(249,115,22,0.5), 0 0 80px rgba(249,115,22,0.2); }
+        }
+        @keyframes sparkle {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(8px); }
+        }
+        @keyframes fireGlow {
+          0%   { text-shadow: 0 0 0px rgba(249,115,22,0); }
+          40%  { text-shadow: 0 0 60px rgba(249,115,22,0.9), 0 0 120px rgba(249,115,22,0.5); }
+          70%  { text-shadow: 0 0 40px rgba(249,115,22,0.7), 0 0 80px rgba(249,115,22,0.35); }
+          100% { text-shadow: 0 0 28px rgba(249,115,22,0.5), 0 0 60px rgba(249,115,22,0.2); }
+        }
+        @keyframes revealSlam {
+          0%   { opacity: 0; transform: scale(0.55); }
+          60%  { opacity: 1; transform: scale(1.06); }
+          80%  { transform: scale(0.97); }
+          100% { transform: scale(1); }
+        }
+        @keyframes pulseBorder {
+          0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0), 0 0 40px rgba(249,115,22,0.15); }
+          50%      { box-shadow: 0 0 0 8px rgba(249,115,22,0.12), 0 0 60px rgba(249,115,22,0.25); }
+        }
+
+        .uf-screen-animated { animation: fadeSlideUp 0.6s ease-out; }
+
         /* ── NAV ── */
-        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(8,8,14,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px); }
-        .uf-nav-logo { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(8,8,14,0.7); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .uf-nav-logo { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
         .uf-nav-logo span { color: var(--accent); }
         .uf-nav-dots { display: flex; gap: 6px; align-items: center; }
         .uf-nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-light); transition: all 0.3s; }
         .uf-nav-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
         .uf-nav-dot.done { background: var(--teal); }
+        .uf-nav-right { display: flex; align-items: center; min-width: 90px; justify-content: flex-end; }
         .uf-nav-restart { font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
         .uf-nav-restart:hover { color: var(--text); }
+        .uf-nav-signin { font-size: 13px; color: var(--text-muted); text-decoration: none; font-family: var(--font-body); transition: color 0.2s; font-weight: 500; }
+        .uf-nav-signin:hover { color: var(--accent); }
 
         /* ── SCREEN ── */
         .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
@@ -1019,9 +1113,10 @@ export default function Home() {
 
         /* ── TYPOGRAPHY ── */
         .uf-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
-        .uf-h1 { font-family: var(--font-display); font-size: clamp(32px,5vw,52px); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; color: var(--text); margin-bottom: 20px; }
-        .uf-h2 { font-family: var(--font-display); font-size: clamp(24px,4vw,38px); font-weight: 700; line-height: 1.1; letter-spacing: -1px; color: var(--text); margin-bottom: 8px; }
+        .uf-h1 { font-family: var(--font-display); font-size: clamp(48px,8vw,90px); font-weight: 800; line-height: 0.95; letter-spacing: -3px; color: var(--text); margin-bottom: 24px; }
+        .uf-h2 { font-family: var(--font-display); font-size: clamp(28px,5vw,48px); font-weight: 700; line-height: 1.05; letter-spacing: -1.5px; color: var(--text); margin-bottom: 8px; }
         .uf-accent { color: var(--accent); }
+        .uf-accent-gradient { background: linear-gradient(135deg, #f97316, #fb923c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .uf-body { font-size: 16px; line-height: 1.6; color: var(--text-muted); }
         .uf-mono { font-family: var(--font-mono); }
         .uf-hint { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
@@ -1031,24 +1126,25 @@ export default function Home() {
         .uf-wizard-progress { display: flex; align-items: center; margin-bottom: 8px; }
         .uf-wizard-row { display: flex; align-items: center; flex: 1; }
         .uf-wizard-row:last-child { flex: 0; }
-        .uf-wdot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: all 0.3s; }
+        .uf-wdot { width: 14px; height: 14px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: all 0.3s; }
         .uf-wdot.done { background: var(--teal); }
-        .uf-wdot.active { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-        .uf-wline { flex: 1; height: 2px; background: var(--border); margin: 0 2px; transition: background 0.4s; }
+        .uf-wdot.active { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-dim); }
+        .uf-wline { flex: 1; height: 2px; background: var(--border); margin: 0 4px; transition: background 0.4s; }
         .uf-wline.done { background: var(--teal); }
         .uf-wline.active { background: var(--accent); }
 
         /* ── BUTTONS ── */
-        .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: 10px; font-family: var(--font-body); font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: 999px; font-family: var(--font-body); font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all 0.25s; text-decoration: none; }
         .uf-btn-primary { background: var(--accent); color: #fff; }
-        .uf-btn-primary:hover:not(:disabled) { background: #ea6b10; transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .uf-btn-primary:hover:not(:disabled) { background: #ea6b10; transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow), 0 0 40px rgba(249,115,22,0.15); }
         .uf-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-        .uf-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
-        .uf-btn-ghost:hover { color: var(--text); background: var(--bg-elevated); }
+        .uf-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); border-radius: 999px; }
+        .uf-btn-ghost:hover { color: var(--text); background: var(--bg-elevated); transform: translateY(-2px); }
         .uf-btn-teal { background: var(--teal); color: #08080e; font-weight: 600; }
-        .uf-btn-teal:hover { background: #1dbf96; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(34,211,165,0.25); }
+        .uf-btn-teal:hover { background: #1dbf96; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(34,211,165,0.25); }
         .uf-btn-full { width: 100%; }
         .uf-btn-lg { padding: 18px 36px; font-size: 17px; }
+        .uf-btn-glow { box-shadow: 0 0 40px rgba(249,115,22,0.3), 0 4px 12px rgba(0,0,0,0.3); animation: pulseGlow 3s ease-in-out infinite; }
         .uf-nav-row { margin-top: 32px; display: flex; gap: 12px; }
 
         /* ── INPUTS ── */
@@ -1064,7 +1160,7 @@ export default function Home() {
 
         /* ── MODE PILLS ── */
         .uf-mode-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-        .uf-mode-pill { padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-light); background: transparent; color: var(--text-muted); font-family: var(--font-body); transition: all 0.15s; }
+        .uf-mode-pill { padding: 8px 18px; border-radius: 999px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-light); background: transparent; color: var(--text-muted); font-family: var(--font-body); transition: all 0.15s; }
         .uf-mode-pill:hover { border-color: var(--accent); color: var(--text); }
         .uf-mode-pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
@@ -1075,7 +1171,7 @@ export default function Home() {
         .uf-range-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-top: 6px; }
 
         /* ── DROPDOWN ── */
-        .uf-dropdown { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: 12px; max-height: 280px; overflow-y: auto; z-index: 50; box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+        .uf-dropdown { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: 16px; max-height: 280px; overflow-y: auto; z-index: 50; box-shadow: 0 16px 40px rgba(0,0,0,0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .uf-dropdown-item { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: transparent; border: none; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; text-align: left; }
         .uf-dropdown-item:hover { background: var(--bg-card); }
         .uf-dropdown-flag { font-size: 18px; line-height: 1; flex-shrink: 0; }
@@ -1086,27 +1182,28 @@ export default function Home() {
         .uf-dropdown-custom-title { font-size: 14px; color: var(--accent); font-weight: 500; }
 
         /* ── CUSTOM CITY ── */
-        .uf-custom-city { background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.3); border-radius: 12px; padding: 16px; margin-top: 14px; }
+        .uf-custom-city { background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.3); border-radius: 16px; padding: 16px; margin-top: 14px; }
         .uf-custom-row { display: flex; gap: 10px; align-items: center; }
 
         /* ── CITY INFO ── */
         .uf-city-info { margin-top: 16px; }
         .uf-city-info-label { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
-        .uf-info-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; overflow: hidden; }
+        .uf-info-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; display: flex; overflow: hidden; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .uf-info-col { flex: 1; padding: 14px 16px; }
-        .uf-info-col:not(:last-child) { border-right: 1px solid var(--border); }
+        .uf-info-col:not(:last-child) { border-right: 1px solid rgba(255,255,255,0.06); }
         .uf-info-val { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--accent); }
         .uf-info-lab { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-        .uf-info-divider { width: 1px; background: var(--border); }
+        .uf-info-divider { width: 1px; background: rgba(255,255,255,0.06); }
 
         /* ── STAT ROW ── */
         .uf-stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 20px; }
-        .uf-stat-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+        .uf-stat-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 14px 16px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: all 0.25s; }
+        .uf-stat-box:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
         .uf-stat-val { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--text); }
         .uf-stat-lab { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
         /* ── CARD ── */
-        .uf-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 16px 20px; }
+        .uf-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px 20px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .uf-card-accent { background: var(--accent-dim); border-color: rgba(249,115,22,0.2); }
         .uf-card-head { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .uf-card-sub { font-size: 13px; color: var(--text-muted); }
@@ -1125,17 +1222,32 @@ export default function Home() {
         .uf-rate-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
 
         /* ── HERO SCREEN ── */
-        .uf-hero { text-align: center; max-width: 580px; padding-top: 80px; }
-        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; }
+        .uf-hero { text-align: center; max-width: 680px; padding-top: 100px; padding-bottom: 60px; position: relative; border-radius: 0 0 24px 24px; overflow: hidden; min-height: calc(100vh - 56px); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .uf-hero-glow { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at 50% 40%, rgba(249,115,22,0.12) 0%, transparent 60%); pointer-events: none; z-index: 0; }
+        .uf-hero > * { position: relative; z-index: 1; }
+        .uf-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 18px; background: var(--accent-dim); color: var(--accent); border-radius: 999px; font-size: 13px; font-weight: 500; margin-bottom: 28px; }
         .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
+        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 28px; }
         .uf-avatars { display: flex; }
         .uf-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); margin-left: -6px; }
         .uf-avatar:first-child { margin-left: 0; }
         .uf-proof-text { font-size: 13px; color: var(--text-muted); }
-        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 40px; }
-        .uf-stat-hero { text-align: center; font-size: 12px; color: var(--text-muted); }
+        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 48px; width: 100%; }
+        .uf-stat-hero { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; text-align: center; font-size: 12px; color: var(--text-muted); transition: all 0.25s; }
+        .uf-stat-hero:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
         .uf-stat-hero span { display: block; font-family: var(--font-display); font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+
+        /* ── FLOATING DECORATIVE ELEMENTS ── */
+        .uf-float-el { position: absolute; pointer-events: none; z-index: 0; }
+        .uf-float-dollar { top: 12%; right: 10%; font-family: var(--font-display); font-size: 40px; color: var(--text); opacity: 0.06; animation: float 8s ease-in-out infinite; }
+        .uf-float-percent { bottom: 18%; left: 8%; font-family: var(--font-display); font-size: 30px; color: var(--text); opacity: 0.05; animation: float 10s ease-in-out infinite 1s; }
+        .uf-float-dot1 { top: 50%; left: 6%; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.15; animation: sparkle 3s ease-in-out infinite; }
+        .uf-float-dot2 { top: 20%; left: 15%; width: 4px; height: 4px; border-radius: 50%; background: var(--teal); opacity: 0.1; animation: sparkle 4s ease-in-out infinite 0.5s; }
+        .uf-float-star1 { top: 25%; right: 15%; color: var(--accent); opacity: 0.08; animation: float 12s ease-in-out infinite 2s; }
+        .uf-float-star2 { bottom: 30%; right: 8%; color: var(--accent); opacity: 0.06; animation: float 9s ease-in-out infinite 3s; }
+
+        /* ── SCROLL INDICATOR ── */
+        .uf-scroll-indicator { margin-top: 40px; color: var(--text-muted); opacity: 0.4; animation: bounce 2s ease-in-out infinite; }
 
         /* ── REVEAL ── */
         .uf-calc-phase { text-align: center; padding: 60px 0; }
@@ -1149,33 +1261,19 @@ export default function Home() {
 
         .uf-number-phase {}
 
-        @keyframes fireGlow {
-          0%   { text-shadow: 0 0 0px rgba(249,115,22,0); }
-          40%  { text-shadow: 0 0 60px rgba(249,115,22,0.9), 0 0 120px rgba(249,115,22,0.5); }
-          70%  { text-shadow: 0 0 40px rgba(249,115,22,0.7), 0 0 80px rgba(249,115,22,0.35); }
-          100% { text-shadow: 0 0 28px rgba(249,115,22,0.5), 0 0 60px rgba(249,115,22,0.2); }
-        }
-        @keyframes revealSlam {
-          0%   { opacity: 0; transform: scale(0.55); }
-          60%  { opacity: 1; transform: scale(1.06); }
-          80%  { transform: scale(0.97); }
-          100% { transform: scale(1); }
-        }
-        @keyframes pulseBorder {
-          0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
-          50%      { box-shadow: 0 0 0 8px rgba(249,115,22,0.12); }
-        }
         .uf-fire-slam { animation: revealSlam 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards, fireGlow 1.6s ease 0.5s forwards; }
 
         .uf-fire-hero {
           text-align: center;
-          padding: 40px 24px;
+          padding: 48px 28px;
           margin-bottom: 28px;
-          border-radius: 20px;
-          background: radial-gradient(ellipse at 50% 50%, rgba(249,115,22,0.08) 0%, transparent 70%);
+          border-radius: 24px;
+          background: radial-gradient(ellipse at 50% 50%, rgba(249,115,22,0.1) 0%, transparent 70%), rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
           animation: pulseBorder 2.5s ease 0.8s infinite;
           width: 100%;
           overflow: hidden;
+          position: relative;
         }
         .uf-fire-eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 18px; }
         .uf-fire-num {
@@ -1194,13 +1292,23 @@ export default function Home() {
         .uf-fire-date { font-family: var(--font-mono); font-size: 16px; color: var(--teal); letter-spacing: 0.5px; }
         .uf-fire-city { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
 
-        .uf-cost-card { background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.18); border-radius: 14px; padding: 20px 24px; text-align: center; margin-bottom: 20px; }
+        /* ── SPARKLE DOTS ── */
+        .uf-sparkle { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); pointer-events: none; }
+        .uf-sparkle-1 { top: 15%; left: 10%; animation: sparkle 2.5s ease-in-out infinite; }
+        .uf-sparkle-2 { top: 10%; right: 15%; animation: sparkle 3s ease-in-out infinite 0.3s; }
+        .uf-sparkle-3 { bottom: 20%; left: 8%; animation: sparkle 2.8s ease-in-out infinite 0.6s; }
+        .uf-sparkle-4 { bottom: 15%; right: 10%; animation: sparkle 3.2s ease-in-out infinite 1s; }
+        .uf-sparkle-5 { top: 40%; left: 3%; width: 3px; height: 3px; animation: sparkle 4s ease-in-out infinite 1.5s; background: var(--teal); }
+        .uf-sparkle-6 { top: 35%; right: 5%; width: 4px; height: 4px; animation: sparkle 3.5s ease-in-out infinite 0.8s; background: var(--purple); }
+
+        .uf-cost-card { background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.18); border-radius: 16px; padding: 20px 24px; text-align: center; margin-bottom: 20px; }
         .uf-cost-label { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
         .uf-cost-years { font-family: var(--font-display); font-size: 40px; font-weight: 800; color: var(--accent); line-height: 1; }
         .uf-cost-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 
         .uf-delta-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
-        .uf-delta-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .uf-delta-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: all 0.25s; }
+        .uf-delta-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
         .uf-delta-card.positive { border-color: rgba(34,211,165,0.25); }
         .uf-delta-card.negative { border-color: rgba(239,68,68,0.2); }
         .uf-delta-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
@@ -1211,20 +1319,45 @@ export default function Home() {
         .uf-disclaimer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 14px; }
 
         /* ── WAITLIST INLINE ── */
-        .uf-wl-inline { background: var(--bg-card); border: 1px solid rgba(249,115,22,0.2); border-radius: 14px; padding: 18px 20px; margin-top: 12px; }
+        .uf-wl-inline { background: rgba(255,255,255,0.04); border: 1px solid rgba(249,115,22,0.2); border-radius: 16px; padding: 18px 20px; margin-top: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .uf-wl-inline-head { margin-bottom: 12px; }
         .uf-wl-inline-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
         .uf-wl-inline-sub { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
         .uf-wl-inline-form { display: flex; gap: 8px; }
         .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(34,211,165,0.25); }
 
-        /* ── WAITLIST ── */
-        .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 80px 24px; }
-        .uf-waitlist-success { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); border-radius: 14px; padding: 20px 24px; color: var(--teal); font-weight: 700; font-size: 16px; text-align: center; }
+        /* ── WAITLIST CTA (Bold orange full-bleed) ── */
+        .uf-waitlist-cta { width: 100%; background: var(--accent); padding: 80px 24px 48px; }
+        .uf-waitlist-cta-inner { max-width: 560px; margin: 0 auto; text-align: center; }
+        .uf-waitlist-overline { font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.8); margin-bottom: 16px; }
+        .uf-waitlist-headline { font-family: var(--font-display); font-size: clamp(32px, 5vw, 64px); font-weight: 800; color: #fff; line-height: 1.05; letter-spacing: -2px; margin-bottom: 36px; }
+        .uf-waitlist-card { background: #fff; border-radius: 24px; padding: 32px 28px; box-shadow: 0 24px 64px rgba(0,0,0,0.15); text-align: left; }
+        .uf-waitlist-success-card { display: flex; align-items: center; gap: 14px; }
         .uf-waitlist-form { display: flex; gap: 10px; }
+        .uf-waitlist-input { background: #f5f5f5; border: 1px solid #e0e0e0; color: #1a1a1a; border-radius: 999px; }
+        .uf-waitlist-input:focus { border-color: var(--accent); }
+        .uf-waitlist-input::placeholder { color: #999; }
+        .uf-btn-waitlist { border-radius: 999px; }
+        .uf-waitlist-note { font-size: 12px; color: #999; margin-top: 12px; text-align: center; }
+        .uf-waitlist-footer { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 32px; }
 
         /* ── FOOTER DIVIDER ── */
         .uf-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 639px) {
+          .uf-float-el { display: none; }
+          .uf-hero { padding-top: 72px; min-height: auto; }
+          .uf-stats-grid { grid-template-columns: 1fr; gap: 12px; }
+          .uf-stat-row { grid-template-columns: 1fr 1fr; }
+          .uf-delta-grid { grid-template-columns: 1fr; }
+          .uf-waitlist-form { flex-direction: column; }
+          .uf-wl-inline-form { flex-direction: column; }
+          .uf-info-card { flex-direction: column; }
+          .uf-info-col:not(:last-child) { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+          .uf-info-divider { width: auto; height: 1px; background: rgba(255,255,255,0.06); }
+          .uf-waitlist-card { padding: 24px 20px; }
+        }
       `}</style>
 
       <Nav
@@ -1268,7 +1401,6 @@ export default function Home() {
           />
         )}
 
-        <hr className="uf-divider" style={{ width: "100%" }} />
         <WaitlistSection />
       </div>
     </>
