@@ -708,6 +708,107 @@ function WaitlistInline({ fireTarget, retireYear }: { fireTarget: number; retire
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SHARE MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ShareModal({
+  fireTarget, retireYear, age, cityName, onClose,
+}: {
+  fireTarget: number; retireYear: number; age: number; cityName: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const shareText = `My FIRE number is ${fmtUSD(fireTarget)}. I could retire in ${retireYear} at age ${age}, living in ${cityName}. Calculate yours free:`;
+  const shareUrl = "https://untilfire.com";
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function openShare(platform: "x" | "facebook" | "reddit") {
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const urls = {
+      x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(`My FIRE number is ${fmtUSD(fireTarget)} — retire in ${retireYear} at age ${age} in ${cityName}`)}`,
+    };
+    window.open(urls[platform], "_blank", "noopener,noreferrer,width=620,height=520");
+  }
+
+  return (
+    <div
+      className="uf-share-overlay"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="uf-share-modal">
+        <button className="uf-share-close" onClick={onClose} aria-label="Close">✕</button>
+
+        <div className="uf-share-heading">Share your FIRE number</div>
+
+        {/* Preview card */}
+        <div className="uf-share-card">
+          <div className="uf-share-card-brand">
+            <span className="uf-share-card-logo">until<span>fire</span></span>
+            <span style={{ fontSize: 13 }}>🔥</span>
+          </div>
+          <div className="uf-share-card-label">My FIRE Number</div>
+          <div className="uf-share-card-number">{fmtUSD(fireTarget)}</div>
+          <div className="uf-share-card-meta">Retire in {retireYear} · Age {age}</div>
+          <div className="uf-share-card-city">{cityName}</div>
+          <div className="uf-share-card-divider" />
+          <div className="uf-share-card-url">untilfire.com</div>
+        </div>
+
+        {/* Platform buttons */}
+        <div className="uf-share-btns">
+          <button className="uf-share-btn uf-share-x" onClick={() => openShare("x")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.254 5.622L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
+            </svg>
+            Post on X
+          </button>
+          <button className="uf-share-btn uf-share-facebook" onClick={() => openShare("facebook")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+            Share on Facebook
+          </button>
+          <button className="uf-share-btn uf-share-reddit" onClick={() => openShare("reddit")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+            </svg>
+            Post on Reddit
+          </button>
+          <button className="uf-share-btn uf-share-copy" onClick={copyToClipboard}>
+            {copied ? (
+              <>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy to clipboard
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SCREEN 4 — REVEAL
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -742,6 +843,7 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
   // Phase 2: number reveal
   const [counting, setCounting] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const numRef = useRef<HTMLDivElement>(null);
 
   const counted = useCountUp(result.fireTarget, 2200, counting);
@@ -793,6 +895,15 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
 
   return (
     <div className="uf-screen uf-reveal-screen">
+      {showShare && (
+        <ShareModal
+          fireTarget={result.fireTarget}
+          retireYear={result.retireYear}
+          age={result.age}
+          cityName={city.name}
+          onClose={() => setShowShare(false)}
+        />
+      )}
       {/* PHASE 1 */}
       {calcPhase && (
         <div className="uf-calc-phase">
@@ -828,6 +939,15 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               <div className="uf-fire-date-line" />
             </div>
             <div className="uf-fire-city">{city.name}</div>
+            {revealed && (
+              <button className="uf-share-trigger" onClick={() => setShowShare(true)}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                Share my FIRE number
+              </button>
+            )}
           </div>
 
           {revealed && (
@@ -1222,6 +1342,44 @@ export default function Home() {
         .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 80px 24px; }
         .uf-waitlist-success { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); border-radius: 14px; padding: 20px 24px; color: var(--teal); font-weight: 700; font-size: 16px; text-align: center; }
         .uf-waitlist-form { display: flex; gap: 10px; }
+
+        /* ── SHARE TRIGGER ── */
+        .uf-share-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 18px auto 0; padding: 10px 22px; border-radius: 10px; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .uf-share-trigger:hover { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.45); transform: translateY(-1px); }
+
+        /* ── SHARE MODAL ── */
+        .uf-share-overlay { position: fixed; inset: 0; background: rgba(8,8,14,0.88); backdrop-filter: blur(10px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.15s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .uf-share-modal { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 22px; padding: 32px; width: 100%; max-width: 460px; position: relative; animation: slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .uf-share-close { position: absolute; top: 14px; right: 14px; background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s; }
+        .uf-share-close:hover { background: var(--bg-elevated); color: var(--text); }
+        .uf-share-heading { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 20px; letter-spacing: -0.3px; }
+
+        /* Share preview card */
+        .uf-share-card { background: radial-gradient(ellipse at 50% -10%, rgba(249,115,22,0.18) 0%, transparent 65%), #0c0c16; border: 1px solid rgba(249,115,22,0.2); border-radius: 16px; padding: 26px 24px 20px; margin-bottom: 20px; text-align: center; position: relative; overflow: hidden; }
+        .uf-share-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent); }
+        .uf-share-card-brand { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 18px; }
+        .uf-share-card-logo { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-muted); letter-spacing: -0.3px; }
+        .uf-share-card-logo span { color: var(--accent); }
+        .uf-share-card-label { font-size: 10px; font-weight: 500; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+        .uf-share-card-number { font-family: var(--font-mono); font-size: clamp(30px, 7vw, 46px); font-weight: 500; color: var(--accent); text-shadow: 0 0 40px rgba(249,115,22,0.45), 0 0 80px rgba(249,115,22,0.15); margin-bottom: 10px; line-height: 1; }
+        .uf-share-card-meta { font-family: var(--font-mono); font-size: 12px; color: var(--teal); margin-bottom: 5px; letter-spacing: 0.3px; }
+        .uf-share-card-city { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+        .uf-share-card-divider { height: 1px; background: var(--border); margin-bottom: 14px; }
+        .uf-share-card-url { font-size: 11px; color: var(--text-dim); letter-spacing: 0.8px; font-family: var(--font-mono); }
+
+        /* Platform share buttons */
+        .uf-share-btns { display: flex; flex-direction: column; gap: 9px; }
+        .uf-share-btn { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 18px; border-radius: 10px; font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.18s; }
+        .uf-share-x { background: #0f0f0f; color: #fff; border: 1px solid #222; }
+        .uf-share-x:hover { background: #1a1a1a; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+        .uf-share-facebook { background: #1877F2; color: #fff; }
+        .uf-share-facebook:hover { background: #1565d8; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(24,119,242,0.35); }
+        .uf-share-reddit { background: #FF4500; color: #fff; }
+        .uf-share-reddit:hover { background: #e03d00; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,69,0,0.35); }
+        .uf-share-copy { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-light); }
+        .uf-share-copy:hover { color: var(--text); background: var(--bg-card); border-color: var(--text-dim); }
 
         /* ── FOOTER DIVIDER ── */
         .uf-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
