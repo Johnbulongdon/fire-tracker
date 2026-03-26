@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabase';
 import Link from "next/link";
+import { PieChart, Pie, Cell, Tooltip as ChartTooltip, ResponsiveContainer } from "recharts";
 
 const CATEGORIES = [
   { key: "food", label: "🍔 Food & Dining", color: "#f97316" },
@@ -300,10 +301,26 @@ function ExpenseList({ expenses, onDelete }: { expenses: Expense[]; onDelete: (i
   );
 }
 
-function MonthlySummary({ expenses }: { expenses: Expense[] }) {
+function MonthlySummary({
+  expenses,
+  viewMonth,
+  onPrevMonth,
+  onNextMonth,
+  budgetExpenses,
+}: {
+  expenses: Expense[];
+  viewMonth: string;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  budgetExpenses: Record<string, number> | null;
+}) {
   const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthExpenses = expenses.filter(e => e.date.startsWith(thisMonth));
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const isCurrentMonth = viewMonth === currentMonth;
+  const [y, m] = viewMonth.split('-').map(Number);
+  const monthLabel = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const monthExpenses = expenses.filter(e => e.date.startsWith(viewMonth));
   const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
   const workTotal = monthExpenses.filter(e => e.is_work_related).reduce((s, e) => s + e.amount, 0);
 
@@ -312,42 +329,84 @@ function MonthlySummary({ expenses }: { expenses: Expense[] }) {
     total: monthExpenses.filter(e => e.category === cat.key).reduce((s, e) => s + e.amount, 0)
   })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
-  if (monthExpenses.length === 0) return null;
-
   return (
     <div className="uf-card" style={{ marginBottom: 24 }}>
-      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-        📊 {now.toLocaleDateString('en-US', { month: 'long' })} Summary
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: workTotal > 0 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
-        <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Spent</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, fontWeight: 700, color: "#ef4444" }}>{fmt(total)}</div>
+      {/* Header with month nav */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>📊 {monthLabel}</div>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button onClick={onPrevMonth}
+            style={{ background: "#1c1c2e", border: "none", color: "#e8e8f2", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>←</button>
+          <button onClick={onNextMonth} disabled={isCurrentMonth}
+            style={{ background: "#1c1c2e", border: "none", color: isCurrentMonth ? "#3a3a5a" : "#e8e8f2", borderRadius: 6, padding: "4px 12px", cursor: isCurrentMonth ? "default" : "pointer", fontSize: 16, lineHeight: 1 }}>→</button>
         </div>
-        <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-          <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Transactions</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, fontWeight: 700, color: "#e8e8f2" }}>{monthExpenses.length}</div>
-        </div>
-        {workTotal > 0 && (
-          <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "14px 16px" }}>
-            <div style={{ color: "#6366f1", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💼 Work Costs</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, fontWeight: 700, color: "#6366f1" }}>{fmt(workTotal)}</div>
-          </div>
-        )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {byCat.map(cat => (
-          <div key={cat.key}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-              <span>{cat.label}</span>
-              <span style={{ color: cat.color, fontFamily: "'DM Mono', monospace", fontWeight: 600 }}>{fmt(cat.total)} <span style={{ color: "#5e5e7a" }}>({((cat.total / total) * 100).toFixed(0)}%)</span></span>
+
+      {monthExpenses.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "32px 0", color: "#5e5e7a", fontSize: 14 }}>No expenses for this month</div>
+      ) : (
+        <>
+          {/* KPI cards */}
+          <div style={{ display: "grid", gridTemplateColumns: workTotal > 0 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 12, marginBottom: 24 }}>
+            <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Spent</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmt(total)}</div>
             </div>
-            <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${(cat.total / total) * 100}%`, background: cat.color, borderRadius: 4 }} />
+            <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Transactions</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#e8e8f2" }}>{monthExpenses.length}</div>
+            </div>
+            {workTotal > 0 && (
+              <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "14px 16px" }}>
+                <div style={{ color: "#6366f1", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💼 Work Costs</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#6366f1" }}>{fmt(workTotal)}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Donut chart + category breakdown */}
+          <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+            <div style={{ flexShrink: 0 }}>
+              <ResponsiveContainer width={176} height={176}>
+                <PieChart>
+                  <Pie data={byCat} cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={2} dataKey="total">
+                    {byCat.map((cat) => <Cell key={cat.key} fill={cat.color} />)}
+                  </Pie>
+                  <ChartTooltip
+                    formatter={(v: number) => [fmt(v), ""]}
+                    contentStyle={{ background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, paddingTop: 4 }}>
+              {byCat.map(cat => {
+                const budget = budgetExpenses?.[cat.key] || 0;
+                const over = budget > 0 && cat.total > budget;
+                const barPct = budget > 0 ? Math.min(100, (cat.total / budget) * 100) : (cat.total / total) * 100;
+                return (
+                  <div key={cat.key}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                      <span style={{ color: "#9090a8" }}>{cat.label}</span>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 600, color: over ? "#ef4444" : cat.color }}>
+                        {fmt(cat.total)}
+                        {budget > 0
+                          ? <span style={{ color: "#5e5e7a", fontWeight: 400 }}> / {fmt(budget)}</span>
+                          : <span style={{ color: "#5e5e7a", fontWeight: 400 }}> ({((cat.total / total) * 100).toFixed(0)}%)</span>
+                        }
+                      </span>
+                    </div>
+                    <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${barPct}%`, background: over ? "#ef4444" : cat.color, borderRadius: 4, transition: "width 0.4s" }} />
+                    </div>
+                    {over && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>over by {fmt(cat.total - budget)}</div>}
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -355,6 +414,10 @@ function MonthlySummary({ expenses }: { expenses: Expense[] }) {
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [viewMonth, setViewMonth] = useState(currentMonth);
+  const [budgetExpenses, setBudgetExpenses] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -365,6 +428,13 @@ export default function ExpensesPage() {
           if (data) setExpenses(data);
           setLoading(false);
         });
+      supabase.from('user_budget').select('income, expenses').eq('user_id', session.user.id).maybeSingle()
+        .then(({ data }) => {
+          if (data?.expenses) {
+            const { _fire_profile: _, ...budgetCats } = data.expenses as Record<string, unknown>;
+            setBudgetExpenses(budgetCats as Record<string, number>);
+          }
+        });
     });
   }, []);
 
@@ -373,8 +443,21 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this expense?")) return;
     await supabase.from('expenses').delete().eq('id', id);
     setExpenses(prev => prev.filter(e => e.id !== id));
+  };
+
+  const handlePrevMonth = () => {
+    const [y, m] = viewMonth.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    setViewMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+  const handleNextMonth = () => {
+    const [y, m] = viewMonth.split('-').map(Number);
+    const d = new Date(y, m, 1);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (next <= currentMonth) setViewMonth(next);
   };
 
   const tabs = [
@@ -421,7 +504,13 @@ export default function ExpensesPage() {
           <div style={{ textAlign: "center", padding: "60px 0", color: "#5e5e7a" }}>Loading expenses...</div>
         ) : (
           <>
-            <MonthlySummary expenses={expenses} />
+            <MonthlySummary
+              expenses={expenses}
+              viewMonth={viewMonth}
+              onPrevMonth={handlePrevMonth}
+              onNextMonth={handleNextMonth}
+              budgetExpenses={budgetExpenses}
+            />
             <AddExpenseForm onAdd={handleAdd} />
             <ExpenseList expenses={expenses} onDelete={handleDelete} />
           </>

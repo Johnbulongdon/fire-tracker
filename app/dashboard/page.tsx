@@ -336,13 +336,15 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
 }
 
 // ─── Budget Tracker Tab ───────────────────────────────────────────────────────
-function BudgetTab({ income, setIncome, expenses, setExpenses }: {
+function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
   income: number; setIncome: (v: number) => void;
   expenses: Expenses; setExpenses: (e: Expenses) => void;
+  actuals: Record<string, number>;
 }) {
   const totalExp = EXPENSE_CATS.reduce((s, c) => s + (expenses[c.key] || 0), 0);
   const savings  = income - totalExp;
   const rate     = income > 0 ? (savings / income) * 100 : 0;
+  const hasActuals = Object.values(actuals).some(v => v > 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -362,21 +364,43 @@ function BudgetTab({ income, setIncome, expenses, setExpenses }: {
       <div className="uf-card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>Monthly Expenses</div>
-            <div style={{ color: "#5e5e7a", fontSize: 12, marginTop: 2 }}>Break down by category</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>Monthly Budget</div>
+            <div style={{ color: "#5e5e7a", fontSize: 12, marginTop: 2 }}>
+              {hasActuals ? "Budget vs. this month's actual spending" : "Set your budget by category"}
+            </div>
           </div>
           <span className="uf-tag" style={{ color: "#ef4444", background: "rgba(239,68,68,0.1)" }}>EXPENSES</span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-          {EXPENSE_CATS.map(cat => (
-            <div key={cat.key} style={{ display: "grid", gridTemplateColumns: "160px 1fr 80px", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 13, color: "#9090a8" }}>{cat.icon} {cat.label}</span>
-              <NumberInput value={expenses[cat.key] || 0} onChange={v => setExpenses({ ...expenses, [cat.key]: v })} />
-              <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${Math.min(100, income > 0 ? ((expenses[cat.key] || 0) / income) * 100 : 0)}%`, background: cat.color, borderRadius: 4, transition: "width 0.4s" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {EXPENSE_CATS.map(cat => {
+            const budget = expenses[cat.key] || 0;
+            const spent = actuals[cat.key] || 0;
+            const over = budget > 0 && spent > budget;
+            const spentPct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
+            return (
+              <div key={cat.key} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 80px", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 13, color: "#9090a8" }}>{cat.icon} {cat.label}</span>
+                  <NumberInput value={expenses[cat.key] || 0} onChange={v => setExpenses({ ...expenses, [cat.key]: v })} />
+                  <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.min(100, income > 0 ? ((expenses[cat.key] || 0) / income) * 100 : 0)}%`, background: cat.color, borderRadius: 4, transition: "width 0.4s" }} />
+                  </div>
+                </div>
+                {spent > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 12, alignItems: "center" }}>
+                    <span style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: over ? "#ef4444" : "#5e5e7a" }}>
+                      {over ? "⚠ " : ""}Spent {fmt(spent)}{budget > 0 ? ` / ${fmt(budget)}` : ""}
+                    </span>
+                    {budget > 0 && (
+                      <div style={{ height: 3, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${spentPct}%`, background: over ? "#ef4444" : "#22d3a5", borderRadius: 4, transition: "width 0.4s" }} />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -695,6 +719,7 @@ export default function Dashboard() {
   const [growthRate,      setGrowthRate]      = useState(0.07);
   const [withdrawalRate,  setWithdrawalRate]  = useState(0.04);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [actuals, setActuals] = useState<Record<string, number>>({});
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoaded   = useRef(false);
 
@@ -702,6 +727,19 @@ export default function Dashboard() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { window.location.href = "/login"; return; }
+      // Fetch current-month actuals from expenses table
+      const nowD = new Date();
+      const thisMonth = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}`;
+      supabase.from("expenses").select("category, amount")
+        .eq("user_id", session.user.id)
+        .like("date", `${thisMonth}-%`)
+        .then(({ data: expData }) => {
+          if (expData) {
+            const agg: Record<string, number> = {};
+            expData.forEach(e => { agg[e.category] = (agg[e.category] || 0) + e.amount; });
+            setActuals(agg);
+          }
+        });
       supabase.from("user_budget").select("*").eq("user_id", session.user.id).single().then(({ data }) => {
         if (data) {
           setIncome(data.income || 0);
@@ -813,7 +851,7 @@ export default function Dashboard() {
           />
         )}
         {tab === "budget" && (
-          <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} />
+          <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
         )}
         {tab === "fire" && (
           <FIRETab
