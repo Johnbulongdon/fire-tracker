@@ -1891,16 +1891,6 @@ export default function Dashboard() {
     }
   };
 
-  const navTabs: { key: TabKey; label: string }[] = [
-    { key: "dashboard",    label: "📊 Overview" },
-    { key: "budget",       label: "💰 Budget" },
-    { key: "projection",   label: "🔥 FIRE Projection" },
-    { key: "montecarlo",   label: "🎲 Monte Carlo" },
-    { key: "coastfire",    label: "🏄 Coast FIRE" },
-    { key: "savingsrate",  label: "📊 Savings Rate" },
-    { key: "transactions", label: "💳 Transactions" },
-  ];
-
   return (
     <>
       <style>{`
@@ -1921,27 +1911,27 @@ export default function Dashboard() {
         .uf-logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: #e8e8f2; text-decoration: none; letter-spacing: -0.04em; flex-shrink: 0; }
         .uf-logo span { color: #f97316; }
 
-        .uf-tabs { display: flex; gap: 3px; background: #0b0b14; border-radius: 10px; padding: 4px; }
-        .uf-tab { background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 7px 18px; font-size: 13px; font-weight: 500; color: #5e5e7a; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
-        .uf-tab:hover { color: #9090a8; }
-        .uf-tab.active { background: #13131e; border-color: #1c1c2e; color: #e8e8f2; font-weight: 600; }
-
-        .uf-content { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+        .uf-shell { display: flex; min-height: calc(100vh - 60px); }
+        .uf-sidebar { width: 220px; flex-shrink: 0; background: #0b0b14; border-right: 1px solid #1c1c2e; padding: 16px 10px 24px; position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; }
+        .uf-sidebar-group { font-size: 10px; color: #3a3a5a; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'DM Mono', monospace; padding: 0 10px; margin: 20px 0 6px; }
+        .uf-sidebar-group:first-child { margin-top: 4px; }
+        .uf-sidebar-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; border: none; border-left: 2px solid transparent; background: transparent; color: #5e5e7a; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; width: 100%; text-align: left; transition: all 0.15s; white-space: nowrap; }
+        .uf-sidebar-item:hover { background: #13131e; color: #9090a8; }
+        .uf-sidebar-item.active { background: rgba(249,115,22,0.08); color: #f97316; border-left-color: #f97316; font-weight: 600; }
+        .uf-content { flex: 1; min-width: 0; padding: 32px 28px 60px; max-width: 1080px; }
 
         @media(max-width: 900px) {
           .uf-nav { padding: 0 16px; }
+          .uf-sidebar { width: 52px; padding: 16px 6px; }
+          .uf-sidebar-group { display: none; }
+          .uf-sidebar-item span:last-child { display: none; }
+          .uf-sidebar-item { justify-content: center; padding: 10px; }
           .uf-content { padding: 20px 16px 48px; }
-          .uf-tab { padding: 6px 12px; font-size: 12px; }
         }
       `}</style>
 
       <nav className="uf-nav">
         <Link href="/" className="uf-logo">Until<span>Fire</span></Link>
-        <div className="uf-tabs">
-          {navTabs.map(t => (
-            <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
-          ))}
-        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace" }}>Saving…</span>}
           {saveStatus === "saved"  && <span style={{ color: "#22d3a5", fontSize: 12, fontFamily: "DM Mono, monospace" }}>✓ Saved</span>}
@@ -1950,7 +1940,32 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div className="uf-content">
+      <div className="uf-shell">
+        <aside className="uf-sidebar">
+          <div className="uf-sidebar-group">Overview</div>
+          {([
+            { key: "dashboard",    icon: "📊", label: "Overview" },
+            { key: "budget",       icon: "💰", label: "Budget" },
+            { key: "transactions", icon: "💳", label: "Transactions" },
+          ] as const).map(item => (
+            <button key={item.key} className={`uf-sidebar-item ${tab === item.key ? "active" : ""}`} onClick={() => setTab(item.key)}>
+              <span>{item.icon}</span><span>{item.label}</span>
+            </button>
+          ))}
+          <div className="uf-sidebar-group">Calculators</div>
+          {([
+            { key: "projection",  icon: "🔥", label: "FIRE Projection" },
+            { key: "montecarlo",  icon: "🎲", label: "Monte Carlo" },
+            { key: "coastfire",   icon: "🏄", label: "Coast FIRE" },
+            { key: "savingsrate", icon: "📊", label: "Savings Rate" },
+          ] as const).map(item => (
+            <button key={item.key} className={`uf-sidebar-item ${tab === item.key ? "active" : ""}`} onClick={() => setTab(item.key)}>
+              <span>{item.icon}</span><span>{item.label}</span>
+            </button>
+          ))}
+        </aside>
+
+        <div className="uf-content">
         {tab === "dashboard" && (
           <DashTab
             income={income} expenses={expenses}
@@ -1993,6 +2008,7 @@ export default function Dashboard() {
             onTransactionAdded={handleTransactionAdded}
           />
         )}
+        </div>
       </div>
     </>
   );
