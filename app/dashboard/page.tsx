@@ -312,6 +312,209 @@ function SectionLabel({ icon, text, color = "#f97316" }: { icon: string; text: s
   );
 }
 
+// ─── Onboarding Wizard ────────────────────────────────────────────────────────
+function OnboardingWizard({ fireAge, setFireAge, income, setIncome, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, setExpenses, growthRate, withdrawalRate, onComplete }: {
+  fireAge: number; setFireAge: (v: number) => void;
+  income: number; setIncome: (v: number) => void;
+  k401: number; setK401: (v: number) => void;
+  rothIRA: number; setRothIRA: (v: number) => void;
+  taxable: number; setTaxable: (v: number) => void;
+  setExpenses: (fn: (prev: Expenses) => Expenses) => void;
+  growthRate: number; withdrawalRate: number;
+  onComplete: () => void;
+}) {
+  const [step, setStep] = useState<1 | 2 | 3 | "done">(1);
+  const [monthlySpend, setMonthlySpend] = useState(0);
+  const [localAge, setLocalAge] = useState(fireAge || 30);
+  const [localIncome, setLocalIncome] = useState(income || 0);
+
+  // Live FIRE preview
+  const investable  = k401 + rothIRA + taxable;
+  const annualExp   = monthlySpend * 12;
+  const fireTarget  = withdrawalRate > 0 && annualExp > 0 ? annualExp / withdrawalRate : 0;
+  const annualSav   = localIncome * 12 - annualExp;
+  const fireYearPrev = (() => {
+    if (fireTarget <= 0 || annualSav <= 0) return null;
+    let port = investable;
+    for (let y = 1; y <= 60; y++) {
+      port = port * (1 + growthRate) + annualSav;
+      if (port >= fireTarget) return y;
+    }
+    return null;
+  })();
+  const savingsRatePrev = localIncome > 0 ? ((localIncome - monthlySpend) / localIncome) * 100 : 0;
+
+  const dots = [1, 2, 3];
+
+  function ProgressDots({ current }: { current: number }) {
+    return (
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 32 }}>
+        {dots.map(d => (
+          <div key={d} style={{
+            width: d === current ? 24 : 8, height: 8, borderRadius: 99,
+            background: d <= current ? "#f97316" : "#1c1c2e",
+            transition: "all 0.3s",
+          }} />
+        ))}
+      </div>
+    );
+  }
+
+  const heading = { fontSize: 22, fontFamily: "Syne, sans-serif", fontWeight: 800, color: "#e8e8f2", marginBottom: 8, lineHeight: 1.2 } as const;
+  const sub     = { fontSize: 14, color: "#5e5e7a", marginBottom: 28, lineHeight: 1.5 } as const;
+  const btnPrimary = {
+    width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+    background: "linear-gradient(135deg, #f97316, #ea580c)", color: "#fff",
+    fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: 15,
+    cursor: "pointer", marginTop: 24, transition: "opacity 0.2s",
+  } as const;
+  const btnSkip = {
+    background: "none", border: "none", color: "#3a3a5a", fontSize: 12,
+    fontFamily: "DM Sans, sans-serif", cursor: "pointer", marginTop: 12,
+    display: "block", width: "100%", textAlign: "center" as const,
+  };
+
+  const advanceStep1 = () => {
+    setFireAge(localAge);
+    setIncome(localIncome);
+    setStep(2);
+  };
+
+  const advanceStep3 = () => {
+    if (monthlySpend > 0) setExpenses(prev => ({ ...prev, other: monthlySpend }));
+    setStep("done");
+  };
+
+  if (step === "done") {
+    return (
+      <div className="uf-onboard-overlay">
+        <div className="uf-onboard-card" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🔥</div>
+          <div style={{ ...heading, textAlign: "center" }}>Your FIRE roadmap is ready</div>
+          <div style={{ ...sub, textAlign: "center", marginBottom: 32 }}>Here&apos;s what the numbers say</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 32 }}>
+            {[
+              { label: "FIRE Number", val: fireTarget > 0 ? fmt(fireTarget, true) : "—", color: "#e8e8f2" },
+              { label: "Years to FIRE", val: fireYearPrev ? `${fireYearPrev} yrs` : "50+ yrs", color: "#f97316" },
+              { label: "Savings Rate", val: savingsRatePrev > 0 ? `${savingsRatePrev.toFixed(0)}%` : "—", color: "#22d3a5" },
+            ].map(k => (
+              <div key={k.label} className="uf-card" style={{ padding: "14px 12px" }}>
+                <div style={{ fontSize: 10, color: "#5e5e7a", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "DM Mono, monospace", marginBottom: 6 }}>{k.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontFamily: "DM Mono, monospace" }}>{k.val}</div>
+              </div>
+            ))}
+          </div>
+
+          {fireTarget <= 0 && (
+            <p style={{ fontSize: 13, color: "#5e5e7a", marginBottom: 20 }}>
+              Add your income and spending on the next screen to see your full timeline.
+            </p>
+          )}
+
+          <button style={btnPrimary} onClick={onComplete}>
+            See your full projection →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="uf-onboard-overlay">
+      <div className="uf-onboard-card">
+        <ProgressDots current={step} />
+
+        {step === 1 && (
+          <>
+            <div style={heading}>Let&apos;s build your FIRE plan</div>
+            <div style={sub}>Two quick numbers to get started. You can update everything later.</div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <FieldRow label="Your current age">
+                <NumberInput value={localAge} onChange={setLocalAge} placeholder="30" prefix="🎂" />
+              </FieldRow>
+              <FieldRow label="Monthly take-home income" hint="After tax, before expenses">
+                <NumberInput value={localIncome} onChange={setLocalIncome} placeholder="5000" />
+              </FieldRow>
+            </div>
+
+            <button
+              style={{ ...btnPrimary, opacity: localIncome > 0 ? 1 : 0.4, cursor: localIncome > 0 ? "pointer" : "not-allowed" }}
+              onClick={() => localIncome > 0 && advanceStep1()}
+            >
+              Next: your savings →
+            </button>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div style={heading}>What have you saved so far?</div>
+            <div style={sub}>These power your FIRE projection. Skip if you&apos;re just starting out.</div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <FieldRow label="401(k) balance">
+                <NumberInput value={k401} onChange={setK401} placeholder="0" />
+              </FieldRow>
+              <FieldRow label="Roth IRA balance">
+                <NumberInput value={rothIRA} onChange={setRothIRA} placeholder="0" />
+              </FieldRow>
+              <FieldRow label="Taxable brokerage">
+                <NumberInput value={taxable} onChange={setTaxable} placeholder="0" />
+              </FieldRow>
+            </div>
+
+            <button style={btnPrimary} onClick={() => setStep(3)}>
+              Next: your spending →
+            </button>
+            <button style={btnSkip} onClick={() => setStep(3)}>Skip for now →</button>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <div style={heading}>How much do you spend each month?</div>
+            <div style={sub}>This sets your FIRE target. You can break it into categories later.</div>
+
+            <FieldRow label="Total monthly expenses">
+              <NumberInput value={monthlySpend} onChange={setMonthlySpend} placeholder="3000" />
+            </FieldRow>
+
+            {monthlySpend > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20, padding: "16px", background: "#08080e", borderRadius: 12, border: "1px solid #1c1c2e" }}>
+                <div>
+                  <div style={{ fontSize: 10, color: "#5e5e7a", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "DM Mono, monospace", marginBottom: 4 }}>FIRE number</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#e8e8f2", fontFamily: "DM Mono, monospace" }}>{fmt(fireTarget, true)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: "#5e5e7a", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "DM Mono, monospace", marginBottom: 4 }}>Years to FIRE</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#f97316", fontFamily: "DM Mono, monospace" }}>
+                    {fireYearPrev ? `${fireYearPrev} yrs` : annualSav <= 0 ? "↑ spend" : "50+ yrs"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: "#5e5e7a", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "DM Mono, monospace", marginBottom: 4 }}>Savings rate</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#22d3a5", fontFamily: "DM Mono, monospace" }}>{savingsRatePrev.toFixed(0)}%</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: "#5e5e7a", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "DM Mono, monospace", marginBottom: 4 }}>Annual savings</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: annualSav > 0 ? "#e8e8f2" : "#ef4444", fontFamily: "DM Mono, monospace" }}>{fmt(annualSav)}</div>
+                </div>
+              </div>
+            )}
+
+            <button style={btnPrimary} onClick={advanceStep3}>
+              See my FIRE number →
+            </button>
+            <button style={btnSkip} onClick={advanceStep3}>Skip for now →</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Dashboard Overview Tab ───────────────────────────────────────────────────
 function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate }: {
   income: number; expenses: Expenses; k401: number; rothIRA: number;
@@ -1799,6 +2002,7 @@ export default function Dashboard() {
   const [baselineNetWorth, setBaselineNetWorth] = useState(0);
   const [baselineDate,     setBaselineDate]     = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [actuals, setActuals] = useState<Record<string, number>>({});
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoaded   = useRef(false);
@@ -1848,6 +2052,11 @@ export default function Dashboard() {
           setBaselineNetWorth(data.baseline_net_worth || 0);
           setBaselineDate(data.baseline_date || null);
         }
+        // Show onboarding wizard for first-time users (no income + no savings)
+        const fp2 = (data?.expenses as any)?._fire_profile || {};
+        if (!data || ((!data.income || data.income === 0) && !fp2.k401 && !fp2.rothIRA && !fp2.taxable)) {
+          setShowOnboarding(true);
+        }
         isLoaded.current = true;
       });
     });
@@ -1893,6 +2102,19 @@ export default function Dashboard() {
 
   return (
     <>
+      {showOnboarding && (
+        <OnboardingWizard
+          fireAge={fireAge} setFireAge={setFireAge}
+          income={income} setIncome={setIncome}
+          k401={k401} setK401={setK401}
+          rothIRA={rothIRA} setRothIRA={setRothIRA}
+          taxable={taxable} setTaxable={setTaxable}
+          setExpenses={setExpenses}
+          growthRate={growthRate}
+          withdrawalRate={withdrawalRate}
+          onComplete={() => { setShowOnboarding(false); setTab("projection"); }}
+        />
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
@@ -1910,6 +2132,9 @@ export default function Dashboard() {
         .uf-nav { position: sticky; top: 0; z-index: 100; height: 60px; background: rgba(8,8,14,0.96); backdrop-filter: blur(16px); border-bottom: 1px solid #1c1c2e; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; gap: 20px; }
         .uf-logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: #e8e8f2; text-decoration: none; letter-spacing: -0.04em; flex-shrink: 0; }
         .uf-logo span { color: #f97316; }
+
+        .uf-onboard-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(8,8,14,0.88); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .uf-onboard-card { background: #13131e; border: 1px solid #1c1c2e; border-radius: 20px; padding: 40px 44px; width: 100%; max-width: 480px; box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
 
         .uf-shell { display: flex; min-height: calc(100vh - 60px); }
         .uf-sidebar { width: 220px; flex-shrink: 0; background: #0b0b14; border-right: 1px solid #1c1c2e; padding: 16px 10px 24px; position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; }
