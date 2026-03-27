@@ -38,7 +38,7 @@ export default function FeedbackButton() {
     try {
       // formsubmit.co — replace YOUR_EMAIL with your actual address
       // First submission to a new email triggers a one-time confirmation email from formsubmit.co
-      await fetch("https://formsubmit.co/ajax/YOUR_EMAIL_HERE", {
+      await fetch("https://formsubmit.co/ajax/ash@untilfire.com", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
