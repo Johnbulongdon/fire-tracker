@@ -5,6 +5,7 @@ import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
+import FeedbackButton from '../components/FeedbackButton'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -90,6 +91,8 @@ export default function RootLayout({
             data-key="FiPq4kEv/tSkbCGk1licIA"
             strategy="afterInteractive"
           />
+
+          <FeedbackButton />
         </AuthProvider>
       </body>
     </html>
