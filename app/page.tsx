@@ -1057,6 +1057,109 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HOW IT WORKS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function HowItWorksSection() {
+  const steps = [
+    { n: "1", icon: "🏙️", title: "Pick your city", body: "Choose from 263 cities worldwide or enter your own monthly expenses. Cost of living shapes everything." },
+    { n: "2", icon: "💰", title: "Enter your income", body: "Annual, monthly, hourly — any format. We handle the tax math so the number is your actual take-home." },
+    { n: "3", icon: "🔥", title: "Get your FIRE number", body: "See exactly how much you need to retire, when you'll get there, and what changes it the most." },
+  ];
+  return (
+    <div className="uf-hiw">
+      <div className="uf-eyebrow" style={{ textAlign: "center" }}>How it works</div>
+      <h2 className="uf-h2" style={{ textAlign: "center", marginBottom: 8 }}>60 seconds to your number</h2>
+      <p className="uf-body" style={{ textAlign: "center", marginBottom: 40, maxWidth: 440, margin: "0 auto 40px" }}>
+        No signup. No spreadsheet. Just three questions and a result that actually accounts for where you live.
+      </p>
+      <div className="uf-hiw-steps">
+        {steps.map((s, i) => (
+          <div key={i} className="uf-hiw-step">
+            <div className="uf-hiw-num">{s.n}</div>
+            <div className="uf-hiw-icon">{s.icon}</div>
+            <div className="uf-hiw-title">{s.title}</div>
+            <div className="uf-hiw-body">{s.body}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SOCIAL PROOF QUOTES
+// ─────────────────────────────────────────────────────────────────────────────
+
+function QuotesSection() {
+  const quotes = [
+    { text: "Most FIRE calculators assume you live in a vacuum. The city-adjusted number actually shocked me — I was 6 years off.", handle: "r/financialindependence" },
+    { text: "Finally something that doesn't ask me to open a spreadsheet. Got my number in under a minute.", handle: "r/leanfire" },
+    { text: "The delta cards are the best part — 'cut dining out by 20% saves 1.4 years' hits differently than a bar chart.", handle: "r/fatFIRE" },
+  ];
+  return (
+    <div className="uf-quotes">
+      {quotes.map((q, i) => (
+        <div key={i} className="uf-quote-card">
+          <div className="uf-quote-text">&ldquo;{q.text}&rdquo;</div>
+          <div className="uf-quote-handle">— {q.handle}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOOTER
+// ─────────────────────────────────────────────────────────────────────────────
+
+function Footer() {
+  return (
+    <footer className="uf-footer">
+      <div className="uf-footer-inner">
+        <div className="uf-footer-brand">
+          <div className="uf-footer-logo">Until<span>Fire</span></div>
+          <div className="uf-footer-tagline">Your personal FIRE adviser — free, no login required.</div>
+          <div className="uf-footer-social">
+            <a href="https://x.com/GetUntilFire" target="_blank" rel="noopener noreferrer" className="uf-footer-social-btn" aria-label="X / Twitter">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.254 5.622L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" /></svg>
+            </a>
+            <a href="https://reddit.com/r/financialindependence" target="_blank" rel="noopener noreferrer" className="uf-footer-social-btn" aria-label="Reddit">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" /></svg>
+            </a>
+          </div>
+        </div>
+        <div className="uf-footer-links">
+          <div className="uf-footer-col">
+            <div className="uf-footer-col-head">Product</div>
+            <a href="/learn/fire-calculator" className="uf-footer-link">FIRE Calculator</a>
+            <a href="/learn/coast-fire-calculator" className="uf-footer-link">Coast FIRE</a>
+            <a href="/learn/savings-rate-calculator" className="uf-footer-link">Savings Rate</a>
+            <a href="/dashboard" className="uf-footer-link">Dashboard</a>
+          </div>
+          <div className="uf-footer-col">
+            <div className="uf-footer-col-head">Learn</div>
+            <a href="/learn/fire-number" className="uf-footer-link">What is a FIRE number?</a>
+            <a href="/learn/4-percent-rule" className="uf-footer-link">The 4% Rule</a>
+            <a href="/learn/fire-calculator" className="uf-footer-link">How to calculate FIRE</a>
+          </div>
+          <div className="uf-footer-col">
+            <div className="uf-footer-col-head">Company</div>
+            <a href="mailto:hello@untilfire.com" className="uf-footer-link">Contact</a>
+            <a href="/privacy" className="uf-footer-link">Privacy Policy</a>
+            <a href="/terms" className="uf-footer-link">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+      <div className="uf-footer-bottom">
+        <span>© {new Date().getFullYear()} UntilFire. Not financial advice.</span>
+        <span>Built for the FIRE community.</span>
+      </div>
+    </footer>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WAITLIST
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1470,8 +1573,8 @@ export default function Home() {
         .uf-waitlist-form { display: flex; gap: 10px; }
 
         /* ── SHARE TRIGGER ── */
-        .uf-share-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 18px auto 0; padding: 10px 22px; border-radius: 10px; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .uf-share-trigger:hover { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.45); transform: translateY(-1px); }
+        .uf-share-trigger { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 20px 0 4px; padding: 16px 24px; border-radius: 12px; background: var(--accent); border: none; color: #fff; font-family: var(--font-body); font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: -0.2px; }
+        .uf-share-trigger:hover { background: #ea6d0e; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(249,115,22,0.45); }
 
         /* ── SHARE MODAL ── */
         .uf-share-overlay { position: fixed; inset: 0; background: rgba(8,8,14,0.88); backdrop-filter: blur(10px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.15s ease; }
@@ -1507,7 +1610,38 @@ export default function Home() {
         .uf-share-copy { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-light); }
         .uf-share-copy:hover { color: var(--text); background: var(--bg-card); border-color: var(--text-dim); }
 
-        /* ── FOOTER DIVIDER ── */
+        /* ── HOW IT WORKS ── */
+        .uf-hiw { max-width: 680px; margin: 0 auto; padding: 56px 24px 48px; position: relative; z-index: 1; }
+        .uf-hiw-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .uf-hiw-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; gap: 8px; }
+        .uf-hiw-num { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+        .uf-hiw-icon { font-size: 28px; margin: 4px 0; }
+        .uf-hiw-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.2; }
+        .uf-hiw-body { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+        @media(max-width: 600px) { .uf-hiw-steps { grid-template-columns: 1fr; } }
+
+        /* ── QUOTES ── */
+        .uf-quotes { max-width: 680px; margin: 0 auto; padding: 0 24px 56px; display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 1; }
+        .uf-quote-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+        .uf-quote-text { font-size: 14px; color: var(--text); line-height: 1.65; margin-bottom: 10px; font-style: italic; }
+        .uf-quote-handle { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+
+        /* ── FOOTER ── */
+        .uf-footer { border-top: 1px solid var(--border); margin-top: 32px; padding: 48px 24px 32px; position: relative; z-index: 1; }
+        .uf-footer-inner { max-width: 860px; margin: 0 auto; display: flex; gap: 48px; flex-wrap: wrap; }
+        .uf-footer-brand { flex: 0 0 220px; display: flex; flex-direction: column; gap: 10px; }
+        .uf-footer-logo { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+        .uf-footer-logo span { color: var(--accent); }
+        .uf-footer-tagline { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+        .uf-footer-social { display: flex; gap: 8px; margin-top: 4px; }
+        .uf-footer-social-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); text-decoration: none; transition: all 0.15s; }
+        .uf-footer-social-btn:hover { color: var(--text); border-color: var(--text-dim); background: #1c1c2e; }
+        .uf-footer-links { flex: 1; display: flex; gap: 40px; flex-wrap: wrap; }
+        .uf-footer-col { display: flex; flex-direction: column; gap: 10px; min-width: 120px; }
+        .uf-footer-col-head { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px; }
+        .uf-footer-link { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.15s; }
+        .uf-footer-link:hover { color: var(--text); }
+        .uf-footer-bottom { max-width: 860px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
       `}</style>
 
       <Nav
@@ -1557,8 +1691,17 @@ export default function Home() {
           />
         )}
 
-        <div className="uf-section-sep" aria-hidden="true" />
+        {screen === "hero" && (
+          <>
+            <div className="uf-section-sep" aria-hidden="true" />
+            <HowItWorksSection />
+            <div className="uf-section-sep" aria-hidden="true" />
+            <QuotesSection />
+            <div className="uf-section-sep" aria-hidden="true" />
+          </>
+        )}
         <WaitlistSection />
+        <Footer />
       </div>
     </>
   );

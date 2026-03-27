@@ -20,11 +20,13 @@ export const metadata: Metadata = {
     url: 'https://untilfire.com',
     siteName: 'UntilFire',
     type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'UntilFire — Find Your FIRE Number' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'UntilFire — Find Your FIRE Number',
     description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    images: ['/opengraph-image'],
   },
   metadataBase: new URL('https://untilfire.com'),
 }
