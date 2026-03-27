@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Legend, ReferenceLine,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, ComposedChart, BarChart, Bar,
 } from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -152,6 +152,95 @@ function calcProjection({
     }
   }
   return { data, fireYear, fireTarget, annualSavings };
+}
+
+// ─── S&P 500 Historical Returns 1928–2024 ─────────────────────────────────────
+const SP500_ANNUAL_RETURNS = [
+  // 1928–1939
+  0.4381, -0.0830, -0.2490, -0.4334, -0.0819, 0.5381, -0.0347, 0.4674, 0.3194, -0.3526,
+  0.3109, -0.0042,
+  // 1940–1949
+  -0.0966, -0.1174, 0.1938, 0.2527, 0.1979, 0.3658, -0.0804, 0.0567, 0.0552, 0.1863,
+  // 1950–1959
+  0.3167, 0.2371, 0.1811, -0.0099, 0.5256, 0.3148, 0.0653, -0.1080, 0.4362, 0.1201,
+  // 1960–1969
+  0.0034, 0.2668, -0.0879, 0.2278, 0.1647, 0.1239, -0.1001, 0.2389, 0.1105, -0.0847,
+  // 1970–1979
+  0.0401, 0.1431, 0.1899, -0.1481, -0.2663, 0.3716, 0.2377, -0.0721, 0.0646, 0.1866,
+  // 1980–1989
+  0.3174, -0.0473, 0.2037, 0.2239, 0.0607, 0.3173, 0.1873, 0.0523, 0.1654, 0.3173,
+  // 1990–1999
+  -0.0306, 0.3047, 0.0767, 0.0994, 0.0131, 0.3753, 0.2296, 0.3336, 0.2858, 0.2104,
+  // 2000–2009
+  -0.0910, -0.1189, -0.2210, 0.2868, 0.1088, 0.0491, 0.1580, 0.0549, -0.3700, 0.2646,
+  // 2010–2019
+  0.1506, 0.0211, 0.1600, 0.3239, 0.1369, 0.0138, 0.1196, 0.2183, -0.0438, 0.3149,
+  // 2020–2024
+  0.1840, 0.2871, -0.1817, 0.2619, 0.2423,
+];
+
+// ─── Monte Carlo Simulation ───────────────────────────────────────────────────
+function runMonteCarlo({
+  initialPortfolio, annualSavings, fireTarget,
+  years = 50, N, mode, mean, sigma,
+}: {
+  initialPortfolio: number; annualSavings: number; fireTarget: number;
+  years?: number; N: number; mode: "normal" | "historical"; mean: number; sigma: number;
+}) {
+  function sampleNormal(mu: number, s: number): number {
+    const u1 = Math.random() || 1e-10;
+    const u2 = Math.random();
+    return mu + s * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  }
+  function sampleReturn(): number {
+    return mode === "historical"
+      ? SP500_ANNUAL_RETURNS[Math.floor(Math.random() * SP500_ANNUAL_RETURNS.length)]
+      : sampleNormal(mean, sigma);
+  }
+
+  const results: number[][] = [];
+  for (let i = 0; i < N; i++) {
+    let portfolio = initialPortfolio;
+    const yearValues = [portfolio];
+    for (let y = 1; y <= years; y++) {
+      portfolio = Math.max(0, portfolio * (1 + sampleReturn()) + annualSavings);
+      yearValues.push(portfolio);
+    }
+    results.push(yearValues);
+  }
+
+  const bands = Array.from({ length: years + 1 }, (_, y) => {
+    const vals = results.map(r => r[y]).sort((a, b) => a - b);
+    const p = (pct: number) => vals[Math.max(0, Math.min(N - 1, Math.floor(pct * N)))];
+    return { year: y, p10: p(0.10), p25: p(0.25), p50: p(0.50), p75: p(0.75), p90: p(0.90) };
+  });
+
+  const successCount = results.filter(r => r.some(v => v >= fireTarget)).length;
+  const successRate  = successCount / N;
+
+  const findFireYear = (pct: number) => {
+    const vals = results.map(r => r.findIndex(v => v >= fireTarget));
+    const reached = vals.filter(v => v > 0).sort((a, b) => a - b);
+    if (reached.length === 0) return null;
+    return reached[Math.floor(pct * reached.length)] ?? null;
+  };
+  const p50FireYear = findFireYear(0.50);
+  const p90FireYear = findFireYear(0.10); // best case = low percentile of years
+  const p10FireYear = findFireYear(0.90); // worst case
+
+  const evalYear = Math.min(p50FireYear ? p50FireYear + 5 : years, years);
+  const finalVals = results.map(r => r[evalYear]).sort((a, b) => a - b);
+  const medianFinal = finalVals[Math.floor(0.5 * N)] ?? 0;
+
+  const buckets = 20;
+  const minV = finalVals[0], maxV = finalVals[finalVals.length - 1];
+  const bSize = (maxV - minV) / buckets || 1;
+  const histogram = Array.from({ length: buckets }, (_, b) => {
+    const lo = minV + b * bSize, hi = lo + bSize;
+    return { range: fmt(lo, true), count: finalVals.filter(v => v >= lo && v < hi).length, failed: hi < fireTarget };
+  });
+
+  return { bands, successRate, p50FireYear, p90FireYear, p10FireYear, medianFinal, histogram };
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -506,8 +595,8 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
   );
 }
 
-// ─── FIRE Calculator Tab ──────────────────────────────────────────────────────
-function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate }: {
+// ─── Calculator Tab (FIRE Projection + Monte Carlo + Coast FIRE + Savings Rate) ─
+function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate, mcSigma, setMcSigma, mcMode, setMcMode, mcN, setMcN, coFireRetireAge, setCoFireRetireAge }: {
   income: number; expenses: Expenses;
   fireAge: number; setFireAge: (v: number) => void;
   k401: number; setK401: (v: number) => void;
@@ -518,7 +607,12 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
   mortgageMonthly: number; setMortgageMonthly: (v: number) => void;
   growthRate: number; setGrowthRate: (v: number) => void;
   withdrawalRate: number; setWithdrawalRate: (v: number) => void;
+  mcSigma: number; setMcSigma: (v: number) => void;
+  mcMode: "normal" | "historical"; setMcMode: (v: "normal" | "historical") => void;
+  mcN: number; setMcN: (v: number) => void;
+  coFireRetireAge: number; setCoFireRetireAge: (v: number) => void;
 }) {
+  const [calcTool, setCalcTool] = useState<"projection" | "montecarlo" | "coastfire" | "savingsrate">("projection");
   const [chartTab, setChartTab] = useState<"growth" | "accounts" | "networth">("growth");
 
   const monthlyExpenses = Object.entries(expenses)
@@ -538,7 +632,39 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
   const retireAge   = fireAge + (fireYear ?? 0);
   const chartData   = data.slice(0, Math.min(data.length, (fireYear ?? 30) + 7));
 
-  function TabBtn({ id, label }: { id: "growth" | "accounts" | "networth"; label: string }) {
+  // Monte Carlo
+  const mcResult = useMemo(() => {
+    if (calcTool !== "montecarlo") return null;
+    return runMonteCarlo({ initialPortfolio: investable, annualSavings, fireTarget, N: mcN, mode: mcMode, mean: growthRate, sigma: mcSigma });
+  }, [calcTool, investable, annualSavings, fireTarget, mcN, mcMode, growthRate, mcSigma]);
+
+  // Coast FIRE
+  const yearsToRetire = Math.max(coFireRetireAge - fireAge, 1);
+  const coastFireNumber = useMemo(() => fireTarget / Math.pow(1 + growthRate, yearsToRetire), [fireTarget, growthRate, yearsToRetire]);
+  const coastYearsRemaining = useMemo(() => {
+    if (investable >= coastFireNumber) return 0;
+    let port = investable;
+    for (let y = 1; y <= 60; y++) {
+      port = port * (1 + growthRate) + annualSavings;
+      if (port >= coastFireNumber) return y;
+    }
+    return null;
+  }, [investable, coastFireNumber, growthRate, annualSavings]);
+
+  function ToolBtn({ id, label }: { id: "projection" | "montecarlo" | "coastfire" | "savingsrate"; label: string }) {
+    return (
+      <button onClick={() => setCalcTool(id)} style={{
+        background: calcTool === id ? "#13131e" : "transparent",
+        border: `1px solid ${calcTool === id ? "#f97316" : "#1c1c2e"}`,
+        borderRadius: 8, padding: "8px 18px",
+        color: calcTool === id ? "#f97316" : "#5e5e7a",
+        fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: calcTool === id ? 600 : 400,
+        cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
+      }}>{label}</button>
+    );
+  }
+
+  function ChartTabBtn({ id, label }: { id: "growth" | "accounts" | "networth"; label: string }) {
     return (
       <button onClick={() => setChartTab(id)} style={{
         background: chartTab === id ? "#f97316" : "transparent",
@@ -554,6 +680,14 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+      {/* Tool navigation */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <ToolBtn id="projection"  label="🔥 FIRE Projection" />
+        <ToolBtn id="montecarlo"  label="🎲 Monte Carlo" />
+        <ToolBtn id="coastfire"   label="🏄 Coast FIRE" />
+        <ToolBtn id="savingsrate" label="📊 Savings Rate" />
+      </div>
 
       {/* Input panels */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
@@ -662,86 +796,339 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
         </div>
       </div>
 
-      {/* Charts */}
-      <div className="uf-card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: 15 }}>Wealth Projection</span>
-          <div style={{ display: "flex", gap: 6 }}>
-            <TabBtn id="growth" label="Growth" />
-            <TabBtn id="accounts" label="Accounts" />
-            <TabBtn id="networth" label="Net Worth" />
+      {/* ─── FIRE Projection ─── */}
+      {calcTool === "projection" && (
+        <div className="uf-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <span style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: 15 }}>Wealth Projection</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <ChartTabBtn id="growth" label="Growth" />
+              <ChartTabBtn id="accounts" label="Accounts" />
+              <ChartTabBtn id="networth" label="Net Worth" />
+            </div>
+          </div>
+
+          {chartTab === "growth" && (
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="gI2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22d3a5" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#22d3a5" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gT2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
+                <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={58} />
+                <Tooltip content={<ChartTooltip />} />
+                {fireYear && <ReferenceLine x={fireYear} stroke="#f97316" strokeDasharray="4 3" label={{ value: "🔥 FIRE", fill: "#f97316", fontSize: 10, fontFamily: "DM Mono" }} />}
+                <Area type="monotone" dataKey="FIRE Target" stroke="#f97316" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gT2)" dot={false} />
+                <Area type="monotone" dataKey="Investable" stroke="#22d3a5" strokeWidth={2.5} fill="url(#gI2)" dot={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+
+          {chartTab === "accounts" && (
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <defs>
+                  {[["g401c","#818cf8"],["gRothc","#22d3a5"],["gTaxc","#a78bfa"]].map(([id, c]) => (
+                    <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={c} stopOpacity={0.45} />
+                      <stop offset="100%" stopColor={c} stopOpacity={0.04} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
+                <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={58} />
+                <Tooltip content={<ChartTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: "DM Mono", color: "#5e5e7a", paddingTop: 10 }} />
+                {fireYear && <ReferenceLine x={fireYear} stroke="#f97316" strokeDasharray="4 3" />}
+                <Area type="monotone" dataKey="401(k)" stroke="#818cf8" strokeWidth={2} fill="url(#g401c)" dot={false} stackId="a" />
+                <Area type="monotone" dataKey="Roth IRA" stroke="#22d3a5" strokeWidth={2} fill="url(#gRothc)" dot={false} stackId="a" />
+                <Area type="monotone" dataKey="Taxable" stroke="#a78bfa" strokeWidth={2} fill="url(#gTaxc)" dot={false} stackId="a" />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+
+          {chartTab === "networth" && (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
+                <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={58} />
+                <Tooltip content={<ChartTooltip />} />
+                <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
+                {fireYear && <ReferenceLine x={fireYear} stroke="#f97316" strokeDasharray="4 3" label={{ value: "🔥 FIRE", fill: "#f97316", fontSize: 10, fontFamily: "DM Mono" }} />}
+                <Line type="monotone" dataKey="Net Worth" stroke="#f97316" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="Debt" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+
+          <p style={{ textAlign: "center", fontSize: 11, color: "#3a3a5a", marginTop: 10 }}>
+            {chartTab === "growth" && "Teal = investable assets · Orange dashed = FIRE target"}
+            {chartTab === "accounts" && "Stacked: 401(k) · Roth IRA · Taxable brokerage"}
+            {chartTab === "networth" && "Total net worth vs debt paydown over time"}
+          </p>
+        </div>
+      )}
+
+      {/* ─── Monte Carlo ─── */}
+      {calcTool === "montecarlo" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Simulation controls */}
+          <div className="uf-card">
+            <SectionLabel icon="🎲" text="Simulation Settings" color="#a78bfa" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Simulations</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[500, 1000, 5000].map(n => (
+                    <button key={n} onClick={() => setMcN(n)} style={{
+                      background: mcN === n ? "#a78bfa" : "transparent",
+                      border: `1px solid ${mcN === n ? "#a78bfa" : "#1c1c2e"}`,
+                      borderRadius: 6, padding: "5px 12px",
+                      color: mcN === n ? "#fff" : "#5e5e7a",
+                      fontFamily: "DM Mono, monospace", fontSize: 11,
+                      cursor: "pointer", transition: "all 0.2s",
+                    }}>{n.toLocaleString()}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Distribution</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {([["normal", "Normal"], ["historical", "Historical S&P"]] as const).map(([id, lbl]) => (
+                    <button key={id} onClick={() => setMcMode(id)} style={{
+                      background: mcMode === id ? "#a78bfa" : "transparent",
+                      border: `1px solid ${mcMode === id ? "#a78bfa" : "#1c1c2e"}`,
+                      borderRadius: 6, padding: "5px 12px",
+                      color: mcMode === id ? "#fff" : "#5e5e7a",
+                      fontFamily: "DM Mono, monospace", fontSize: 11,
+                      cursor: "pointer", transition: "all 0.2s",
+                    }}>{lbl}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                {mcMode === "normal" ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>Std Dev (σ)</span>
+                      <span style={{ fontSize: 12, color: "#a78bfa", fontFamily: "DM Mono, monospace" }}>{(mcSigma * 100).toFixed(0)}%</span>
+                    </div>
+                    <input type="range" min={0.05} max={0.30} step={0.01} value={mcSigma}
+                      onChange={e => setMcSigma(Number(e.target.value))}
+                      style={{ width: "100%", accentColor: "#a78bfa", cursor: "pointer" }} />
+                    <div style={{ fontSize: 10, color: "#3a3a5a", marginTop: 4, fontFamily: "DM Mono, monospace" }}>Historical S&P 500 σ ≈ 17%</div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: "#5e5e7a", lineHeight: 1.6, paddingTop: 4 }}>
+                    Using actual S&P 500 returns 1928–2024 (97 years). Captures real fat tails: 1931 (−43%), 2008 (−37%), 1954 (+53%).
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {mcResult && (
+            <>
+              {/* Stats row */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+                {[
+                  { label: "Success Rate", val: `${(mcResult.successRate * 100).toFixed(0)}%`, color: mcResult.successRate >= 0.9 ? "#22d3a5" : mcResult.successRate >= 0.7 ? "#f97316" : "#ef4444", sub: `${Math.round(mcResult.successRate * mcN)} of ${mcN} runs`, glow: mcResult.successRate >= 0.85 },
+                  { label: "Median FIRE Year", val: mcResult.p50FireYear ? `${mcResult.p50FireYear} yrs` : "50+ yrs", color: "#f97316", sub: mcResult.p50FireYear ? `~${new Date().getFullYear() + mcResult.p50FireYear}` : "Not reached", glow: false },
+                  { label: "Best Case (p90)", val: mcResult.p90FireYear ? `${mcResult.p90FireYear} yrs` : "50+ yrs", color: "#22d3a5", sub: "90th percentile", glow: false },
+                  { label: "Worst Case (p10)", val: mcResult.p10FireYear ? `${mcResult.p10FireYear} yrs` : "50+ yrs", color: "#ef4444", sub: "10th percentile", glow: false },
+                  { label: "Median Final", val: fmt(mcResult.medianFinal, true), color: "#e8e8f2", sub: "Portfolio value", glow: false },
+                ].map(k => (
+                  <div key={k.label} className={`uf-card ${k.glow ? "uf-card-glow" : ""}`} style={{ padding: "14px 16px" }}>
+                    <div style={{ fontSize: 10, color: "#5e5e7a", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "DM Mono, monospace", marginBottom: 6 }}>{k.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: "DM Mono, monospace" }}>{k.val}</div>
+                    <div style={{ fontSize: 11, color: "#5e5e7a", marginTop: 3 }}>{k.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Fan chart */}
+              <div className="uf-card">
+                <SectionLabel icon="📊" text={`Portfolio Range — ${mcN.toLocaleString()} Simulations`} color="#22d3a5" />
+                <ResponsiveContainer width="100%" height={280}>
+                  <ComposedChart
+                    data={mcResult.bands.slice(0, Math.min(mcResult.bands.length, (mcResult.p50FireYear ?? 35) + 8))}
+                    margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
+                    <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={62} />
+                    <Tooltip content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      if (!d) return null;
+                      return (
+                        <div style={{ background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "10px 14px", fontFamily: "DM Mono, monospace", fontSize: 11 }}>
+                          <p style={{ color: "#5e5e7a", marginBottom: 6 }}>Year {label}</p>
+                          <div style={{ color: "#22d3a5" }}>p90: {fmt(d.p90, true)}</div>
+                          <div style={{ color: "#7ecdc2" }}>p75: {fmt(d.p75, true)}</div>
+                          <div style={{ color: "#f97316" }}>p50: {fmt(d.p50, true)}</div>
+                          <div style={{ color: "#7ecdc2" }}>p25: {fmt(d.p25, true)}</div>
+                          <div style={{ color: "#ef4444" }}>p10: {fmt(d.p10, true)}</div>
+                        </div>
+                      );
+                    }} />
+                    {/* Fan: paint-over technique — outer band teal, then bg overpaints bottom portion */}
+                    <Area type="monotone" dataKey="p90" stroke="transparent" fill="#22d3a5" fillOpacity={0.08} dot={false} legendType="none" />
+                    <Area type="monotone" dataKey="p10" stroke="transparent" fill="#13131e" fillOpacity={1} dot={false} legendType="none" />
+                    <Area type="monotone" dataKey="p75" stroke="transparent" fill="#22d3a5" fillOpacity={0.15} dot={false} legendType="none" />
+                    <Area type="monotone" dataKey="p25" stroke="transparent" fill="#13131e" fillOpacity={1} dot={false} legendType="none" />
+                    <Line type="monotone" dataKey="p50" stroke="#f97316" strokeWidth={2.5} dot={false} legendType="none" />
+                    <ReferenceLine y={fireTarget} stroke="#f97316" strokeDasharray="4 4" label={{ value: "FIRE Target", position: "insideTopRight", fill: "#f97316", fontSize: 10, fontFamily: "DM Mono" }} />
+                    {mcResult.p50FireYear && <ReferenceLine x={mcResult.p50FireYear} stroke="#f97316" strokeDasharray="4 3" />}
+                  </ComposedChart>
+                </ResponsiveContainer>
+                <p style={{ textAlign: "center", fontSize: 11, color: "#3a3a5a", marginTop: 8 }}>
+                  Orange line = median (p50) · Teal band = p10–p90 range · Inner band = p25–p75
+                </p>
+              </div>
+
+              {/* Histogram */}
+              <div className="uf-card">
+                <SectionLabel icon="📈" text="Final Portfolio Distribution" color="#a78bfa" />
+                <ResponsiveContainer width="100%" height={150}>
+                  <BarChart data={mcResult.histogram} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
+                    <XAxis dataKey="range" tick={{ fill: "#5e5e7a", fontSize: 9, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} interval={3} />
+                    <YAxis tick={{ fill: "#5e5e7a", fontSize: 9, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={30} />
+                    <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                      {mcResult.histogram.map((entry, index) => (
+                        <Cell key={index} fill={entry.failed ? "#ef4444" : "#a78bfa"} fillOpacity={0.8} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                <p style={{ textAlign: "center", fontSize: 11, color: "#3a3a5a", marginTop: 8 }}>
+                  Red = scenarios that didn't reach FIRE target · Purple = success · Evaluated at median FIRE year
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── Coast FIRE ─── */}
+      {calcTool === "coastfire" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="uf-card">
+            <SectionLabel icon="🏄" text="Coast FIRE Settings" color="#22d3a5" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              <FieldRow label="Target Retirement Age" hint="Age when you want to stop working">
+                <NumberInput value={coFireRetireAge} onChange={setCoFireRetireAge} placeholder="60" prefix="🎯" />
+              </FieldRow>
+              <div>
+                <div style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Years until retirement</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#f97316", fontFamily: "DM Mono, monospace" }}>{Math.max(coFireRetireAge - fireAge, 0)} years</div>
+                <div style={{ fontSize: 12, color: "#5e5e7a", marginTop: 4 }}>Current age: {fireAge} → Retirement: {coFireRetireAge}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            <div className="uf-card uf-card-glow" style={{ padding: "18px 20px" }}>
+              <div style={{ fontSize: 11, color: "#5e5e7a", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "DM Mono, monospace", marginBottom: 8 }}>Coast FIRE Number</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: "#22d3a5", fontFamily: "DM Mono, monospace" }}>{fmt(coastFireNumber, true)}</div>
+              <div style={{ fontSize: 12, color: "#5e5e7a", marginTop: 5 }}>Grows to {fmt(fireTarget, true)} by age {coFireRetireAge}</div>
+            </div>
+            <div className="uf-card" style={{ padding: "18px 20px" }}>
+              <div style={{ fontSize: 11, color: "#5e5e7a", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "DM Mono, monospace", marginBottom: 8 }}>Current Portfolio</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: investable >= coastFireNumber ? "#22d3a5" : "#f97316", fontFamily: "DM Mono, monospace" }}>{fmt(investable, true)}</div>
+              <div style={{ fontSize: 12, color: "#5e5e7a", marginTop: 5 }}>
+                {investable >= coastFireNumber ? "✅ You've hit Coast FIRE!" : `${fmt(coastFireNumber - investable, true)} to go`}
+              </div>
+            </div>
+            <div className="uf-card" style={{ padding: "18px 20px" }}>
+              <div style={{ fontSize: 11, color: "#5e5e7a", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "DM Mono, monospace", marginBottom: 8 }}>Years to Coast FIRE</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: "#f97316", fontFamily: "DM Mono, monospace" }}>
+                {investable >= coastFireNumber ? "Now!" : coastYearsRemaining !== null ? `${coastYearsRemaining} yrs` : "60+ yrs"}
+              </div>
+              <div style={{ fontSize: 12, color: "#5e5e7a", marginTop: 5 }}>
+                {investable >= coastFireNumber ? "Stop saving — you're coasting" : "Then you can stop saving"}
+              </div>
+            </div>
+          </div>
+
+          <div className="uf-card">
+            <div style={{ fontSize: 13, color: "#5e5e7a", lineHeight: 1.8 }}>
+              <strong style={{ color: "#e8e8f2" }}>What is Coast FIRE?</strong>{" "}
+              It&apos;s the point where your portfolio is large enough that — without any more contributions — it will grow to your full FIRE number by your target retirement age. Once you hit Coast FIRE, you only need to cover current expenses.
+              <br /><br />
+              <strong style={{ color: "#22d3a5" }}>Formula:</strong>{" "}
+              <code style={{ background: "#0f0f18", padding: "2px 6px", borderRadius: 4 }}>Coast FIRE = FIRE Target ÷ (1 + r)^years</code>
+              <br />
+              <code style={{ background: "#0f0f18", padding: "2px 6px", borderRadius: 4 }}>r = {(growthRate * 100).toFixed(1)}%</code> · <code style={{ background: "#0f0f18", padding: "2px 6px", borderRadius: 4 }}>years = {Math.max(coFireRetireAge - fireAge, 0)}</code> until retirement age {coFireRetireAge}
+            </div>
           </div>
         </div>
+      )}
 
-        {chartTab === "growth" && (
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="gI2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22d3a5" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#22d3a5" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gT2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity={0.12} />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
-              <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={58} />
-              <Tooltip content={<ChartTooltip />} />
-              {fireYear && <ReferenceLine x={fireYear} stroke="#f97316" strokeDasharray="4 3" label={{ value: "🔥 FIRE", fill: "#f97316", fontSize: 10, fontFamily: "DM Mono" }} />}
-              <Area type="monotone" dataKey="FIRE Target" stroke="#f97316" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gT2)" dot={false} />
-              <Area type="monotone" dataKey="Investable" stroke="#22d3a5" strokeWidth={2.5} fill="url(#gI2)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-
-        {chartTab === "accounts" && (
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-              <defs>
-                {[["g401c","#818cf8"],["gRothc","#22d3a5"],["gTaxc","#a78bfa"]].map(([id, c]) => (
-                  <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={c} stopOpacity={0.45} />
-                    <stop offset="100%" stopColor={c} stopOpacity={0.04} />
-                  </linearGradient>
-                ))}
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
-              <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={58} />
-              <Tooltip content={<ChartTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 11, fontFamily: "DM Mono", color: "#5e5e7a", paddingTop: 10 }} />
-              {fireYear && <ReferenceLine x={fireYear} stroke="#f97316" strokeDasharray="4 3" />}
-              <Area type="monotone" dataKey="401(k)" stroke="#818cf8" strokeWidth={2} fill="url(#g401c)" dot={false} stackId="a" />
-              <Area type="monotone" dataKey="Roth IRA" stroke="#22d3a5" strokeWidth={2} fill="url(#gRothc)" dot={false} stackId="a" />
-              <Area type="monotone" dataKey="Taxable" stroke="#a78bfa" strokeWidth={2} fill="url(#gTaxc)" dot={false} stackId="a" />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-
-        {chartTab === "networth" && (
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
-              <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={58} />
-              <Tooltip content={<ChartTooltip />} />
-              <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
-              {fireYear && <ReferenceLine x={fireYear} stroke="#f97316" strokeDasharray="4 3" label={{ value: "🔥 FIRE", fill: "#f97316", fontSize: 10, fontFamily: "DM Mono" }} />}
-              <Line type="monotone" dataKey="Net Worth" stroke="#f97316" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="Debt" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-
-        <p style={{ textAlign: "center", fontSize: 11, color: "#3a3a5a", marginTop: 10 }}>
-          {chartTab === "growth" && "Teal = investable assets · Orange dashed = FIRE target"}
-          {chartTab === "accounts" && "Stacked: 401(k) · Roth IRA · Taxable brokerage"}
-          {chartTab === "networth" && "Total net worth vs debt paydown over time"}
-        </p>
-      </div>
+      {/* ─── Savings Rate ─── */}
+      {calcTool === "savingsrate" && (
+        <div className="uf-card">
+          <SectionLabel icon="📊" text="Savings Rate Impact on FIRE Timeline" color="#818cf8" />
+          <p style={{ fontSize: 13, color: "#5e5e7a", marginTop: 0, marginBottom: 20, lineHeight: 1.6 }}>
+            Savings rate is the most powerful lever in FIRE. A higher rate both increases annual contributions <em>and</em> lowers your FIRE target simultaneously — the compound effect is dramatic.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "DM Mono, monospace", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {["Rate", "Monthly Invested", "Monthly Spending", "FIRE Target", "FIRE Years", ""].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#5e5e7a", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", borderBottom: "1px solid #1c1c2e" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[10, 20, 30, 40, 50, 60, 70, 80].map(rate => {
+                  const mInvested = income * (rate / 100);
+                  const mExpenses = income - mInvested;
+                  const tgt = mExpenses * 12 * (1 / withdrawalRate);
+                  let yrs: number | null = null;
+                  let port = investable;
+                  for (let y = 1; y <= 60; y++) {
+                    port = port * (1 + growthRate) + mInvested * 12;
+                    if (port >= tgt) { yrs = y; break; }
+                  }
+                  const isCurrentRate = Math.abs(savingsRate - rate) <= 5;
+                  return (
+                    <tr key={rate} style={{ background: isCurrentRate ? "rgba(249,115,22,0.06)" : "transparent" }}>
+                      <td style={{ padding: "10px 12px", color: isCurrentRate ? "#f97316" : "#e8e8f2", fontWeight: isCurrentRate ? 700 : 400, borderBottom: "1px solid #0f0f18" }}>
+                        {rate}% {isCurrentRate && <span style={{ fontSize: 10, color: "#f97316" }}>← you</span>}
+                      </td>
+                      <td style={{ padding: "10px 12px", color: "#22d3a5", borderBottom: "1px solid #0f0f18" }}>{fmt(mInvested)}/mo</td>
+                      <td style={{ padding: "10px 12px", color: "#5e5e7a", borderBottom: "1px solid #0f0f18" }}>{fmt(mExpenses)}/mo</td>
+                      <td style={{ padding: "10px 12px", color: "#e8e8f2", borderBottom: "1px solid #0f0f18" }}>{fmt(tgt, true)}</td>
+                      <td style={{ padding: "10px 12px", color: yrs !== null ? (yrs <= 15 ? "#22d3a5" : yrs <= 25 ? "#f97316" : "#e8e8f2") : "#ef4444", fontWeight: 600, borderBottom: "1px solid #0f0f18" }}>
+                        {yrs !== null ? `${yrs} yrs` : "60+ yrs"}
+                      </td>
+                      <td style={{ padding: "10px 12px", color: "#5e5e7a", fontSize: 11, borderBottom: "1px solid #0f0f18" }}>
+                        {rate >= 70 ? "🔥 Extreme" : rate >= 50 ? "⚡ FIRE pace" : rate >= 30 ? "📈 Good" : "🐢 Slow"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ textAlign: "center", fontSize: 11, color: "#3a3a5a", marginTop: 12 }}>
+            Based on {fmt(income)}/mo income · {(growthRate * 100).toFixed(1)}% return · {(withdrawalRate * 100).toFixed(0)}% SWR · {fmt(investable, true)} current portfolio
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1424,6 +1811,10 @@ export default function Dashboard() {
   const [mortgageMonthly, setMortgageMonthly] = useState(0);
   const [growthRate,      setGrowthRate]      = useState(0.07);
   const [withdrawalRate,  setWithdrawalRate]  = useState(0.04);
+  const [mcSigma,         setMcSigma]         = useState(0.17);
+  const [mcMode,          setMcMode]          = useState<"normal" | "historical">("normal");
+  const [mcN,             setMcN]             = useState(1000);
+  const [coFireRetireAge, setCoFireRetireAge] = useState(60);
   const [baselineNetWorth, setBaselineNetWorth] = useState(0);
   const [baselineDate,     setBaselineDate]     = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -1469,6 +1860,10 @@ export default function Dashboard() {
           setMortgageMonthly(fp.mortgageMonthly || 0);
           setGrowthRate(fp.growthRate || 0.07);
           setWithdrawalRate(fp.withdrawalRate || 0.04);
+          if (fp.mcSigma)         setMcSigma(fp.mcSigma);
+          if (fp.mcMode)          setMcMode(fp.mcMode);
+          if (fp.mcN)             setMcN(fp.mcN);
+          if (fp.coFireRetireAge) setCoFireRetireAge(fp.coFireRetireAge);
           setBaselineNetWorth(data.baseline_net_worth || 0);
           setBaselineDate(data.baseline_date || null);
         }
@@ -1485,7 +1880,7 @@ export default function Dashboard() {
     saveTimer.current = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate };
+      const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, mcSigma, mcMode, mcN, coFireRetireAge };
       await supabase.from("user_budget").upsert({
         user_id:              session.user.id,
         income,
@@ -1499,7 +1894,7 @@ export default function Dashboard() {
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1000);
-  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, baselineNetWorth, baselineDate]);
+  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, mcSigma, mcMode, mcN, coFireRetireAge, baselineNetWorth, baselineDate]);
 
   const handleSetBaseline = (amount: number, date: string) => {
     setBaselineNetWorth(amount);
@@ -1518,7 +1913,7 @@ export default function Dashboard() {
   const navTabs: { key: TabKey; label: string }[] = [
     { key: "dashboard",    label: "📊 Overview" },
     { key: "budget",       label: "💰 Budget" },
-    { key: "fire",         label: "🔥 FIRE Calculator" },
+    { key: "fire",         label: "🧮 Calculator" },
     { key: "transactions", label: "💳 Transactions" },
   ];
 
@@ -1585,7 +1980,7 @@ export default function Dashboard() {
           <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
         )}
         {tab === "fire" && (
-          <FIRETab
+          <CalcTab
             income={income} expenses={expenses}
             fireAge={fireAge} setFireAge={setFireAge}
             k401={k401} setK401={setK401}
@@ -1596,6 +1991,10 @@ export default function Dashboard() {
             mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
             growthRate={growthRate} setGrowthRate={setGrowthRate}
             withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
+            mcSigma={mcSigma} setMcSigma={setMcSigma}
+            mcMode={mcMode} setMcMode={setMcMode}
+            mcN={mcN} setMcN={setMcN}
+            coFireRetireAge={coFireRetireAge} setCoFireRetireAge={setCoFireRetireAge}
           />
         )}
         {tab === "transactions" && (
