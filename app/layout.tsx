@@ -10,6 +10,14 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'UntilFire — Find Your FIRE Number & Retire Early',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
+      { url: '/icon.png',    sizes: '512x512',            type: 'image/png'    },
+    ],
+    shortcut: '/favicon.ico',
+    apple:    '/icon.png',
+  },
   description:
     'Calculate exactly when you can retire. Find your FIRE number, track expenses, and see how small changes compound into years of freedom. Free FIRE calculator.',
   keywords:
