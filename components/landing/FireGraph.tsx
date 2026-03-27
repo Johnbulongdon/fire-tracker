@@ -432,7 +432,7 @@ export function FireGraph() {
       initial={{ opacity: 0, y: 40 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as const }}
-      style={{ width: "100%", maxWidth: 680, margin: "0 auto", padding: "0 24px 56px" }}
+      style={{ width: "100%", maxWidth: 1000, margin: "0 auto", padding: "0 max(24px, 5vw) 64px" }}
     >
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <div style={{ fontSize: 11, color: "#22d3a5", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>

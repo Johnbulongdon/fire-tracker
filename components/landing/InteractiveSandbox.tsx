@@ -182,9 +182,9 @@ export function InteractiveSandbox() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      style={{ width: "100%", maxWidth: 680, margin: "0 auto", padding: "0 24px 56px" }}
+      style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: "0 max(24px, 5vw) 64px" }}
     >
-      <div style={{ textAlign: "center", marginBottom: 32 }}>
+      <div style={{ textAlign: "center", maxWidth: 580, margin: "0 auto 36px" }}>
         <div style={{ fontSize: 11, color: "#f97316", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>Interactive</div>
         <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(24px,4vw,36px)", fontWeight: 800, color: "#e8e8f2", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: 8 }}>
           See how every dollar moves your FIRE date
@@ -194,71 +194,70 @@ export function InteractiveSandbox() {
         </p>
       </div>
 
-      <div style={{ background: "#13131e", border: "1px solid #1c1c2e", borderRadius: 20, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
-        {/* Sliders */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <Slider label="Monthly savings" value={savings} onChange={setSavings} min={0} max={6000} step={50}
-            format={v => `$${v.toLocaleString()}/mo`} color="#22d3a5" />
-          <Slider label="Monthly expenses" value={expenses} onChange={setExpenses} min={1000} max={8000} step={50}
-            format={v => `$${v.toLocaleString()}/mo`} color="#ef4444" />
-          <Slider label="Current portfolio" value={portfolio} onChange={setPortfolio} min={0} max={500000} step={5000}
-            format={v => fmt(v)} color="#a78bfa" />
+      <div style={{ background: "#13131e", border: "1px solid #1c1c2e", borderRadius: 20, padding: "32px 32px 28px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "28px 56px" }}>
+          {/* Left: Sliders + savings rate */}
+          <div style={{ flex: "1 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: 22 }}>
+            <Slider label="Monthly savings" value={savings} onChange={setSavings} min={0} max={6000} step={50}
+              format={v => `$${v.toLocaleString()}/mo`} color="#22d3a5" />
+            <Slider label="Monthly expenses" value={expenses} onChange={setExpenses} min={1000} max={8000} step={50}
+              format={v => `$${v.toLocaleString()}/mo`} color="#ef4444" />
+            <Slider label="Current portfolio" value={portfolio} onChange={setPortfolio} min={0} max={500000} step={5000}
+              format={v => fmt(v)} color="#a78bfa" />
+
+            {/* Savings rate */}
+            {(() => {
+              const monthlyIncome = savings + expenses;
+              const rate = monthlyIncome > 0 ? (savings / monthlyIncome) * 100 : 0;
+              const rateColor = rate >= 50 ? "#f97316" : rate >= 25 ? "#22d3a5" : "#ef4444";
+              return (
+                <div style={{ paddingTop: 4 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>Savings rate</span>
+                    <motion.span animate={{ color: rateColor }} style={{ fontSize: 12, fontFamily: "DM Mono, monospace", fontWeight: 600 }}>
+                      {rate.toFixed(0)}% {rate >= 50 ? "🔥 FIRE pace" : rate >= 25 ? "· Good" : "· Needs work"}
+                    </motion.span>
+                  </div>
+                  <div style={{ height: 6, background: "#0f0f18", borderRadius: 99, overflow: "hidden" }}>
+                    <motion.div
+                      animate={{ width: `${Math.min(rate, 100)}%`, background: rateColor }}
+                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ height: "100%", borderRadius: 99 }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Vertical divider */}
+          <div style={{ width: 1, background: "#1c1c2e", alignSelf: "stretch", flexShrink: 0 }} />
+
+          {/* Right: Output cards */}
+          <div style={{ flex: "1 1 240px", minWidth: 0, display: "flex", flexDirection: "column", gap: 12, justifyContent: "center" }}>
+            <DeltaCard
+              label="Years to FIRE"
+              value={result.years ?? 60}
+              prevValue={prevResult.years ?? 60}
+              format={v => v >= 60 ? "60+ yrs" : `${v} yrs`}
+              positiveIsGood={false}
+            />
+            <DeltaCard
+              label="FIRE target"
+              value={result.fireTarget}
+              prevValue={prevResult.fireTarget}
+              format={v => fmt(v)}
+              positiveIsGood={false}
+            />
+            <DeltaCard
+              label="Annual savings"
+              value={savings * 12}
+              prevValue={savings * 12}
+              format={v => fmt(v)}
+              positiveIsGood={true}
+            />
+          </div>
         </div>
-
-        {/* Divider */}
-        <div style={{ height: 1, background: "#1c1c2e" }} />
-
-        {/* Output cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          <DeltaCard
-            label="Years to FIRE"
-            value={result.years ?? 60}
-            prevValue={prevResult.years ?? 60}
-            format={v => v >= 60 ? "60+ yrs" : `${v} yrs`}
-            positiveIsGood={false}
-          />
-          <DeltaCard
-            label="FIRE target"
-            value={result.fireTarget}
-            prevValue={prevResult.fireTarget}
-            format={v => fmt(v)}
-            positiveIsGood={false}
-          />
-          <DeltaCard
-            label="Annual savings"
-            value={savings * 12}
-            prevValue={savings * 12}
-            format={v => fmt(v)}
-            positiveIsGood={true}
-          />
-        </div>
-
-        {/* Savings rate bar */}
-        {(() => {
-          const monthlyIncome = savings + expenses;
-          const rate = monthlyIncome > 0 ? (savings / monthlyIncome) * 100 : 0;
-          const rateColor = rate >= 50 ? "#f97316" : rate >= 25 ? "#22d3a5" : "#ef4444";
-          return (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>Savings rate</span>
-                <motion.span
-                  animate={{ color: rateColor }}
-                  style={{ fontSize: 12, fontFamily: "DM Mono, monospace", fontWeight: 600 }}
-                >
-                  {rate.toFixed(0)}% {rate >= 50 ? "🔥 FIRE pace" : rate >= 25 ? "· Good" : "· Needs work"}
-                </motion.span>
-              </div>
-              <div style={{ height: 6, background: "#0f0f18", borderRadius: 99, overflow: "hidden" }}>
-                <motion.div
-                  animate={{ width: `${Math.min(rate, 100)}%`, background: rateColor }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ height: "100%", borderRadius: 99 }}
-                />
-              </div>
-            </div>
-          );
-        })()}
       </div>
 
       <p style={{ textAlign: "center", fontSize: 11, color: "#3a3a5a", marginTop: 14, fontFamily: "DM Mono, monospace" }}>

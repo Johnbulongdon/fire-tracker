@@ -1288,7 +1288,7 @@ export default function Home() {
         input[type=number] { -moz-appearance: textfield; }
 
         /* ── NAV ── */
-        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(8,8,14,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px); }
+        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(8,8,14,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 max(24px, 4vw); z-index: 100; backdrop-filter: blur(12px); }
         .uf-nav-logo { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
         .uf-nav-logo span { color: var(--accent); }
         .uf-nav-dots { display: flex; gap: 6px; align-items: center; }
@@ -1303,15 +1303,15 @@ export default function Home() {
         .uf-hero-signin:hover { color: var(--text); }
 
         /* ── SCREEN ── */
-        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: stretch; position: relative; }
         .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform, opacity; }
         .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
         .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(34,211,165,0.11) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
         .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
-        .uf-screen { width: 100%; max-width: 540px; padding: 40px 24px 24px; position: relative; z-index: 1; }
+        .uf-screen { width: 100%; max-width: 540px; margin: 0 auto; padding: 40px 24px 24px; position: relative; z-index: 1; }
         .uf-reveal-screen { max-width: 680px; }
-        .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
+        .uf-section-sep { width: 100%; height: 1px; background: linear-gradient(90deg, transparent 0%, var(--border-light) 20%, var(--border-light) 80%, transparent 100%); position: relative; z-index: 1; opacity: 0.4; }
 
         /* ── TYPOGRAPHY ── */
         .uf-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
@@ -1619,24 +1619,25 @@ export default function Home() {
         .uf-share-copy:hover { color: var(--text); background: var(--bg-card); border-color: var(--text-dim); }
 
         /* ── HOW IT WORKS ── */
-        .uf-hiw { max-width: 680px; margin: 0 auto; padding: 56px 24px 48px; position: relative; z-index: 1; }
-        .uf-hiw-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        .uf-hiw-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; gap: 8px; }
+        .uf-hiw { width: 100%; max-width: 1200px; margin: 0 auto; padding: 64px max(24px, 5vw) 56px; position: relative; z-index: 1; }
+        .uf-hiw-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .uf-hiw-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.2s, transform 0.2s; }
+        .uf-hiw-step:hover { border-color: var(--border-light); transform: translateY(-2px); }
         .uf-hiw-num { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
-        .uf-hiw-icon { font-size: 28px; margin: 4px 0; }
-        .uf-hiw-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.2; }
-        .uf-hiw-body { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
-        @media(max-width: 600px) { .uf-hiw-steps { grid-template-columns: 1fr; } }
+        .uf-hiw-icon { font-size: 32px; margin: 4px 0; }
+        .uf-hiw-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.2; }
+        .uf-hiw-body { font-size: 14px; color: var(--text-muted); line-height: 1.65; }
+        @media(max-width: 680px) { .uf-hiw-steps { grid-template-columns: 1fr; } }
 
         /* ── QUOTES ── */
-        .uf-quotes { max-width: 680px; margin: 0 auto; padding: 0 24px 56px; display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 1; }
-        .uf-quote-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
-        .uf-quote-text { font-size: 14px; color: var(--text); line-height: 1.65; margin-bottom: 10px; font-style: italic; }
+        .uf-quotes { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 max(24px, 5vw) 64px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 16px; position: relative; z-index: 1; }
+        .uf-quote-card { flex: 1 1 260px; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px 26px; display: flex; flex-direction: column; justify-content: space-between; }
+        .uf-quote-text { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: 14px; font-style: italic; flex: 1; }
         .uf-quote-handle { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
 
         /* ── FOOTER ── */
-        .uf-footer { border-top: 1px solid var(--border); margin-top: 32px; padding: 48px 24px 32px; position: relative; z-index: 1; }
-        .uf-footer-inner { max-width: 860px; margin: 0 auto; display: flex; gap: 48px; flex-wrap: wrap; }
+        .uf-footer { border-top: 1px solid var(--border); margin-top: 32px; padding: 56px max(24px, 5vw) 40px; position: relative; z-index: 1; }
+        .uf-footer-inner { max-width: 1280px; margin: 0 auto; display: flex; gap: 48px; flex-wrap: wrap; }
         .uf-footer-brand { flex: 0 0 220px; display: flex; flex-direction: column; gap: 10px; }
         .uf-footer-logo { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
         .uf-footer-logo span { color: var(--accent); }
@@ -1649,7 +1650,7 @@ export default function Home() {
         .uf-footer-col-head { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px; }
         .uf-footer-link { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.15s; }
         .uf-footer-link:hover { color: var(--text); }
-        .uf-footer-bottom { max-width: 860px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+        .uf-footer-bottom { max-width: 1280px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
       `}</style>
 
       <Nav

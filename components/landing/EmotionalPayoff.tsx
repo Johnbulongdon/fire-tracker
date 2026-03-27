@@ -36,7 +36,7 @@ export function EmotionalPayoff() {
   return (
     <section
       ref={ref}
-      style={{ maxWidth: 680, margin: "0 auto", padding: "0 24px 80px" }}
+      style={{ width: "100%", maxWidth: 960, margin: "0 auto", padding: "0 max(24px, 5vw) 80px" }}
     >
       {/* Header */}
       <motion.div
@@ -50,7 +50,7 @@ export function EmotionalPayoff() {
           From obligation<br />
           <span style={{ color: "#a78bfa" }}>to intention.</span>
         </h2>
-        <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7, maxWidth: 480, margin: "0 auto" }}>
+        <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7, maxWidth: 560, margin: "0 auto" }}>
           FIRE doesn&apos;t mean lying on a beach forever. It means your time is finally yours to direct.
         </p>
       </motion.div>

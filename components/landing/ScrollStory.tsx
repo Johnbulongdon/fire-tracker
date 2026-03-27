@@ -63,35 +63,40 @@ function MetricCard({ value, label, sub, color, delay }: MetricCardProps) {
 // ─── Section A: Where you are now ──────────────────────────────────────────
 function SectionNow() {
   return (
-    <section style={{ maxWidth: 680, margin: "0 auto", padding: "0 24px 72px" }}>
-      <FadeIn>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(167,139,250,0.15)", border: "1px solid rgba(167,139,250,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📍</div>
-          <div style={{ fontSize: 11, color: "#a78bfa", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600 }}>
-            Chapter 1 · Where you are now
+    <section style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: "0 max(24px, 5vw) 72px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "48px 72px", alignItems: "flex-start" }}>
+        {/* Left: text */}
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <FadeIn>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(167,139,250,0.15)", border: "1px solid rgba(167,139,250,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📍</div>
+              <div style={{ fontSize: 11, color: "#a78bfa", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600 }}>
+                Chapter 1 · Where you are now
+              </div>
+            </div>
+            <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: "#e8e8f2", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: 16 }}>
+              Most people have no idea<br />where they actually stand.
+            </h2>
+            <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7, marginBottom: 28 }}>
+              They know their salary. They might know their 401k balance. But they have no single number that answers: <em style={{ color: "#e8e8f2" }}>how far am I from never needing to work again?</em>
+            </p>
+            <div style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 12, padding: "16px 20px" }}>
+              <div style={{ fontSize: 13, color: "#9090a8", lineHeight: 1.7 }}>
+                <strong style={{ color: "#ef4444" }}>The gap problem:</strong> traditional calculators show a retirement number but not how your actual city costs, spending, and savings rate interact. UntilFire builds the full picture.
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+
+        {/* Right: metric cards */}
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <MetricCard value="$847k"  label="FIRE target"  sub="25× annual expenses"    color="#f97316" delay={0} />
+            <MetricCard value="31%"    label="Progress"     sub="Most people guess 10%"   color="#22d3a5" delay={0.08} />
+            <MetricCard value="14 yrs" label="Time to FIRE" sub="If you stay the course"  color="#a78bfa" delay={0.16} />
           </div>
         </div>
-        <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: "#e8e8f2", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: 12 }}>
-          Most people have no idea<br />where they actually stand.
-        </h2>
-        <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7, marginBottom: 36, maxWidth: 520 }}>
-          They know their salary. They might know their 401k balance. But they have no single number that answers: <em style={{ color: "#e8e8f2" }}>how far am I from never needing to work again?</em>
-        </p>
-      </FadeIn>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        <MetricCard value="$847k"   label="FIRE target" sub="25× annual expenses" color="#f97316" delay={0} />
-        <MetricCard value="31%"     label="Progress"    sub="Most people guess 10%" color="#22d3a5" delay={0.08} />
-        <MetricCard value="14 yrs"  label="Time to FIRE" sub="If you stay the course" color="#a78bfa" delay={0.16} />
       </div>
-
-      <FadeIn delay={0.2} y={16}>
-        <div style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 12, padding: "16px 20px", marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: "#9090a8", lineHeight: 1.7 }}>
-            <strong style={{ color: "#ef4444" }}>The gap problem:</strong> traditional calculators show a retirement number but not how your actual city costs, spending, and savings rate interact. UntilFire builds the full picture.
-          </div>
-        </div>
-      </FadeIn>
     </section>
   );
 }
@@ -139,25 +144,33 @@ function SectionPath() {
   ];
 
   return (
-    <section style={{ maxWidth: 680, margin: "0 auto", padding: "0 24px 72px" }}>
-      <FadeIn>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(34,211,165,0.12)", border: "1px solid rgba(34,211,165,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🗺️</div>
-          <div style={{ fontSize: 11, color: "#22d3a5", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600 }}>
-            Chapter 2 · Your path
+    <section style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: "0 max(24px, 5vw) 72px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "48px 72px", alignItems: "flex-start" }}>
+        {/* Left: text */}
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <FadeIn>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(34,211,165,0.12)", border: "1px solid rgba(34,211,165,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🗺️</div>
+              <div style={{ fontSize: 11, color: "#22d3a5", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600 }}>
+                Chapter 2 · Your path
+              </div>
+            </div>
+            <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: "#e8e8f2", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: 16 }}>
+              Three questions.<br />
+              <span style={{ color: "#22d3a5" }}>A number that actually holds.</span>
+            </h2>
+            <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7 }}>
+              Most FIRE tools give you a formula. UntilFire gives you a conversation — one that adapts to where you live, how much you make, and what you spend.
+            </p>
+          </FadeIn>
+        </div>
+
+        {/* Right: path steps */}
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {steps.map((s, i) => <PathStep key={s.n} {...s} delay={i * 0.12} />)}
           </div>
         </div>
-        <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: "#e8e8f2", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: 12 }}>
-          Three questions.<br />
-          <span style={{ color: "#22d3a5" }}>A number that actually holds.</span>
-        </h2>
-        <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7, marginBottom: 40, maxWidth: 520 }}>
-          Most FIRE tools give you a formula. UntilFire gives you a conversation — one that adapts to where you live, how much you make, and what you spend.
-        </p>
-      </FadeIn>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {steps.map((s, i) => <PathStep key={s.n} {...s} delay={i * 0.12} />)}
       </div>
     </section>
   );
@@ -185,30 +198,38 @@ function FutureCard({ icon, title, sub, delay }: { icon: string; title: string; 
 
 function SectionFuture() {
   return (
-    <section style={{ maxWidth: 680, margin: "0 auto", padding: "0 24px 72px" }}>
-      <FadeIn>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🔥</div>
-          <div style={{ fontSize: 11, color: "#f97316", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600 }}>
-            Chapter 3 · Your future
+    <section style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: "0 max(24px, 5vw) 72px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "48px 72px", alignItems: "flex-start" }}>
+        {/* Left: text */}
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <FadeIn>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🔥</div>
+              <div style={{ fontSize: 11, color: "#f97316", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600 }}>
+                Chapter 3 · Your future
+              </div>
+            </div>
+            <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: "#e8e8f2", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: 16 }}>
+              Financial independence isn&apos;t retirement.<br />
+              <span style={{ color: "#f97316" }}>It&apos;s optionality.</span>
+            </h2>
+            <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7 }}>
+              When you hit your FIRE number, you can work because you want to — not because you have to. That changes everything: the risks you take, the decisions you make, the life you build.
+            </p>
+          </FadeIn>
+        </div>
+
+        {/* Right: 2×2 cards */}
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+            {[
+              { icon: "🌍", title: "Work from anywhere",  sub: "Your income isn't tied to a location. Move to Lisbon. Spend summers in Japan.", delay: 0 },
+              { icon: "⏰", title: "Own your time",        sub: "No alarm clock urgency. No Sunday dread. Your hours are yours.", delay: 0.08 },
+              { icon: "🎯", title: "Take the risky bet",   sub: "Start the company. Write the book. The downside is just going back to work.", delay: 0.16 },
+              { icon: "🧘", title: "Lower your baseline",  sub: "When you don't need a paycheck, you can choose work that actually matters to you.", delay: 0.24 },
+            ].map(c => <FutureCard key={c.title} {...c} />)}
           </div>
         </div>
-        <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: "#e8e8f2", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: 12 }}>
-          Financial independence isn&apos;t retirement.<br />
-          <span style={{ color: "#f97316" }}>It&apos;s optionality.</span>
-        </h2>
-        <p style={{ fontSize: 15, color: "#6e6e8e", lineHeight: 1.7, marginBottom: 40, maxWidth: 540 }}>
-          When you hit your FIRE number, you can work because you want to — not because you have to. That changes everything: the risks you take, the decisions you make, the life you build.
-        </p>
-      </FadeIn>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-        {[
-          { icon: "🌍", title: "Work from anywhere",    sub: "Your income isn't tied to a location. Move to Lisbon. Spend summers in Japan.", delay: 0 },
-          { icon: "⏰", title: "Own your time",         sub: "No alarm clock urgency. No Sunday dread. Your hours are yours.", delay: 0.08 },
-          { icon: "🎯", title: "Take the risky bet",    sub: "Start the company. Write the book. The downside is just going back to work.", delay: 0.16 },
-          { icon: "🧘", title: "Lower your baseline",   sub: "When you don't need a paycheck, you can choose work that actually matters to you.", delay: 0.24 },
-        ].map(c => <FutureCard key={c.title} {...c} />)}
       </div>
     </section>
   );
@@ -219,11 +240,11 @@ export function ScrollStory() {
   return (
     <>
       {/* Section divider */}
-      <div style={{ width: 240, height: 1, margin: "0 auto 64px", background: "linear-gradient(90deg, transparent, #1c1c2e, transparent)" }} />
+      <div style={{ width: "100%", height: 1, margin: "0 0 64px", background: "linear-gradient(90deg, transparent 0%, #1c1c2e 20%, #1c1c2e 80%, transparent 100%)", opacity: 0.5 }} />
       <SectionNow />
-      <div style={{ width: 240, height: 1, margin: "0 auto 64px", background: "linear-gradient(90deg, transparent, #1c1c2e, transparent)" }} />
+      <div style={{ width: "100%", height: 1, margin: "0 0 64px", background: "linear-gradient(90deg, transparent 0%, #1c1c2e 20%, #1c1c2e 80%, transparent 100%)", opacity: 0.5 }} />
       <SectionPath />
-      <div style={{ width: 240, height: 1, margin: "0 auto 64px", background: "linear-gradient(90deg, transparent, #1c1c2e, transparent)" }} />
+      <div style={{ width: "100%", height: 1, margin: "0 0 64px", background: "linear-gradient(90deg, transparent 0%, #1c1c2e 20%, #1c1c2e 80%, transparent 100%)", opacity: 0.5 }} />
       <SectionFuture />
     </>
   );
