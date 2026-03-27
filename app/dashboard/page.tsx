@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { CITIES } from "@/lib/fire-data";
 import Link from "next/link";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -11,7 +12,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
-type TabKey = "dashboard" | "budget" | "projection" | "montecarlo" | "coastfire" | "savingsrate" | "transactions";
+type TabKey = "dashboard" | "budget" | "projection" | "montecarlo" | "coastfire" | "savingsrate" | "transactions" | "geoarbitrage";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -23,6 +24,12 @@ const EXPENSE_CATS = [
   { key: "entertainment", label: "Entertainment",  icon: "🎬", color: "#fbbf24" },
   { key: "other",         label: "Other",          icon: "📦", color: "#6b6b85" },
 ];
+
+// Typical spending weights per category (used for COL comparison)
+const COL_WEIGHTS: Record<string, number> = {
+  housing: 0.33, food: 0.15, transport: 0.12,
+  subscriptions: 0.04, healthcare: 0.09, entertainment: 0.07, other: 0.20,
+};
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 const fmt = (n: number, compact = false) => {
@@ -693,11 +700,13 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
 }
 
 // ─── Budget Tracker Tab ───────────────────────────────────────────────────────
-function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
+function BudgetTab({ income, setIncome, expenses, setExpenses, actuals, cityKey }: {
   income: number; setIncome: (v: number) => void;
   expenses: Expenses; setExpenses: (e: Expenses) => void;
   actuals: Record<string, number>;
+  cityKey: string;
 }) {
+  const currentCity = CITIES.find(c => c.key === cityKey) ?? null;
   const totalExp = EXPENSE_CATS.reduce((s, c) => s + (expenses[c.key] || 0), 0);
   const savings  = income - totalExp;
   const rate     = income > 0 ? (savings / income) * 100 : 0;
@@ -734,10 +743,20 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
             const spent = actuals[cat.key] || 0;
             const over = budget > 0 && spent > budget;
             const spentPct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
+            const cityExpected = currentCity ? currentCity.col / 12 * (COL_WEIGHTS[cat.key] ?? 0.14) : null;
+            const userAmt = expenses[cat.key] || 0;
+            const colDiff = cityExpected && userAmt > 0 ? ((userAmt - cityExpected) / cityExpected) * 100 : null;
             return (
               <div key={cat.key} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 80px", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 13, color: "#9090a8" }}>{cat.icon} {cat.label}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13, color: "#9090a8" }}>{cat.icon} {cat.label}</span>
+                    {colDiff !== null && (
+                      <span style={{ fontSize: 10, fontFamily: "DM Mono, monospace", padding: "1px 6px", borderRadius: 4, background: colDiff > 10 ? "rgba(239,68,68,0.12)" : colDiff < -10 ? "rgba(34,211,165,0.12)" : "rgba(255,255,255,0.05)", color: colDiff > 10 ? "#ef4444" : colDiff < -10 ? "#22d3a5" : "#5e5e7a" }}>
+                        {colDiff > 0 ? `+${colDiff.toFixed(0)}%` : `${colDiff.toFixed(0)}%`}
+                      </span>
+                    )}
+                  </div>
                   <NumberInput value={expenses[cat.key] || 0} onChange={v => setExpenses({ ...expenses, [cat.key]: v })} />
                   <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${Math.min(100, income > 0 ? ((expenses[cat.key] || 0) / income) * 100 : 0)}%`, background: cat.color, borderRadius: 4, transition: "width 0.4s" }} />
@@ -759,6 +778,11 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
             );
           })}
         </div>
+        {currentCity && (
+          <div style={{ marginTop: 12, fontSize: 11, color: "#3a3a5a", fontFamily: "DM Mono, monospace" }}>
+            {currentCity.flag} Badges show your spending vs. estimated {currentCity.name} typical · <button onClick={() => {}} style={{ background: "none", border: "none", color: "#f97316", fontSize: 11, fontFamily: "DM Mono, monospace", cursor: "pointer", padding: 0 }}>Change city in Projections →</button>
+          </div>
+        )}
       </div>
 
       {/* Summary */}
@@ -798,8 +822,211 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
   );
 }
 
+// ─── Geo Arbitrage Tab ────────────────────────────────────────────────────────
+function GeoArbitrageTab({ income, monthlyExpenses, investable, annualSavings, fireTarget, growthRate, withdrawalRate, cityKey, setCityKey }: {
+  income: number; monthlyExpenses: number; investable: number;
+  annualSavings: number; fireTarget: number;
+  growthRate: number; withdrawalRate: number;
+  cityKey: string; setCityKey: (v: string) => void;
+}) {
+  const [filter, setFilter] = useState<"all" | "usa" | "europe" | "asia" | "americas">("all");
+  const [citySearch, setCitySearch] = useState("");
+  const [cityOpen, setCityOpen] = useState(false);
+  const currentCity = CITIES.find(c => c.key === cityKey) ?? null;
+  const cityResults = citySearch.trim().length >= 1
+    ? CITIES.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase())).slice(0, 8)
+    : [];
+
+  // Compute FIRE years for a given monthly expense level (simplified: no debt, keeps investable)
+  function calcFireYears(newMonthlyExp: number): number | null {
+    const newAnnualSavings = income * 12 - newMonthlyExp * 12;
+    if (newAnnualSavings <= 0) return null;
+    const newFireTarget = newMonthlyExp * 12 / withdrawalRate;
+    let port = investable;
+    for (let y = 1; y <= 60; y++) {
+      port = port * (1 + growthRate) + newAnnualSavings;
+      if (port >= newFireTarget) return y;
+    }
+    return null;
+  }
+
+  const baseYears = calcFireYears(monthlyExpenses);
+  const currentMonthly = monthlyExpenses;
+
+  const regionFilter = (c: typeof CITIES[0]) => {
+    if (filter === "all") return true;
+    if (filter === "usa") return c.flag === "🇺🇸";
+    if (filter === "europe") return ["🇬🇧","🇫🇷","🇩🇪","🇳🇱","🇪🇸","🇵🇹","🇮🇪","🇨🇭","🇸🇪","🇩🇰","🇳🇴","🇫🇮","🇦🇹","🇧🇪","🇮🇹","🇬🇷","🇨🇿","🇵🇱","🇭🇺","🇷🇴","🇧🇬","🇷🇸","🇭🇷","🇸🇮","🇪🇪","🇱🇻","🇱🇹"].includes(c.flag);
+    if (filter === "asia") return ["🇨🇳","🇮🇳","🇸🇬","🇹🇭","🇲🇾","🇻🇳","🇮🇩","🇵🇭","🇰🇭","🇯🇵","🇰🇷","🇹🇼","🇭🇰","🇲🇴","🇦🇪","🇸🇦","🇶🇦","🇮🇱","🇹🇷"].includes(c.flag);
+    if (filter === "americas") return ["🇲🇽","🇨🇴","🇦🇷","🇨🇦"].includes(c.flag);
+    return true;
+  };
+
+  const rows = CITIES.filter(regionFilter).map(city => {
+    const ratio = currentMonthly > 0 ? city.col / 12 / currentMonthly : 1;
+    const newMonthly = currentMonthly * ratio;
+    const years = calcFireYears(newMonthly);
+    const saved = baseYears !== null && years !== null ? baseYears - years : null;
+    return { city, newMonthly, years, saved, ratio };
+  }).sort((a, b) => {
+    if (a.saved === null && b.saved === null) return 0;
+    if (a.saved === null) return 1;
+    if (b.saved === null) return -1;
+    return b.saved - a.saved;
+  });
+
+  const bestMove = rows.find(r => r.saved !== null && r.saved > 0 && r.city.key !== cityKey);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+      {/* Hero */}
+      {baseYears !== null && bestMove && (
+        <div className="uf-card" style={{ background: "linear-gradient(135deg, rgba(34,211,165,0.06), rgba(249,115,22,0.06))", border: "1px solid rgba(34,211,165,0.2)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Best Move Available</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: "#e8e8f2" }}>
+                Move to {bestMove.city.flag} {bestMove.city.name}
+              </div>
+              <div style={{ color: "#5e5e7a", fontSize: 13, marginTop: 4 }}>
+                Retire <span style={{ color: "#22d3a5", fontWeight: 700 }}>{bestMove.saved} years earlier</span> · {fmt(bestMove.newMonthly)}/mo vs {fmt(currentMonthly)}/mo
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace", marginBottom: 4 }}>FIRE IN</div>
+              <div style={{ fontSize: 36, fontWeight: 700, color: "#22d3a5", fontFamily: "DM Mono, monospace", lineHeight: 1 }}>{bestMove.years}</div>
+              <div style={{ fontSize: 12, color: "#5e5e7a" }}>years · vs {baseYears} now</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* City picker + filter */}
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ flex: "0 0 260px", position: "relative" }}>
+          <input
+            value={cityOpen ? citySearch : (currentCity ? `${currentCity.flag} ${currentCity.name}` : "")}
+            onChange={e => { setCitySearch(e.target.value); setCityOpen(true); }}
+            onFocus={() => { setCitySearch(""); setCityOpen(true); }}
+            onBlur={() => setTimeout(() => setCityOpen(false), 150)}
+            placeholder="Set your current city…"
+            style={{ width: "100%", background: "#0f0f18", border: `1px solid ${currentCity ? "#f97316" : "#1c1c2e"}`, borderRadius: 8, padding: "8px 28px 8px 10px", color: "#e8e8f2", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+          />
+          {cityOpen && cityResults.length > 0 && (
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, zIndex: 50, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+              {cityResults.map(c => (
+                <button key={c.key} onMouseDown={() => { setCityKey(c.key); setCityOpen(false); setCitySearch(""); }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: "transparent", border: "none", color: "#e8e8f2", fontSize: 13, cursor: "pointer", textAlign: "left" }}
+                  onMouseOver={e => (e.currentTarget.style.background = "#13131e")}
+                  onMouseOut={e => (e.currentTarget.style.background = "transparent")}>
+                  <span>{c.flag}</span><span>{c.name}</span>
+                  <span style={{ marginLeft: "auto", fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace" }}>{fmt(c.col / 12)}/mo</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {currentCity && !cityOpen && (
+            <button onClick={() => setCityKey("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#3a3a5a", cursor: "pointer", fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {(["all","usa","europe","asia","americas"] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)} style={{ background: filter === f ? "#f97316" : "transparent", border: `1px solid ${filter === f ? "#f97316" : "#1c1c2e"}`, borderRadius: 6, padding: "5px 12px", color: filter === f ? "#fff" : "#5e5e7a", fontFamily: "DM Mono, monospace", fontSize: 11, cursor: "pointer", textTransform: "capitalize" }}>
+              {f === "all" ? "All" : f === "usa" ? "USA" : f === "europe" ? "Europe" : f === "asia" ? "Asia" : "Americas"}
+            </button>
+          ))}
+        </div>
+        {!currentCity && (
+          <span style={{ fontSize: 12, color: "#5e5e7a", fontStyle: "italic" }}>Set your city to see personalised comparisons</span>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="uf-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "DM Mono, monospace", fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid #1c1c2e" }}>
+                {["City", "Annual COL", "Monthly Spend", "FIRE In", "vs Now", ""].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "12px 16px", color: "#5e5e7a", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 50).map(({ city, newMonthly, years, saved, ratio }) => {
+                const isCurrent = city.key === cityKey;
+                const better = saved !== null && saved > 0;
+                const worse  = saved !== null && saved < 0;
+                return (
+                  <tr key={city.key} style={{ background: isCurrent ? "rgba(249,115,22,0.06)" : "transparent", borderBottom: "1px solid #0f0f18" }}
+                    onMouseOver={e => { if (!isCurrent) (e.currentTarget as HTMLTableRowElement).style.background = "#0f0f18"; }}
+                    onMouseOut={e => { if (!isCurrent) (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
+                    <td style={{ padding: "11px 16px", color: isCurrent ? "#f97316" : "#e8e8f2", fontWeight: isCurrent ? 700 : 400 }}>
+                      <span style={{ marginRight: 6 }}>{city.flag}</span>{city.name}
+                      {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, color: "#f97316", background: "rgba(249,115,22,0.15)", padding: "2px 6px", borderRadius: 4 }}>you</span>}
+                    </td>
+                    <td style={{ padding: "11px 16px", color: "#5e5e7a" }}>{fmt(city.col, true)}/yr</td>
+                    <td style={{ padding: "11px 16px", color: ratio < 0.9 ? "#22d3a5" : ratio > 1.1 ? "#ef4444" : "#e8e8f2" }}>
+                      {fmt(newMonthly)}/mo
+                      {currentMonthly > 0 && <span style={{ marginLeft: 6, fontSize: 10, color: "#3a3a5a" }}>({ratio >= 1 ? "+" : ""}{((ratio - 1) * 100).toFixed(0)}%)</span>}
+                    </td>
+                    <td style={{ padding: "11px 16px", color: years !== null ? (years <= 10 ? "#22d3a5" : years <= 20 ? "#f97316" : "#e8e8f2") : "#ef4444", fontWeight: 600 }}>
+                      {years !== null ? `${years} yrs` : "60+ yrs"}
+                    </td>
+                    <td style={{ padding: "11px 16px" }}>
+                      {saved !== null && !isCurrent ? (
+                        <span style={{ color: better ? "#22d3a5" : worse ? "#ef4444" : "#5e5e7a", fontWeight: better || worse ? 600 : 400 }}>
+                          {better ? `▲ ${saved} yrs earlier` : worse ? `▼ ${Math.abs(saved)} yrs later` : "Same"}
+                        </span>
+                      ) : isCurrent ? <span style={{ color: "#5e5e7a" }}>baseline</span> : <span style={{ color: "#3a3a5a" }}>—</span>}
+                    </td>
+                    <td style={{ padding: "11px 16px" }}>
+                      {better && (
+                        <span style={{ fontSize: 10, color: "#22d3a5", background: "rgba(34,211,165,0.1)", padding: "3px 8px", borderRadius: 4 }}>
+                          {ratio < 0.5 ? "🔥 Extreme" : ratio < 0.75 ? "⚡ Big win" : "📈 Good"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {rows.length > 50 && (
+          <div style={{ padding: "12px 16px", fontSize: 11, color: "#3a3a5a", borderTop: "1px solid #0f0f18" }}>Showing top 50 cities · Use filters to narrow down</div>
+        )}
+      </div>
+
+      {/* Disclaimer */}
+      <div style={{ fontSize: 11, color: "#3a3a5a", lineHeight: 1.7, fontFamily: "DM Mono, monospace" }}>
+        Monthly spend is estimated by scaling your current expenses proportionally to each city's cost-of-living index. Actual spending varies by lifestyle, neighbourhood, and family size. Tax implications of moving are not modelled.
+      </div>
+    </div>
+  );
+}
+
+function GeoArbitrageTabWrapper({ income, expenses, k401, rothIRA, taxable, growthRate, withdrawalRate, cityKey, setCityKey }: {
+  income: number; expenses: Expenses; k401: number; rothIRA: number; taxable: number;
+  growthRate: number; withdrawalRate: number; cityKey: string; setCityKey: (v: string) => void;
+}) {
+  const monthlyExp = Object.entries(expenses).filter(([k]) => !k.startsWith("_")).reduce((s, [, v]) => s + (Number(v) || 0), 0);
+  const investable = k401 + rothIRA + taxable;
+  const annualSavings = income * 12 - monthlyExp * 12;
+  const fireTarget = monthlyExp * 12 / withdrawalRate;
+  return (
+    <GeoArbitrageTab
+      income={income} monthlyExpenses={monthlyExp}
+      investable={investable} annualSavings={annualSavings}
+      fireTarget={fireTarget} growthRate={growthRate} withdrawalRate={withdrawalRate}
+      cityKey={cityKey} setCityKey={setCityKey}
+    />
+  );
+}
+
 // ─── Calculator Tab ────────────────────────────────────────────────────────────
-function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate, mcSigma, setMcSigma, mcMode, setMcMode, mcN, setMcN, coFireRetireAge, setCoFireRetireAge, onSwitchToProjection }: {
+function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate, mcSigma, setMcSigma, mcMode, setMcMode, mcN, setMcN, coFireRetireAge, setCoFireRetireAge, onSwitchToProjection, cityKey, setCityKey }: {
   tool: "projection" | "montecarlo" | "coastfire" | "savingsrate";
   income: number; expenses: Expenses;
   fireAge: number; setFireAge: (v: number) => void;
@@ -816,8 +1043,15 @@ function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, r
   mcN: number; setMcN: (v: number) => void;
   coFireRetireAge: number; setCoFireRetireAge: (v: number) => void;
   onSwitchToProjection: () => void;
+  cityKey: string; setCityKey: (v: string) => void;
 }) {
   const [chartTab, setChartTab] = useState<"growth" | "accounts" | "networth">("growth");
+  const [citySearch, setCitySearch] = useState("");
+  const [cityOpen, setCityOpen] = useState(false);
+  const currentCity = CITIES.find(c => c.key === cityKey) ?? null;
+  const cityResults = citySearch.trim().length >= 1
+    ? CITIES.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase())).slice(0, 8)
+    : [];
 
   const monthlyExpenses = Object.entries(expenses)
     .filter(([k]) => !k.startsWith("_"))
@@ -906,6 +1140,35 @@ function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, r
             </FieldRow>
             <FieldRow label="Current Age">
               <NumberInput value={fireAge} onChange={setFireAge} placeholder="30" prefix="🎂" />
+            </FieldRow>
+            <FieldRow label="Your City" hint="Used for cost-of-living comparisons">
+              <div style={{ position: "relative" }}>
+                <input
+                  value={cityOpen ? citySearch : (currentCity?.name ?? "")}
+                  onChange={e => { setCitySearch(e.target.value); setCityOpen(true); }}
+                  onFocus={() => { setCitySearch(""); setCityOpen(true); }}
+                  onBlur={() => setTimeout(() => setCityOpen(false), 150)}
+                  placeholder="Search city…"
+                  style={{ width: "100%", background: "#0f0f18", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                />
+                {cityOpen && cityResults.length > 0 && (
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, zIndex: 50, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+                    {cityResults.map(c => (
+                      <button key={c.key} onMouseDown={() => { setCityKey(c.key); setCityOpen(false); setCitySearch(""); }}
+                        style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: "transparent", border: "none", color: "#e8e8f2", fontSize: 13, cursor: "pointer", textAlign: "left" }}
+                        onMouseOver={e => (e.currentTarget.style.background = "#13131e")}
+                        onMouseOut={e => (e.currentTarget.style.background = "transparent")}>
+                        <span>{c.flag}</span>
+                        <span>{c.name}</span>
+                        <span style={{ marginLeft: "auto", fontSize: 11, color: "#5e5e7a", fontFamily: "DM Mono, monospace" }}>{fmt(c.col / 12)}/mo</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {currentCity && !cityOpen && (
+                  <button onClick={() => { setCityKey(""); }} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#3a3a5a", cursor: "pointer", fontSize: 14, padding: 0 }}>×</button>
+                )}
+              </div>
             </FieldRow>
           </div>
         </div>
@@ -1992,7 +2255,7 @@ export default function Dashboard() {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab");
     if (t === "fire") { setTab("projection"); return; }
-    const valid: TabKey[] = ["dashboard", "budget", "projection", "montecarlo", "coastfire", "savingsrate", "transactions"];
+    const valid: TabKey[] = ["dashboard", "budget", "projection", "montecarlo", "coastfire", "savingsrate", "transactions", "geoarbitrage"];
     if (valid.includes(t as TabKey)) setTab(t as TabKey);
   }, []);
 
@@ -2025,6 +2288,7 @@ export default function Dashboard() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [actuals, setActuals] = useState<Record<string, number>>({});
+  const [cityKey, setCityKey] = useState("");
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoaded   = useRef(false);
 
@@ -2070,6 +2334,7 @@ export default function Dashboard() {
           if (fp.mcMode)          setMcMode(fp.mcMode);
           if (fp.mcN)             setMcN(fp.mcN);
           if (fp.coFireRetireAge) setCoFireRetireAge(fp.coFireRetireAge);
+          if (fp.cityKey) setCityKey(fp.cityKey);
           setBaselineNetWorth(data.baseline_net_worth || 0);
           setBaselineDate(data.baseline_date || null);
         }
@@ -2091,7 +2356,7 @@ export default function Dashboard() {
     saveTimer.current = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, mcSigma, mcMode, mcN, coFireRetireAge };
+      const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, mcSigma, mcMode, mcN, coFireRetireAge, cityKey };
       await supabase.from("user_budget").upsert({
         user_id:              session.user.id,
         income,
@@ -2105,7 +2370,7 @@ export default function Dashboard() {
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1000);
-  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, mcSigma, mcMode, mcN, coFireRetireAge, baselineNetWorth, baselineDate]);
+  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, mcSigma, mcMode, mcN, coFireRetireAge, cityKey, baselineNetWorth, baselineDate]);
 
   const handleSetBaseline = (amount: number, date: string) => {
     setBaselineNetWorth(amount);
@@ -2203,7 +2468,8 @@ export default function Dashboard() {
             { key: "projection",  icon: "🔥", label: "Projections" },
             { key: "montecarlo",  icon: "🎲", label: "Monte Carlo" },
             { key: "coastfire",   icon: "🏄", label: "Coast FIRE" },
-            { key: "savingsrate", icon: "📊", label: "Savings Rate" },
+            { key: "savingsrate",   icon: "📊", label: "Savings Rate" },
+            { key: "geoarbitrage", icon: "🌍", label: "Geo Arbitrage" },
           ] as const).map(item => (
             <button key={item.key} className={`uf-sidebar-item ${tab === item.key ? "active" : ""}`} onClick={() => setTab(item.key)}>
               <span>{item.icon}</span><span>{item.label}</span>
@@ -2222,7 +2488,7 @@ export default function Dashboard() {
           />
         )}
         {tab === "budget" && (
-          <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
+          <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} cityKey={cityKey} />
         )}
         {(tab === "projection" || tab === "montecarlo" || tab === "coastfire" || tab === "savingsrate") && (
           <CalcTab
@@ -2242,8 +2508,14 @@ export default function Dashboard() {
             mcN={mcN} setMcN={setMcN}
             coFireRetireAge={coFireRetireAge} setCoFireRetireAge={setCoFireRetireAge}
             onSwitchToProjection={() => setTab("projection")}
+            cityKey={cityKey} setCityKey={setCityKey}
           />
         )}
+        {tab === "geoarbitrage" && <GeoArbitrageTabWrapper
+          income={income} expenses={expenses} k401={k401} rothIRA={rothIRA} taxable={taxable}
+          growthRate={growthRate} withdrawalRate={withdrawalRate}
+          cityKey={cityKey} setCityKey={setCityKey}
+        />}
         {tab === "transactions" && (
           <TransactionTab
             transactions={transactions} setTransactions={setTransactions}
