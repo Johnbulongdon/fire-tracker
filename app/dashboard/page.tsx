@@ -799,7 +799,7 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
 }
 
 // ─── Calculator Tab ────────────────────────────────────────────────────────────
-function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate, mcSigma, setMcSigma, mcMode, setMcMode, mcN, setMcN, coFireRetireAge, setCoFireRetireAge }: {
+function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate, mcSigma, setMcSigma, mcMode, setMcMode, mcN, setMcN, coFireRetireAge, setCoFireRetireAge, onSwitchToProjection }: {
   tool: "projection" | "montecarlo" | "coastfire" | "savingsrate";
   income: number; expenses: Expenses;
   fireAge: number; setFireAge: (v: number) => void;
@@ -815,6 +815,7 @@ function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, r
   mcMode: "normal" | "historical"; setMcMode: (v: "normal" | "historical") => void;
   mcN: number; setMcN: (v: number) => void;
   coFireRetireAge: number; setCoFireRetireAge: (v: number) => void;
+  onSwitchToProjection: () => void;
 }) {
   const [chartTab, setChartTab] = useState<"growth" | "accounts" | "networth">("growth");
 
@@ -871,7 +872,26 @@ function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, r
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-      {/* Input panels */}
+      {/* Context strip — shown on non-projection tabs */}
+      {tool !== "projection" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "10px 16px", background: "#0b0b14", borderRadius: 10, border: "1px solid #1c1c2e", fontSize: 12, color: "#5e5e7a", fontFamily: "DM Mono, monospace", flexWrap: "wrap" }}>
+          <span style={{ color: "#9090a8" }}>Portfolio: <span style={{ color: "#22d3a5" }}>{fmt(investable, true)}</span></span>
+          <span style={{ color: "#1c1c2e" }}>·</span>
+          <span style={{ color: "#9090a8" }}>FIRE target: <span style={{ color: "#f97316" }}>{fmt(fireTarget, true)}</span></span>
+          <span style={{ color: "#1c1c2e" }}>·</span>
+          <span style={{ color: "#9090a8" }}>Annual savings: <span style={{ color: "#e8e8f2" }}>{fmt(annualSavings)}</span></span>
+          <span style={{ color: "#1c1c2e" }}>·</span>
+          <span style={{ color: "#9090a8" }}>Progress: <span style={{ color: progress >= 75 ? "#22d3a5" : "#f97316" }}>{progress.toFixed(0)}%</span></span>
+          <button onClick={onSwitchToProjection} style={{ marginLeft: "auto", background: "transparent", border: "1px solid #1c1c2e", borderRadius: 6, padding: "4px 12px", color: "#5e5e7a", fontSize: 11, fontFamily: "DM Mono, monospace", cursor: "pointer", transition: "all 0.15s" }}
+            onMouseOver={e => { (e.target as HTMLButtonElement).style.color = "#f97316"; (e.target as HTMLButtonElement).style.borderColor = "#f97316"; }}
+            onMouseOut={e => { (e.target as HTMLButtonElement).style.color = "#5e5e7a"; (e.target as HTMLButtonElement).style.borderColor = "#1c1c2e"; }}>
+            Edit in Projections →
+          </button>
+        </div>
+      )}
+
+      {/* Input panels — Projections only */}
+      {tool === "projection" && (<>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
 
         {/* Income & Spending */}
@@ -977,6 +997,7 @@ function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, r
           <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #22d3a5, #f97316)", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
         </div>
       </div>
+      </>)}
 
       {/* ─── FIRE Projection ─── */}
       {tool === "projection" && (
@@ -2179,7 +2200,7 @@ export default function Dashboard() {
           ))}
           <div className="uf-sidebar-group">Calculators</div>
           {([
-            { key: "projection",  icon: "🔥", label: "FIRE Projection" },
+            { key: "projection",  icon: "🔥", label: "Projections" },
             { key: "montecarlo",  icon: "🎲", label: "Monte Carlo" },
             { key: "coastfire",   icon: "🏄", label: "Coast FIRE" },
             { key: "savingsrate", icon: "📊", label: "Savings Rate" },
@@ -2220,6 +2241,7 @@ export default function Dashboard() {
             mcMode={mcMode} setMcMode={setMcMode}
             mcN={mcN} setMcN={setMcN}
             coFireRetireAge={coFireRetireAge} setCoFireRetireAge={setCoFireRetireAge}
+            onSwitchToProjection={() => setTab("projection")}
           />
         )}
         {tab === "transactions" && (
