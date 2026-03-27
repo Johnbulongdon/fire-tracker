@@ -9,7 +9,7 @@ import { Analytics } from '@vercel/analytics/react'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'UntilFire — Find Your FIRE Number & Retire Early',
+  title: 'Until FIRE — Know When You Can Retire',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
@@ -19,22 +19,22 @@ export const metadata: Metadata = {
     apple:    '/icon.png',
   },
   description:
-    'Calculate exactly when you can retire. Find your FIRE number, track expenses, and see how small changes compound into years of freedom. Free FIRE calculator.',
+    'See how fast you can reach financial independence with real-time projections.',
   keywords:
     'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator',
   openGraph: {
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    title: 'Until FIRE — Know When You Can Retire',
+    description: 'See how fast you can reach financial independence with real-time projections.',
     url: 'https://untilfire.com',
     siteName: 'UntilFire',
     type: 'website',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'UntilFire — Find Your FIRE Number' }],
+    images: [{ url: '/api/og', width: 1200, height: 630, alt: 'Until FIRE — Retire in 12 Years' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
-    images: ['/opengraph-image'],
+    title: 'Until FIRE — Know When You Can Retire',
+    description: 'See how fast you can reach financial independence with real-time projections.',
+    images: ['/api/og'],
   },
   metadataBase: new URL('https://untilfire.com'),
 }
