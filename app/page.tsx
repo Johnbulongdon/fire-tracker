@@ -7,6 +7,11 @@ import { supabase } from "@/lib/supabase";
 import {
   CITIES, City, calcTakeHome, calcFIRE, STATE_TAX,
 } from "@/lib/fire-data";
+import { AnimatedHero }       from "@/components/landing/AnimatedHero";
+import { InteractiveSandbox } from "@/components/landing/InteractiveSandbox";
+import { FireGraph }          from "@/components/landing/FireGraph";
+import { ScrollStory }        from "@/components/landing/ScrollStory";
+import { EmotionalPayoff }    from "@/components/landing/EmotionalPayoff";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -1363,6 +1368,9 @@ export default function Home() {
         .uf-slider-wrap { margin: 8px 0; }
         .uf-range { width: 100%; -webkit-appearance: none; height: 4px; border-radius: 2px; background: var(--border-light); outline: none; cursor: pointer; }
         .uf-range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 2px var(--accent); cursor: pointer; }
+        input[type=range]:not(.uf-range)::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #f97316; border: 3px solid #08080e; cursor: pointer; box-shadow: 0 0 0 3px rgba(249,115,22,0.3); transition: box-shadow 0.15s; }
+        input[type=range]:not(.uf-range)::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(249,115,22,0.2); }
+        input[type=range]:not(.uf-range)::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #f97316; border: 3px solid #08080e; cursor: pointer; }
         .uf-range-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-top: 6px; }
 
         /* ── DROPDOWN ── */
@@ -1658,7 +1666,7 @@ export default function Home() {
           <div className="uf-atm-orb uf-atm-orb-3" />
         </div>
         {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("city")} onSignIn={signIn} />
+          <AnimatedHero onStart={() => setScreen("city")} onSignIn={signIn} />
         )}
         {screen === "city" && (
           <CityScreen
@@ -1693,6 +1701,14 @@ export default function Home() {
 
         {screen === "hero" && (
           <>
+            <div className="uf-section-sep" aria-hidden="true" />
+            <InteractiveSandbox />
+            <div className="uf-section-sep" aria-hidden="true" />
+            <FireGraph />
+            <div className="uf-section-sep" aria-hidden="true" />
+            <ScrollStory />
+            <div className="uf-section-sep" aria-hidden="true" />
+            <EmotionalPayoff />
             <div className="uf-section-sep" aria-hidden="true" />
             <HowItWorksSection />
             <div className="uf-section-sep" aria-hidden="true" />

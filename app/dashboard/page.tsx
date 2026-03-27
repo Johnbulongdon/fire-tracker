@@ -2125,7 +2125,7 @@ function TransactionSummary({
                       {byCat.map(cat => <Cell key={cat.key} fill={cat.color} />)}
                     </Pie>
                     <Tooltip
-                      formatter={(v: number) => [fmtCurrency(v), ""]}
+                      formatter={(v) => [fmtCurrency(Number(v)), ""]}
                       contentStyle={{ background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
                     />
                   </PieChart>
