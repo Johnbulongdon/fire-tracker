@@ -11,7 +11,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
-type TabKey = "dashboard" | "budget" | "fire" | "transactions";
+type TabKey = "dashboard" | "budget" | "projection" | "montecarlo" | "coastfire" | "savingsrate" | "transactions";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -595,8 +595,9 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
   );
 }
 
-// ─── Calculator Tab (FIRE Projection + Monte Carlo + Coast FIRE + Savings Rate) ─
-function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate, mcSigma, setMcSigma, mcMode, setMcMode, mcN, setMcN, coFireRetireAge, setCoFireRetireAge }: {
+// ─── Calculator Tab ────────────────────────────────────────────────────────────
+function CalcTab({ tool, income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate, mcSigma, setMcSigma, mcMode, setMcMode, mcN, setMcN, coFireRetireAge, setCoFireRetireAge }: {
+  tool: "projection" | "montecarlo" | "coastfire" | "savingsrate";
   income: number; expenses: Expenses;
   fireAge: number; setFireAge: (v: number) => void;
   k401: number; setK401: (v: number) => void;
@@ -612,7 +613,6 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
   mcN: number; setMcN: (v: number) => void;
   coFireRetireAge: number; setCoFireRetireAge: (v: number) => void;
 }) {
-  const [calcTool, setCalcTool] = useState<"projection" | "montecarlo" | "coastfire" | "savingsrate">("projection");
   const [chartTab, setChartTab] = useState<"growth" | "accounts" | "networth">("growth");
 
   const monthlyExpenses = Object.entries(expenses)
@@ -634,9 +634,9 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
 
   // Monte Carlo
   const mcResult = useMemo(() => {
-    if (calcTool !== "montecarlo") return null;
+    if (tool !== "montecarlo") return null;
     return runMonteCarlo({ initialPortfolio: investable, annualSavings, fireTarget, N: mcN, mode: mcMode, mean: growthRate, sigma: mcSigma });
-  }, [calcTool, investable, annualSavings, fireTarget, mcN, mcMode, growthRate, mcSigma]);
+  }, [tool, investable, annualSavings, fireTarget, mcN, mcMode, growthRate, mcSigma]);
 
   // Coast FIRE
   const yearsToRetire = Math.max(coFireRetireAge - fireAge, 1);
@@ -650,19 +650,6 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
     }
     return null;
   }, [investable, coastFireNumber, growthRate, annualSavings]);
-
-  function ToolBtn({ id, label }: { id: "projection" | "montecarlo" | "coastfire" | "savingsrate"; label: string }) {
-    return (
-      <button onClick={() => setCalcTool(id)} style={{
-        background: calcTool === id ? "#13131e" : "transparent",
-        border: `1px solid ${calcTool === id ? "#f97316" : "#1c1c2e"}`,
-        borderRadius: 8, padding: "8px 18px",
-        color: calcTool === id ? "#f97316" : "#5e5e7a",
-        fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: calcTool === id ? 600 : 400,
-        cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
-      }}>{label}</button>
-    );
-  }
 
   function ChartTabBtn({ id, label }: { id: "growth" | "accounts" | "networth"; label: string }) {
     return (
@@ -680,14 +667,6 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-      {/* Tool navigation */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <ToolBtn id="projection"  label="🔥 FIRE Projection" />
-        <ToolBtn id="montecarlo"  label="🎲 Monte Carlo" />
-        <ToolBtn id="coastfire"   label="🏄 Coast FIRE" />
-        <ToolBtn id="savingsrate" label="📊 Savings Rate" />
-      </div>
 
       {/* Input panels */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
@@ -797,7 +776,7 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
       </div>
 
       {/* ─── FIRE Projection ─── */}
-      {calcTool === "projection" && (
+      {tool === "projection" && (
         <div className="uf-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <span style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: 15 }}>Wealth Projection</span>
@@ -880,7 +859,7 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
       )}
 
       {/* ─── Monte Carlo ─── */}
-      {calcTool === "montecarlo" && (
+      {tool === "montecarlo" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Simulation controls */}
           <div className="uf-card">
@@ -1022,7 +1001,7 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
       )}
 
       {/* ─── Coast FIRE ─── */}
-      {calcTool === "coastfire" && (
+      {tool === "coastfire" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="uf-card">
             <SectionLabel icon="🏄" text="Coast FIRE Settings" color="#22d3a5" />
@@ -1077,7 +1056,7 @@ function CalcTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
       )}
 
       {/* ─── Savings Rate ─── */}
-      {calcTool === "savingsrate" && (
+      {tool === "savingsrate" && (
         <div className="uf-card">
           <SectionLabel icon="📊" text="Savings Rate Impact on FIRE Timeline" color="#818cf8" />
           <p style={{ fontSize: 13, color: "#5e5e7a", marginTop: 0, marginBottom: 20, lineHeight: 1.6 }}>
@@ -1787,8 +1766,10 @@ export default function Dashboard() {
   // Read initial tab from URL query string (e.g. ?tab=budget)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const t = params.get("tab") as TabKey | null;
-    if (t && ["dashboard", "budget", "fire", "transactions"].includes(t)) setTab(t);
+    const t = params.get("tab");
+    if (t === "fire") { setTab("projection"); return; }
+    const valid: TabKey[] = ["dashboard", "budget", "projection", "montecarlo", "coastfire", "savingsrate", "transactions"];
+    if (valid.includes(t as TabKey)) setTab(t as TabKey);
   }, []);
 
   // Transaction state
@@ -1913,7 +1894,10 @@ export default function Dashboard() {
   const navTabs: { key: TabKey; label: string }[] = [
     { key: "dashboard",    label: "📊 Overview" },
     { key: "budget",       label: "💰 Budget" },
-    { key: "fire",         label: "🧮 Calculator" },
+    { key: "projection",   label: "🔥 FIRE Projection" },
+    { key: "montecarlo",   label: "🎲 Monte Carlo" },
+    { key: "coastfire",    label: "🏄 Coast FIRE" },
+    { key: "savingsrate",  label: "📊 Savings Rate" },
     { key: "transactions", label: "💳 Transactions" },
   ];
 
@@ -1979,8 +1963,9 @@ export default function Dashboard() {
         {tab === "budget" && (
           <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
         )}
-        {tab === "fire" && (
+        {(tab === "projection" || tab === "montecarlo" || tab === "coastfire" || tab === "savingsrate") && (
           <CalcTab
+            tool={tab}
             income={income} expenses={expenses}
             fireAge={fireAge} setFireAge={setFireAge}
             k401={k401} setK401={setK401}
