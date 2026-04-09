@@ -503,9 +503,10 @@ export default function TransactionsPage() {
   };
 
   const tabs = [
-    { key: "dashboard",    label: "📊 Dashboard",    href: "/dashboard" },
-    { key: "budget",       label: "💰 Budget",        href: "/dashboard?tab=budget" },
-    { key: "transactions", label: "💳 Transactions",  href: "/transactions" },
+    { key: "dashboard",    label: "Overview",       href: "/dashboard" },
+    { key: "budget",       label: "Budget",          href: "/dashboard?tab=budget" },
+    { key: "fire",         label: "FIRE Calculator", href: "/dashboard?tab=fire" },
+    { key: "transactions", label: "Transactions",    href: "/transactions" },
   ];
 
   return (
