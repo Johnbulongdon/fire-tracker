@@ -39,3 +39,20 @@ export const isAuthenticated = async () => {
   const user = await getCurrentUser()
   return !!user
 }
+
+// Helper to get subscription status for the current user
+export const getSubscription = async () => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return null
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('status, plan, current_period_end')
+    .eq('user_id', session.user.id)
+    .single()
+  return data
+}
+
+export const isPro = async () => {
+  const sub = await getSubscription()
+  return sub?.status === 'active' && sub?.plan === 'pro'
+}

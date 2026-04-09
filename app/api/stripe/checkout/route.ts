@@ -1,0 +1,56 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { getStripe, STRIPE_PRO_PRICE_ID } from "@/lib/stripe";
+
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+export async function POST(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabaseAdmin = adminClient();
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const stripe = getStripe();
+
+  // Find or create Stripe customer
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .single();
+
+  let customerId = sub?.stripe_customer_id;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { supabase_user_id: user.id },
+    });
+    customerId = customer.id;
+  }
+
+  const origin = req.headers.get("origin") || "https://untilfire.com";
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: "subscription",
+    line_items: [{ price: STRIPE_PRO_PRICE_ID, quantity: 1 }],
+    success_url: `${origin}/dashboard?upgraded=true`,
+    cancel_url: `${origin}/dashboard`,
+    metadata: { supabase_user_id: user.id },
+    allow_promotion_codes: true,
+  });
+
+  return NextResponse.json({ url: session.url });
+}

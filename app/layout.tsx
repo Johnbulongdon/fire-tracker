@@ -1,12 +1,9 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'UntilFire — Find Your FIRE Number & Retire Early',
@@ -49,7 +46,7 @@ export default function RootLayout({
       </head>
 
       <body
-        className={`${inter.className} antialiased`}
+        className="antialiased"
         suppressHydrationWarning
       >
         <AuthProvider>

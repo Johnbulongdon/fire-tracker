@@ -1063,15 +1063,75 @@ function UserNav() {
   );
 }
 
+// ─── Paywall ──────────────────────────────────────────────────────────────────
+function ProPaywall({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(8,8,14,0.85)", backdropFilter: "blur(8px)" }}>
+      <div style={{ background: "#13131e", border: "1px solid rgba(249,115,22,0.4)", borderRadius: 20, padding: "48px 40px", maxWidth: 440, width: "100%", margin: "0 16px", textAlign: "center", boxShadow: "0 0 40px rgba(249,115,22,0.12)" }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🔥</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, marginBottom: 10 }}>UntilFire Pro</div>
+        <p style={{ color: "#9090a8", fontSize: 14, lineHeight: 1.6, marginBottom: 28 }}>
+          Track your expenses, model your FIRE date in real time, and get a personalised action plan — all in one dashboard.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28, textAlign: "left" }}>
+          {["Budget tracker with actuals vs. budget", "Real-time FIRE projection charts", "Expense logging with AI categorisation", "Monthly action plan (coming Q3 2026)"].map(f => (
+            <div key={f} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 14, color: "#e8e8f2" }}>
+              <span style={{ color: "#22d3a5", flexShrink: 0 }}>✓</span> {f}
+            </div>
+          ))}
+        </div>
+        <button onClick={onUpgrade}
+          style={{ width: "100%", background: "#f97316", color: "#fff", border: "none", borderRadius: 12, padding: "14px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", marginBottom: 12 }}>
+          Upgrade to Pro — $9/mo →
+        </button>
+        <a href="/" style={{ color: "#5e5e7a", fontSize: 13, textDecoration: "none" }}>← Back to calculator</a>
+      </div>
+    </div>
+  );
+}
+
 // ─── Root ────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("dashboard");
+  const [isPro, setIsPro] = useState<boolean | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
+  const [showUpgradedToast, setShowUpgradedToast] = useState(false);
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = "/login"; return; }
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { authorization: `Bearer ${session.access_token}` },
+    });
+    const { url, error } = await res.json();
+    if (error || !url) { setUpgrading(false); return; }
+    window.location.href = url;
+  }
+
+  async function handleManageBilling() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch("/api/stripe/portal", {
+      method: "POST",
+      headers: { authorization: `Bearer ${session.access_token}` },
+    });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+  }
 
   // Read initial tab from URL query string (e.g. ?tab=budget)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab") as TabKey | null;
     if (t && ["dashboard", "budget", "fire"].includes(t)) setTab(t);
+    if (params.get("upgraded") === "true") {
+      setIsPro(true);
+      setShowUpgradedToast(true);
+      setTimeout(() => setShowUpgradedToast(false), 5000);
+      window.history.replaceState({}, "", "/dashboard");
+    }
   }, []);
 
   // Budget state
@@ -1097,6 +1157,12 @@ export default function Dashboard() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { window.location.href = "/login"; return; }
+      // Check Pro subscription
+      supabase.from("subscriptions").select("status, plan").eq("user_id", session.user.id).single()
+        .then(({ data: sub }) => {
+          setIsPro(sub?.status === "active" && sub?.plan === "pro");
+        });
+
       // Fetch current-month actuals from expenses table
       const nowD = new Date();
       const thisMonth = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}`;
@@ -1164,6 +1230,16 @@ export default function Dashboard() {
 
   return (
     <>
+      {/* Paywall — shown while loading (null) or when not Pro */}
+      {isPro === false && <ProPaywall onUpgrade={handleUpgrade} />}
+
+      {/* Upgrade success toast */}
+      {showUpgradedToast && (
+        <div style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", background: "#22d3a5", color: "#08080e", borderRadius: 12, padding: "12px 24px", fontSize: 14, fontWeight: 700, zIndex: 300, boxShadow: "0 8px 32px rgba(34,211,165,0.3)" }}>
+          Welcome to Pro! Your dashboard is now unlocked.
+        </div>
+      )}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
@@ -1208,6 +1284,16 @@ export default function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace" }}>Saving…</span>}
           {saveStatus === "saved"  && <span style={{ color: "#22d3a5", fontSize: 12, fontFamily: "DM Mono, monospace" }}>✓ Saved</span>}
+          {isPro === true && (
+            <button onClick={handleManageBilling} style={{ background: "transparent", color: "#5e5e7a", border: "1px solid #1c1c2e", borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+              Billing
+            </button>
+          )}
+          {isPro === false && (
+            <button onClick={handleUpgrade} disabled={upgrading} style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              {upgrading ? "..." : "Upgrade"}
+            </button>
+          )}
           <UserNav />
         </div>
       </nav>

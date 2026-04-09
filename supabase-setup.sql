@@ -72,3 +72,32 @@ CREATE TRIGGER update_user_plans_updated_at
 -- Grant necessary permissions
 GRANT ALL ON user_plans TO authenticated;
 GRANT ALL ON user_plans TO service_role;
+
+-- ─── Subscriptions table (Stripe Pro tier) ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  status TEXT NOT NULL DEFAULT 'inactive', -- active | inactive | canceled | past_due
+  plan TEXT NOT NULL DEFAULT 'free',        -- free | pro
+  current_period_end TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_user_id_idx ON subscriptions(user_id);
+
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own subscription"
+  ON subscriptions FOR SELECT USING (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON subscriptions;
+CREATE TRIGGER update_subscriptions_updated_at
+  BEFORE UPDATE ON subscriptions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+GRANT ALL ON subscriptions TO authenticated;
+GRANT ALL ON subscriptions TO service_role;
