@@ -7,10 +7,11 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Legend, ReferenceLine,
 } from "recharts";
+import TransactionsTab from "./TransactionsTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
-type TabKey = "dashboard" | "budget" | "fire";
+type TabKey = "dashboard" | "budget" | "fire" | "transactions";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -708,7 +709,7 @@ export default function Dashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab") as TabKey | null;
-    if (t && ["dashboard", "budget", "fire"].includes(t)) setTab(t);
+    if (t && ["dashboard", "budget", "fire", "transactions"].includes(t)) setTab(t);
   }, []);
 
   // Budget state
@@ -802,9 +803,10 @@ export default function Dashboard() {
   }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
 
   const navTabs: { key: TabKey; label: string }[] = [
-    { key: "dashboard", label: "Overview" },
-    { key: "budget",    label: "Budget" },
-    { key: "fire",      label: "FIRE Calculator" },
+    { key: "dashboard",    label: "Overview" },
+    { key: "budget",       label: "Budget" },
+    { key: "fire",         label: "FIRE Calculator" },
+    { key: "transactions", label: "Transactions" },
   ];
 
   return (
@@ -848,7 +850,6 @@ export default function Dashboard() {
           {navTabs.map(t => (
             <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
           ))}
-          <Link href="/transactions" className="uf-tab">Transactions</Link>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace" }}>Saving…</span>}
@@ -885,6 +886,7 @@ export default function Dashboard() {
             withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
           />
         )}
+        {tab === "transactions" && <TransactionsTab />}
       </div>
     </>
   );
