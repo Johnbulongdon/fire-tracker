@@ -1157,11 +1157,12 @@ export default function Dashboard() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { window.location.href = "/login"; return; }
-      // Check Pro subscription
+      // Check Pro subscription (default to false on any error so paywall shows)
       supabase.from("subscriptions").select("status, plan").eq("user_id", session.user.id).single()
         .then(({ data: sub }) => {
           setIsPro(sub?.status === "active" && sub?.plan === "pro");
-        });
+        })
+        .catch(() => setIsPro(false));
 
       // Fetch current-month actuals from expenses table
       const nowD = new Date();
@@ -1231,7 +1232,7 @@ export default function Dashboard() {
   return (
     <>
       {/* Paywall — shown while loading (null) or when not Pro */}
-      {isPro === false && <ProPaywall onUpgrade={handleUpgrade} />}
+      {isPro !== true && <ProPaywall onUpgrade={handleUpgrade} />}
 
       {/* Upgrade success toast */}
       {showUpgradedToast && (
