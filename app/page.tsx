@@ -979,6 +979,9 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
             <div ref={numRef} className="uf-fire-num">
               {fmtUSD(counted)}
             </div>
+            <div style={{ fontSize: 13, color: "#5e5e7a", textAlign: "center", marginBottom: 8, fontFamily: "'DM Sans', sans-serif" }}>
+              Based on the 4% rule — save this amount and live off investment returns, without running out of money.
+            </div>
             <div className="uf-fire-date-row">
               <div className="uf-fire-date-line" />
               <div className="uf-fire-date">
@@ -1027,15 +1030,24 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               </div>
 
               {/* PRIMARY CTA */}
-              <Link href="/dashboard" className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
-                Make this more accurate — it&apos;s free →
+              <Link
+                href="/dashboard"
+                className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg"
+                style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}
+                onClick={() => {
+                  try {
+                    localStorage.setItem("uf_calc_prefill", JSON.stringify({
+                      income,
+                      monthlySavings: savings,
+                    }));
+                  } catch {}
+                }}
+              >
+                Track your progress to {fmtUSD(result.fireTarget)} — free →
               </Link>
               <Link href="/calculator" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
                 See full wealth projection + charts →
               </Link>
-
-              {/* SECONDARY CTA — waitlist */}
-              <WaitlistInline fireTarget={result.fireTarget} retireYear={result.retireYear} />
 
               <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>

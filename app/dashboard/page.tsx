@@ -748,14 +748,20 @@ export default function Dashboard() {
           }
         });
       supabase.from("user_budget").select("*").eq("user_id", session.user.id).single().then(({ data }) => {
+        // Check for calculator prefill from the landing page
+        let prefill: { income?: number; monthlySavings?: number } = {};
+        try {
+          const raw = localStorage.getItem("uf_calc_prefill");
+          if (raw) { prefill = JSON.parse(raw); localStorage.removeItem("uf_calc_prefill"); }
+        } catch {}
+
         if (data) {
-          setIncome(data.income || 0);
+          setIncome(prefill.income || data.income || 0);
           const raw = data.expenses || {};
           const fp  = raw._fire_profile || {};
           const { _fire_profile: _, ...budgetExpenses } = raw;
           setExpenses({ housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0, ...budgetExpenses });
           setFireAge(data.fire_age || 30);
-          // New FIRE profile fields (fall back to 0 if first load)
           setK401(fp.k401 || data.fire_assets || 0);
           setRothIRA(fp.rothIRA || 0);
           setTaxable(fp.taxable || 0);
@@ -764,6 +770,9 @@ export default function Dashboard() {
           setMortgageMonthly(fp.mortgageMonthly || 0);
           setGrowthRate(fp.growthRate || 0.07);
           setWithdrawalRate(fp.withdrawalRate || 0.04);
+        } else if (prefill.income) {
+          // New user — no saved budget yet, seed from calculator
+          setIncome(prefill.income);
         }
         isLoaded.current = true;
       });
