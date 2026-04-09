@@ -8,20 +8,23 @@ import { Analytics } from '@vercel/analytics/react'
 export const metadata: Metadata = {
   title: 'UntilFire — Find Your FIRE Number & Retire Early',
   description:
-    'Calculate exactly when you can retire. Find your FIRE number, track expenses, and see how small changes compound into years of freedom. Free FIRE calculator.',
+    'Calculate exactly when you can retire. Enter your city, income, and spending — get your FIRE number and retirement date in 60 seconds. Free, no login required.',
   keywords:
-    'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator',
+    'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator, how much to retire, 4% rule calculator',
+  alternates: {
+    canonical: 'https://untilfire.com',
+  },
   openGraph: {
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    title: 'UntilFire — Find Your FIRE Number & Retire Early',
+    description: 'Your city. Your income. Your exact retirement date. Takes 60 seconds.',
     url: 'https://untilfire.com',
     siteName: 'UntilFire',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    title: 'UntilFire — Find Your FIRE Number & Retire Early',
+    description: 'Your city. Your income. Your exact retirement date. Takes 60 seconds.',
   },
   metadataBase: new URL('https://untilfire.com'),
 }
@@ -49,6 +52,25 @@ export default function RootLayout({
         className="antialiased"
         suppressHydrationWarning
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: 'UntilFire',
+              url: 'https://untilfire.com',
+              description: 'Free FIRE calculator — find your financial independence number adjusted for your city, income, and spending.',
+              applicationCategory: 'FinanceApplication',
+              operatingSystem: 'Any',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD',
+              },
+            }),
+          }}
+        />
         <AuthProvider>
           {children}
 
