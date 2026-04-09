@@ -47,6 +47,21 @@ npm run build    # production build
 npm run lint     # run ESLint
 ```
 
+## gstack Design Doc Sync
+
+After any `/office-hours`, `/plan-ceo-review`, or `/design-shotgun` session that produces
+a design doc, always copy it into `docs/design/` and commit it to the current branch.
+
+The source is `~/.gstack/projects/Johnbulongdon-UntilFire/`.
+Use a short kebab-case filename that reflects the doc's topic (e.g. `distribution-demand-discovery.md`).
+If a doc for the same topic already exists in `docs/design/`, overwrite it (it's a living document).
+
+```bash
+# Example sync command
+cp ~/.gstack/projects/Johnbulongdon-UntilFire/<filename>.md docs/design/<topic>.md
+git add docs/design/ && git commit -m "docs: sync gstack design doc — <topic>"
+```
+
 ## Design Tokens
 
 - Background: `#08080e`
