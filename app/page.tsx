@@ -1122,8 +1122,10 @@ export default function Home() {
   const [income, setIncome]         = useState(90000);
   const [savings, setSavings]       = useState(1500);
 
-  // Auth redirect — keep existing behaviour
+  // Auth redirect — skip when ?calculator=1 is set (direct tool access)
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("calculator")) return; // let them use the tool directly
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) router.push("/dashboard");
     });

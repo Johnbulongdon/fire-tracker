@@ -1067,7 +1067,7 @@ function UserNav() {
 function CalculatorHubTab() {
   const calcs = [
     {
-      href: "/",
+      href: "/?calculator=1",
       emoji: "🌍",
       label: "FIRE Number by City",
       tag: "Most popular",
