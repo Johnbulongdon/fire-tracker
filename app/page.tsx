@@ -760,15 +760,16 @@ function WaitlistInline({ fireTarget, retireYear }: { fireTarget: number; retire
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ShareModal({
-  fireTarget, retireYear, age, cityName, onClose,
+  retireYear, years, cityName, onClose,
 }: {
-  fireTarget: number; retireYear: number; age: number; cityName: string;
+  retireYear: number; years: number; cityName: string;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
-  const shareText = `My FIRE number is ${fmtUSD(fireTarget)}. I could retire in ${retireYear} at age ${age}, living in ${cityName}. Calculate yours free:`;
-  const shareUrl = "https://untilfire.com";
+  const shareUrl = `https://untilfire.com/share?city=${encodeURIComponent(cityName)}&year=${retireYear}&years=${years}`;
+  const shareText = `Ran my FIRE numbers on untilfire.com — it shows when you could retire based on where you live. Free, no login, takes 60 seconds. Mine came back ${cityName} by ${retireYear}. Worth a look.`;
+  const redditTitle = `Found a free FIRE calculator that factors in your city — here's what it said for ${cityName}`;
 
   function copyToClipboard() {
     navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
@@ -783,7 +784,7 @@ function ShareModal({
     const urls = {
       x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(`My FIRE number is ${fmtUSD(fireTarget)} — retire in ${retireYear} at age ${age} in ${cityName}`)}`,
+      reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(redditTitle)}`,
     };
     window.open(urls[platform], "_blank", "noopener,noreferrer,width=620,height=520");
   }
@@ -796,20 +797,19 @@ function ShareModal({
       <div className="uf-share-modal">
         <button className="uf-share-close" onClick={onClose} aria-label="Close">✕</button>
 
-        <div className="uf-share-heading">Share your FIRE number</div>
+        <div className="uf-share-heading">Share this discovery</div>
 
         {/* Preview card */}
         <div className="uf-share-card">
           <div className="uf-share-card-brand">
             <span className="uf-share-card-logo">until<span>fire</span></span>
-            <span style={{ fontSize: 13 }}>🔥</span>
           </div>
-          <div className="uf-share-card-label">My FIRE Number</div>
-          <div className="uf-share-card-number">{fmtUSD(fireTarget)}</div>
-          <div className="uf-share-card-meta">Retire in {retireYear} · Age {age}</div>
-          <div className="uf-share-card-city">{cityName}</div>
+          <div className="uf-share-card-label" style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: 11 }}>Retire in</div>
+          <div className="uf-share-card-number" style={{ fontSize: 28 }}>{cityName}</div>
+          <div className="uf-share-card-meta" style={{ fontSize: 22, color: '#f97316', fontWeight: 800 }}>by {retireYear}</div>
+          <div className="uf-share-card-city" style={{ color: '#9090a8' }}>{years} years away · free calculator</div>
           <div className="uf-share-card-divider" />
-          <div className="uf-share-card-url">untilfire.com</div>
+          <div className="uf-share-card-url">What does your city look like? → untilfire.com</div>
         </div>
 
         {/* Platform buttons */}
@@ -945,9 +945,8 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
     <div className="uf-screen uf-reveal-screen">
       {showShare && (
         <ShareModal
-          fireTarget={result.fireTarget}
           retireYear={result.retireYear}
-          age={result.age}
+          years={result.years}
           cityName={city.name}
           onClose={() => setShowShare(false)}
         />
