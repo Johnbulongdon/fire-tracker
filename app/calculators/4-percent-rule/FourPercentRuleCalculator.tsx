@@ -113,12 +113,12 @@ export default function FourPercentRuleCalculator() {
             FIRE · Retirement
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-2px', margin: '0 0 12px', lineHeight: 1.1 }}>
-            4% Rule Calculator
+            FIRE Number Calculator
           </h1>
           <p style={{ fontSize: 16, color: C.mutedLight, margin: 0, lineHeight: 1.7 }}>
-            The 4% rule (from the Trinity Study, 1998) states you can withdraw 4% of your portfolio annually
-            and it will last 30+ years in most market conditions. Your FIRE number is simply 25× your annual expenses.
-            Adjust the rate below to see how it changes your target.
+            Your FIRE number is how much you need invested to retire — calculated using the safe withdrawal rate.
+            The standard is 4% (from the 1998 Trinity Study), meaning 25× your annual expenses.
+            Adjust the rate below to see how it shifts your target.
           </p>
         </div>
 

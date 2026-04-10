@@ -57,11 +57,11 @@ const CALCULATORS = [
   },
   {
     slug: '4-percent-rule',
-    title: '4% Rule Calculator',
-    description: 'Calculate your FIRE number using the safe withdrawal rate. Adjust the rate and see how it changes the target.',
+    title: 'FIRE Number Calculator',
+    description: 'Calculate exactly how much you need to retire. Adjust the withdrawal rate and see how it changes your target.',
     tag: 'FIRE · Retirement',
     color: '#f97316',
-    label: '4%',
+    label: 'FI',
   },
 ]
 
