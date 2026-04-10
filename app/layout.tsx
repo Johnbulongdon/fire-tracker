@@ -9,11 +9,11 @@ import { Analytics } from '@vercel/analytics/react'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'UntilFire — Find Your FIRE Number & Retire Early',
+  title: 'Free FIRE Calculator — Find Your Financial Independence Number | UntilFire',
   description:
-    'Calculate exactly when you can retire. Find your FIRE number, track expenses, and see how small changes compound into years of freedom. Free FIRE calculator.',
+    'Free FIRE calculator. Find your exact FIRE number, see when you can retire early, and discover how city-adjusted cost of living changes your date by years. Takes 60 seconds.',
   keywords:
-    'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator',
+    'FIRE calculator, coast fire calculator, barista fire calculator, financial independence calculator, retire early calculator, FIRE number, savings rate calculator',
   openGraph: {
     title: 'UntilFire — Find Your FIRE Number',
     description: 'Calculate exactly when you can retire. Takes 60 seconds.',
@@ -52,6 +52,42 @@ export default function RootLayout({
         className={`${inter.className} antialiased`}
         suppressHydrationWarning
       >
+        {/* Structured Data: SoftwareApplication + WebSite */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'SoftwareApplication',
+                  name: 'UntilFire FIRE Calculator',
+                  applicationCategory: 'FinanceApplication',
+                  operatingSystem: 'Web',
+                  url: 'https://untilfire.com',
+                  description:
+                    'Free FIRE calculator. Find your financial independence number, track progress, and see how small changes move your retirement date by years.',
+                  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+                  provider: {
+                    '@type': 'Organization',
+                    name: 'UntilFire',
+                    url: 'https://untilfire.com',
+                  },
+                },
+                {
+                  '@type': 'WebSite',
+                  name: 'UntilFire',
+                  url: 'https://untilfire.com',
+                  potentialAction: {
+                    '@type': 'SearchAction',
+                    target: 'https://untilfire.com/learn/{search_term_string}',
+                    'query-input': 'required name=search_term_string',
+                  },
+                },
+              ],
+            }),
+          }}
+        />
         <AuthProvider>
           {children}
 
