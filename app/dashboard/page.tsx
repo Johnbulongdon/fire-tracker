@@ -10,7 +10,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
-type TabKey = "dashboard" | "budget" | "fire" | "expenses";
+type TabKey = "dashboard" | "budget" | "fire";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -1156,10 +1156,9 @@ export default function Dashboard() {
   }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
 
   const navTabs: { key: TabKey; label: string }[] = [
-    { key: "dashboard", label: "Overview" },
-    { key: "budget",    label: "Budget" },
-    { key: "fire",      label: "FIRE Calculator" },
-    { key: "expenses",  label: "Expenses" },
+    { key: "dashboard", label: "Dashboard" },
+    { key: "fire",      label: "Calculator Hub" },
+    { key: "budget",    label: "Tracking" },
   ];
 
   return (
@@ -1222,9 +1221,6 @@ export default function Dashboard() {
             withdrawalRate={withdrawalRate}
           />
         )}
-        {tab === "budget" && (
-          <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
-        )}
         {tab === "fire" && (
           <FIRETab
             income={income} expenses={expenses}
@@ -1239,7 +1235,14 @@ export default function Dashboard() {
             withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
           />
         )}
-        {tab === "expenses" && <ExpensesTab />}
+        {tab === "budget" && (
+          <>
+            <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
+            <div style={{ marginTop: 24 }}>
+              <ExpensesTab />
+            </div>
+          </>
+        )}
       </div>
     </>
   );
