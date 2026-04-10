@@ -11,7 +11,7 @@ import TransactionsTab from "./TransactionsTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
-type TabKey = "dashboard" | "budget" | "fire" | "transactions";
+type TabKey = "dashboard" | "calculators" | "budget";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -382,6 +382,62 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Calculators Hub Tab ─────────────────────────────────────────────────────
+const CALC_LINKS = [
+  { href: "/calculators/apy",               title: "APY Calculator",              desc: "Convert APR to APY across compounding frequencies." },
+  { href: "/calculators/compound-interest", title: "Compound Interest",           desc: "See how contributions + returns grow over time." },
+  { href: "/calculators/savings-rate",      title: "Savings Rate",                desc: "Find how long to FIRE at different savings rates." },
+  { href: "/calculators/coast-fire",        title: "Coast FIRE",                  desc: "Calculate the number you need to stop contributing." },
+  { href: "/calculators/4-percent-rule",    title: "FIRE Number Calculator",      desc: "How much do you need to retire? Built on the 4% rule." },
+];
+
+function CalculatorsTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate }: {
+  income: number; expenses: Expenses;
+  fireAge: number; setFireAge: (v: number) => void;
+  k401: number; setK401: (v: number) => void;
+  rothIRA: number; setRothIRA: (v: number) => void;
+  taxable: number; setTaxable: (v: number) => void;
+  totalDebt: number; setTotalDebt: (v: number) => void;
+  mortgageBalance: number; setMortgageBalance: (v: number) => void;
+  mortgageMonthly: number; setMortgageMonthly: (v: number) => void;
+  growthRate: number; setGrowthRate: (v: number) => void;
+  withdrawalRate: number; setWithdrawalRate: (v: number) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
+      {/* Embedded FIRE Calculator */}
+      <FIRETab
+        income={income} expenses={expenses}
+        fireAge={fireAge} setFireAge={setFireAge}
+        k401={k401} setK401={setK401}
+        rothIRA={rothIRA} setRothIRA={setRothIRA}
+        taxable={taxable} setTaxable={setTaxable}
+        totalDebt={totalDebt} setTotalDebt={setTotalDebt}
+        mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
+        mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
+        growthRate={growthRate} setGrowthRate={setGrowthRate}
+        withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
+      />
+
+      {/* Other calculators */}
+      <div>
+        <div style={{ borderTop: "1px solid #1c1c2e", marginBottom: 28 }} />
+        <p style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>More tools</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+          {CALC_LINKS.map(c => (
+            <Link key={c.href} href={c.href} target="_blank" style={{ display: "block", background: "#13131e", border: "1px solid #1c1c2e", borderRadius: 10, padding: "16px 18px", textDecoration: "none", transition: "border-color 0.15s" }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "#f97316")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "#1c1c2e")}>
+              <p style={{ color: "#e8e8f2", fontSize: 14, fontWeight: 600, margin: 0, marginBottom: 4 }}>{c.title}</p>
+              <p style={{ color: "#5e5e7a", fontSize: 12, margin: 0, lineHeight: 1.5 }}>{c.desc}</p>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
@@ -761,7 +817,7 @@ export default function Dashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab") as TabKey | null;
-    if (t && ["dashboard", "budget", "fire", "transactions"].includes(t)) setTab(t);
+    if (t && ["dashboard", "calculators", "budget"].includes(t)) setTab(t);
   }, []);
 
   // Budget state
@@ -855,10 +911,9 @@ export default function Dashboard() {
   }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
 
   const navTabs: { key: TabKey; label: string }[] = [
-    { key: "dashboard",    label: "Overview" },
-    { key: "budget",       label: "Budget" },
-    { key: "fire",         label: "FIRE Calculator" },
-    { key: "transactions", label: "Transactions" },
+    { key: "dashboard",   label: "Overview" },
+    { key: "calculators", label: "Calculators" },
+    { key: "budget",      label: "Budget & Transactions" },
   ];
 
   return (
@@ -906,7 +961,7 @@ export default function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace" }}>Saving…</span>}
           {saveStatus === "saved"  && <span style={{ color: "#22d3a5", fontSize: 12, fontFamily: "DM Mono, monospace" }}>✓ Saved</span>}
-          <Link href="/calculator" style={{ color: "#5e5e7a", fontSize: 13, textDecoration: "none" }}>Calculator</Link>
+          <Link href="/calculators" style={{ color: "#5e5e7a", fontSize: 13, textDecoration: "none" }}>All tools</Link>
           <UserNav />
         </div>
       </nav>
@@ -921,11 +976,8 @@ export default function Dashboard() {
             withdrawalRate={withdrawalRate}
           />
         )}
-        {tab === "budget" && (
-          <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
-        )}
-        {tab === "fire" && (
-          <FIRETab
+        {tab === "calculators" && (
+          <CalculatorsTab
             income={income} expenses={expenses}
             fireAge={fireAge} setFireAge={setFireAge}
             k401={k401} setK401={setK401}
@@ -938,7 +990,13 @@ export default function Dashboard() {
             withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
           />
         )}
-        {tab === "transactions" && <TransactionsTab />}
+        {tab === "budget" && (
+          <>
+            <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
+            <div style={{ borderTop: "1px solid #1c1c2e", margin: "32px 0" }} />
+            <TransactionsTab />
+          </>
+        )}
       </div>
     </>
   );
