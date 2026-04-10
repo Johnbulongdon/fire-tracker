@@ -9,18 +9,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: 'https://untilfire.com/calculator',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: 'https://untilfire.com/calculators',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
       url: 'https://untilfire.com/calculators/apy',
       lastModified: new Date(),
       changeFrequency: 'monthly',

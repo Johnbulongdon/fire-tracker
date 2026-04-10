@@ -389,56 +389,73 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
 }
 
 // ─── Calculators Hub Tab ─────────────────────────────────────────────────────
-const CALC_LINKS = [
-  { href: "/calculators/apy",               title: "APY Calculator",              desc: "Convert APR to APY across compounding frequencies." },
-  { href: "/calculators/compound-interest", title: "Compound Interest",           desc: "See how contributions + returns grow over time." },
-  { href: "/calculators/savings-rate",      title: "Savings Rate",                desc: "Find how long to FIRE at different savings rates." },
-  { href: "/calculators/coast-fire",        title: "Coast FIRE",                  desc: "Calculate the number you need to stop contributing." },
-  { href: "/calculators/4-percent-rule",    title: "FIRE Number Calculator",      desc: "How much do you need to retire? Built on the 4% rule." },
+const CALCULATORS = [
+  {
+    href: "/calculators/4-percent-rule",
+    title: "FIRE Number Calculator",
+    description: "Calculate exactly how much you need to retire. Adjust the withdrawal rate and see how it changes your target.",
+    tag: "FIRE · Retirement",
+    color: "#f97316",
+    label: "FI",
+  },
+  {
+    href: "/calculators/savings-rate",
+    title: "Savings Rate Calculator",
+    description: "Find your savings rate and see exactly how it shifts your FIRE date — the single most powerful FIRE lever.",
+    tag: "FIRE · Core",
+    color: "#f97316",
+    label: "SR",
+  },
+  {
+    href: "/calculators/coast-fire",
+    title: "Coast FIRE Calculator",
+    description: "Find the magic number where you can stop saving and let compound growth carry you to retirement.",
+    tag: "FIRE · Strategy",
+    color: "#8b5cf6",
+    label: "~",
+  },
+  {
+    href: "/calculators/compound-interest",
+    title: "Compound Interest Calculator",
+    description: "Project how your investments grow with regular contributions over any time horizon.",
+    tag: "Investing",
+    color: "#f97316",
+    label: "↗",
+  },
+  {
+    href: "/calculators/apy",
+    title: "APY Calculator",
+    description: "Convert APR to APY and see exactly how compounding frequency affects your real return.",
+    tag: "Savings",
+    color: "#22d3a5",
+    label: "%",
+  },
 ];
 
-function CalculatorsTab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate }: {
-  income: number; expenses: Expenses;
-  fireAge: number; setFireAge: (v: number) => void;
-  k401: number; setK401: (v: number) => void;
-  rothIRA: number; setRothIRA: (v: number) => void;
-  taxable: number; setTaxable: (v: number) => void;
-  totalDebt: number; setTotalDebt: (v: number) => void;
-  mortgageBalance: number; setMortgageBalance: (v: number) => void;
-  mortgageMonthly: number; setMortgageMonthly: (v: number) => void;
-  growthRate: number; setGrowthRate: (v: number) => void;
-  withdrawalRate: number; setWithdrawalRate: (v: number) => void;
-}) {
+function CalculatorsTab() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-      {/* Embedded FIRE Calculator */}
-      <FIRETab
-        income={income} expenses={expenses}
-        fireAge={fireAge} setFireAge={setFireAge}
-        k401={k401} setK401={setK401}
-        rothIRA={rothIRA} setRothIRA={setRothIRA}
-        taxable={taxable} setTaxable={setTaxable}
-        totalDebt={totalDebt} setTotalDebt={setTotalDebt}
-        mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
-        mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
-        growthRate={growthRate} setGrowthRate={setGrowthRate}
-        withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
-      />
-
-      {/* Other calculators */}
-      <div>
-        <div style={{ borderTop: "1px solid #1c1c2e", marginBottom: 28 }} />
-        <p style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>More tools</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
-          {CALC_LINKS.map(c => (
-            <Link key={c.href} href={c.href} target="_blank" style={{ display: "block", background: "#13131e", border: "1px solid #1c1c2e", borderRadius: 10, padding: "16px 18px", textDecoration: "none", transition: "border-color 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = "#f97316")}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = "#1c1c2e")}>
-              <p style={{ color: "#e8e8f2", fontSize: 14, fontWeight: 600, margin: 0, marginBottom: 4 }}>{c.title}</p>
-              <p style={{ color: "#5e5e7a", fontSize: 12, margin: 0, lineHeight: 1.5 }}>{c.desc}</p>
-            </Link>
-          ))}
-        </div>
+    <div>
+      <p style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 20 }}>
+        All tools
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+        {CALCULATORS.map(c => (
+          <Link key={c.href} href={c.href} target="_blank" style={{ textDecoration: "none" }}>
+            <div
+              style={{ background: "#13131e", border: "1px solid #1c1c2e", borderRadius: 12, padding: "24px 20px", height: "100%", display: "flex", flexDirection: "column", gap: 10, cursor: "pointer", transition: "border-color 0.15s" }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = c.color)}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "#1c1c2e")}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}18`, border: `1px solid ${c.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: c.color, letterSpacing: "-1px" }}>
+                {c.label}
+              </div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: c.color, letterSpacing: "1.5px", textTransform: "uppercase", margin: 0 }}>{c.tag}</p>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#e8e8f2", margin: 0, letterSpacing: "-0.3px" }}>{c.title}</p>
+              <p style={{ fontSize: 13, color: "#9090a8", margin: 0, lineHeight: 1.6, flexGrow: 1 }}>{c.description}</p>
+              <p style={{ fontSize: 12, color: c.color, fontWeight: 600, margin: 0 }}>Open calculator →</p>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );
@@ -975,20 +992,7 @@ export default function Dashboard() {
             withdrawalRate={withdrawalRate}
           />
         )}
-        {tab === "calculators" && (
-          <CalculatorsTab
-            income={income} expenses={expenses}
-            fireAge={fireAge} setFireAge={setFireAge}
-            k401={k401} setK401={setK401}
-            rothIRA={rothIRA} setRothIRA={setRothIRA}
-            taxable={taxable} setTaxable={setTaxable}
-            totalDebt={totalDebt} setTotalDebt={setTotalDebt}
-            mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
-            mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
-            growthRate={growthRate} setGrowthRate={setGrowthRate}
-            withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
-          />
-        )}
+        {tab === "calculators" && <CalculatorsTab />}
         {tab === "budget" && (
           <>
             <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
