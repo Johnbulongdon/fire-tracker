@@ -182,28 +182,80 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
   const chartData   = data.slice(0, Math.min(data.length, (fireYear ?? 30) + 6));
   const activeCats  = EXPENSE_CATS.filter(c => (expenses[c.key] || 0) > 0);
 
+  const retireYear = fireYear ? new Date().getFullYear() + fireYear : null;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-      {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
-        <KpiCard label="Net Worth" value={fmt(netWorth, true)} color={netWorth >= 0 ? "#22d3a5" : "#ef4444"} sub="Assets minus all debt" />
-        <KpiCard label="FIRE Target" value={fmt(fireTarget, true)} sub={`${(withdrawalRate * 100).toFixed(0)}% withdrawal rule`} />
-        <KpiCard label="FIRE Date" value={fireYear ? `${fireYear} yrs` : "50+ yrs"} color="#f97316" sub={fireYear ? `~${new Date().getFullYear() + fireYear}` : "Adjust inputs"} glow={!!fireYear} />
-        <KpiCard label="Savings Rate" value={`${savingsRate.toFixed(0)}%`} color={savingsRate >= 50 ? "#f97316" : savingsRate >= 25 ? "#22d3a5" : "#ef4444"} sub={savingsRate >= 50 ? "🔥 FIRE pace" : savingsRate >= 25 ? "Good progress" : "Needs work"} />
-      </div>
+      {/* ── HERO: FIRE Score ──────────────────────────────────────────────── */}
+      <div className="uf-card" style={{ padding: "28px 32px", background: "linear-gradient(135deg, #0d0d1a 0%, #13131e 100%)", borderColor: "#1e1e32", position: "relative", overflow: "hidden" }}>
+        {/* Background glow */}
+        <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06) 0%, transparent 70%)", top: -100, right: -100, pointerEvents: "none" }} />
 
-      {/* Progress bar */}
-      <div className="uf-card" style={{ padding: "18px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Progress to FIRE</span>
-          <span style={{ fontFamily: "DM Mono, monospace", fontSize: 13, color: "#f97316" }}>{fmt(investable, true)} / {fmt(fireTarget, true)}</span>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 24, position: "relative" }}>
+          {/* Left: headline */}
+          <div>
+            <div style={{ fontSize: 11, fontFamily: "DM Mono, monospace", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5e5e7a", marginBottom: 10 }}>
+              Your FIRE Journey
+            </div>
+            {fireYear ? (
+              <>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "clamp(48px, 8vw, 72px)", fontWeight: 800, color: "#f97316", fontFamily: "Syne, sans-serif", letterSpacing: "-3px", lineHeight: 1 }}>
+                    {retireYear}
+                  </span>
+                  <span style={{ fontSize: 20, color: "#9090a8", fontWeight: 500 }}>
+                    retire by
+                  </span>
+                </div>
+                <div style={{ marginTop: 8, fontSize: 16, color: "#9090a8" }}>
+                  <span style={{ color: "#e8e8f2", fontWeight: 600 }}>{fireYear} years</span> away · target{" "}
+                  <span style={{ color: "#22d3a5", fontFamily: "DM Mono, monospace" }}>{fmt(fireTarget, true)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 36, fontWeight: 800, color: "#5e5e7a", fontFamily: "Syne, sans-serif", letterSpacing: "-2px" }}>
+                  Set your inputs
+                </div>
+                <div style={{ marginTop: 8, fontSize: 14, color: "#5e5e7a" }}>
+                  Add income &amp; expenses in the Budget tab to see your FIRE date
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Right: supporting KPIs */}
+          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, fontFamily: "DM Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", color: "#5e5e7a", marginBottom: 4 }}>Net Worth</div>
+              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "DM Mono, monospace", color: netWorth >= 0 ? "#22d3a5" : "#ef4444" }}>{fmt(netWorth, true)}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, fontFamily: "DM Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", color: "#5e5e7a", marginBottom: 4 }}>Savings Rate</div>
+              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "DM Mono, monospace", color: savingsRate >= 50 ? "#f97316" : savingsRate >= 25 ? "#22d3a5" : "#ef4444" }}>
+                {savingsRate.toFixed(0)}%
+              </div>
+            </div>
+          </div>
         </div>
-        <div style={{ height: 10, background: "#0f0f18", borderRadius: 99, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #22d3a5, #f97316)", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#5e5e7a", marginTop: 7, fontFamily: "DM Mono, monospace" }}>
-          <span>0%</span><span>{progress.toFixed(1)}% complete</span><span>100% = FIRE</span>
+
+        {/* Progress bar */}
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: "#5e5e7a", fontFamily: "DM Mono, monospace" }}>
+              {fmt(investable, true)} saved
+            </span>
+            <span style={{ fontSize: 12, color: "#f97316", fontFamily: "DM Mono, monospace", fontWeight: 600 }}>
+              {progress.toFixed(1)}% to FIRE
+            </span>
+            <span style={{ fontSize: 12, color: "#5e5e7a", fontFamily: "DM Mono, monospace" }}>
+              {fmt(fireTarget, true)} target
+            </span>
+          </div>
+          <div style={{ height: 8, background: "#0f0f18", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #22d3a5, #f97316)", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
+          </div>
         </div>
       </div>
 
