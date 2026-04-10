@@ -1063,6 +1063,101 @@ function UserNav() {
   );
 }
 
+// ─── Calculator Hub Tab ───────────────────────────────────────────────────────
+function CalculatorHubTab() {
+  const calcs = [
+    {
+      href: "/",
+      emoji: "🌍",
+      label: "FIRE Number by City",
+      tag: "Most popular",
+      tagColor: "#f97316",
+      sub: "City-adjusted cost of living · 60 seconds",
+      desc: "Find your exact FIRE number tuned to where you live — income, city expenses, and savings rate in one step.",
+      accent: "#f97316",
+    },
+    {
+      href: "/calculator",
+      emoji: "🔥",
+      label: "Full FIRE Calculator",
+      tag: "Most detailed",
+      tagColor: "#22d3a5",
+      sub: "Account-by-account · debt · wealth charts",
+      desc: "Deep projection with 401(k), Roth IRA, taxable accounts, debt paydown, and interactive growth charts.",
+      accent: "#22d3a5",
+    },
+    {
+      href: "/coast-fire-calculator",
+      emoji: "🌊",
+      label: "Coast FIRE Calculator",
+      tag: "Stop saving early",
+      tagColor: "#818cf8",
+      sub: "Let compounding do the rest",
+      desc: "Calculate the lump sum you need today so your portfolio reaches your FIRE target without another dollar saved.",
+      accent: "#818cf8",
+    },
+    {
+      href: "/barista-fire-calculator",
+      emoji: "☕",
+      label: "Barista FIRE Calculator",
+      tag: "Semi-retirement",
+      tagColor: "#fbbf24",
+      sub: "Part-time work + portfolio",
+      desc: "Find the portfolio size where a part-time job covers daily expenses and your investments handle the rest.",
+      accent: "#fbbf24",
+    },
+  ];
+
+  return (
+    <div style={{ maxWidth: 900 }}>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontFamily: "DM Mono, monospace", fontSize: 11, color: "#f97316", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>FIRE Calculators</div>
+        <h2 style={{ fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: 24, margin: 0, letterSpacing: "-0.03em" }}>Calculator Hub</h2>
+        <p style={{ color: "#5e5e7a", fontSize: 14, marginTop: 6 }}>Choose a calculator — each targets a different stage of your FIRE journey.</p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+        {calcs.map(({ href, emoji, label, tag, tagColor, sub, desc, accent }) => (
+          <Link
+            key={href}
+            href={href}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              background: "#13131e",
+              border: "1px solid #1c1c2e",
+              borderRadius: 16,
+              padding: "22px 24px",
+              textDecoration: "none",
+              transition: "border-color 0.18s, transform 0.18s",
+              cursor: "pointer",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLAnchorElement).style.borderColor = accent;
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1c1c2e";
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+              <span style={{ fontSize: 30 }}>{emoji}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "DM Mono, monospace", letterSpacing: "0.07em", textTransform: "uppercase", color: tagColor, background: `${tagColor}18`, border: `1px solid ${tagColor}30`, borderRadius: 20, padding: "3px 10px" }}>{tag}</span>
+            </div>
+            <div style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: 15, color: "#e8e8f2", marginBottom: 4 }}>{label}</div>
+            <div style={{ fontFamily: "DM Mono, monospace", fontSize: 11, color: accent, marginBottom: 12, letterSpacing: "0.03em" }}>{sub}</div>
+            <div style={{ fontSize: 13, color: "#5e5e7a", lineHeight: 1.65, flex: 1 }}>{desc}</div>
+            <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: accent }}>
+              Open calculator <span style={{ fontSize: 16 }}>→</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Root ────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("dashboard");
@@ -1221,20 +1316,7 @@ export default function Dashboard() {
             withdrawalRate={withdrawalRate}
           />
         )}
-        {tab === "fire" && (
-          <FIRETab
-            income={income} expenses={expenses}
-            fireAge={fireAge} setFireAge={setFireAge}
-            k401={k401} setK401={setK401}
-            rothIRA={rothIRA} setRothIRA={setRothIRA}
-            taxable={taxable} setTaxable={setTaxable}
-            totalDebt={totalDebt} setTotalDebt={setTotalDebt}
-            mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
-            mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
-            growthRate={growthRate} setGrowthRate={setGrowthRate}
-            withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
-          />
-        )}
+        {tab === "fire" && <CalculatorHubTab />}
         {tab === "budget" && (
           <>
             <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
