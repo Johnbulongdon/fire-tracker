@@ -912,7 +912,7 @@ export default function Dashboard() {
 
   const navTabs: { key: TabKey; label: string }[] = [
     { key: "dashboard",   label: "Overview" },
-    { key: "calculators", label: "Calculators" },
+    { key: "calculators", label: "Calculator Hub" },
     { key: "budget",      label: "Budget & Transactions" },
   ];
 
@@ -961,7 +961,6 @@ export default function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {saveStatus === "saving" && <span style={{ color: "#5e5e7a", fontSize: 12, fontFamily: "DM Mono, monospace" }}>Saving…</span>}
           {saveStatus === "saved"  && <span style={{ color: "#22d3a5", fontSize: 12, fontFamily: "DM Mono, monospace" }}>✓ Saved</span>}
-          <Link href="/calculators" style={{ color: "#5e5e7a", fontSize: 13, textDecoration: "none" }}>All tools</Link>
           <UserNav />
         </div>
       </nav>
