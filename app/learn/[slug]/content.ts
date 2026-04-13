@@ -88,6 +88,122 @@ const CONTENT: Record<string, LearnContent> = {
     ],
   },
 
+  'barista-fire': {
+    title: 'What Is Barista FIRE?',
+    metaTitle: 'What Is Barista FIRE? Definition, Formula & Calculator | UntilFire',
+    metaDescription:
+      'Barista FIRE means saving enough so part-time income covers your expenses gap — and your portfolio covers the rest. Learn the formula and find your Barista FIRE number.',
+    heroSub: 'Semi-retire early: cover living costs with part-time work, let your portfolio handle the rest.',
+    stats: [
+      { label: 'Portfolio covers', value: 'Gap only' },
+      { label: 'Part-time income replaces', value: '30–60%' },
+      { label: 'Smaller target vs full FIRE', value: '40–60%' },
+      { label: 'Typical part-time hours/wk', value: '15–25' },
+    ],
+    sections: [
+      {
+        heading: 'The Barista FIRE formula',
+        body: 'Barista FIRE Number = (Annual Expenses − Part-Time Income) ÷ Safe Withdrawal Rate. If you spend $60k/year, earn $24k part-time, and use a 4% SWR, your portfolio target is ($60k − $24k) ÷ 0.04 = $900,000 — 40% less than the $1.5M full FIRE target. The name comes from coffee shop workers who use employer health benefits as part of the strategy.',
+      },
+      {
+        heading: 'Why Barista FIRE works as a bridge strategy',
+        body: 'Most people can\'t stomach staying fully employed until a $1.5M+ portfolio is reached. Barista FIRE lets you leave the high-stress job years earlier, take on flexible work you actually enjoy, and still reach full FIRE as your portfolio compounds. Many people discover they prefer the semi-retired lifestyle permanently — the part-time income and social structure make full retirement unnecessary.',
+      },
+      {
+        heading: 'Choosing the right part-time income source',
+        body: 'The best Barista FIRE income is flexible, location-independent, and low-stress. Popular choices: barista/hospitality (free benefits), freelance consulting in your prior field, seasonal work, online tutoring, or part-time remote work. The key criteria: does it cover the gap reliably, and do you not hate doing it?',
+      },
+    ],
+    faqs: [
+      { q: 'Does part-time income need to be stable?', a: 'Ideally yes — but it doesn\'t need to be guaranteed. Most Barista FIRE planners use a conservative estimate of part-time income (e.g. 75% of expected) to build in a buffer.' },
+      { q: 'What happens if I can\'t find part-time work?', a: 'Your portfolio needs to cover full expenses at 4% SWR, same as traditional FIRE. Barista FIRE is a reduction in required portfolio, not an elimination of the safety net.' },
+      { q: 'Is Barista FIRE the same as Coast FIRE?', a: 'No. Coast FIRE is a savings milestone — your portfolio will grow to your FIRE target without more contributions. Barista FIRE is a lifestyle — you actively earn part-time income to cover an expenses gap.' },
+    ],
+    ctaLabel: 'Calculate My Barista FIRE Number',
+    ctaHref: '/barista-fire-calculator',
+    related: [
+      { href: '/learn/what-is-coast-fire', label: 'What Is Coast FIRE?', sub: 'The savings milestone before full FIRE' },
+      { href: '/learn/fire-number', label: 'What Is a FIRE Number?', sub: 'Full FIRE target basics' },
+      { href: '/barista-fire-calculator', label: 'Barista FIRE Calculator', sub: 'Free interactive tool' },
+    ],
+  },
+
+  'lean-fire': {
+    title: 'What Is Lean FIRE?',
+    metaTitle: 'What Is Lean FIRE? Frugal Early Retirement Explained | UntilFire',
+    metaDescription:
+      'Lean FIRE is retiring early on a frugal budget — typically under $40k/year. Learn what it takes, who it suits, and how to calculate your Lean FIRE number.',
+    heroSub: 'Retire early by living lean: a smaller number, a faster timeline, a deliberately simple life.',
+    stats: [
+      { label: 'Typical annual spend', value: '<$40k' },
+      { label: 'FIRE number at $30k/yr', value: '$750k' },
+      { label: 'FIRE number at $40k/yr', value: '$1M' },
+      { label: 'vs. average US spend', value: '40% less' },
+    ],
+    sections: [
+      {
+        heading: 'What defines Lean FIRE',
+        body: 'There\'s no official threshold, but the FIRE community generally treats Lean FIRE as retiring on under $40,000/year (individual) or $60,000/year (couple). At $30k/year with a 4% SWR, the target is $750,000 — reachable in under a decade for high-income earners with strong savings discipline. The tradeoff is a budget that leaves little room for lifestyle inflation, travel upgrades, or unexpected expenses.',
+      },
+      {
+        heading: 'Who Lean FIRE suits best',
+        body: 'Lean FIRE works best for people who genuinely prefer simplicity over spending: minimalists, outdoor enthusiasts, those in low-cost-of-living cities or abroad, and people with low fixed costs (paid-off home, no dependents). It doesn\'t suit people who expect lifestyle costs to rise significantly — healthcare in later years being the most common budget-buster.',
+      },
+    ],
+    faqs: [
+      { q: 'Is Lean FIRE risky long-term?', a: 'The main risks are healthcare cost inflation and lifestyle creep. Many Lean FIRE retirees keep a small income stream (gig work, consulting) as a buffer — which also pushes them toward Barista FIRE in practice.' },
+      { q: 'Can I Lean FIRE in a high cost-of-living city?', a: 'Rarely. Lean FIRE almost always requires either a low-LCOL location or geographic arbitrage — living abroad in countries like Portugal, Thailand, or Mexico where $30-40k/year provides a comfortable life.' },
+      { q: 'How is Lean FIRE different from regular FIRE?', a: 'Regular (or "Traditional") FIRE typically assumes $50–80k/year in spending. Lean FIRE is the frugal end; Fat FIRE is the high-spend end. The math is identical — only the annual expense input changes.' },
+    ],
+    ctaLabel: 'Calculate My FIRE Number',
+    ctaHref: '/',
+    related: [
+      { href: '/learn/fat-fire', label: 'What Is Fat FIRE?', sub: 'High-spend early retirement' },
+      { href: '/learn/fire-number', label: 'What Is a FIRE Number?', sub: 'The 25x rule explained' },
+      { href: '/learn/how-to-calculate-your-fire-number', label: 'How to Calculate Your FIRE Number', sub: 'Step-by-step guide' },
+    ],
+  },
+
+  'fat-fire': {
+    title: 'What Is Fat FIRE?',
+    metaTitle: 'What Is Fat FIRE? High-Spend Early Retirement Explained | UntilFire',
+    metaDescription:
+      'Fat FIRE means retiring early without sacrificing your lifestyle — typically on $100k+/year. Learn the target, the timeline, and whether it\'s right for you.',
+    heroSub: 'Retire early and keep the lifestyle — no budgeting, no compromises, just a larger number to hit.',
+    stats: [
+      { label: 'Typical annual spend', value: '$100k+' },
+      { label: 'FIRE number at $100k/yr', value: '$2.5M' },
+      { label: 'FIRE number at $150k/yr', value: '$3.75M' },
+      { label: 'Median high-income timeline', value: '15–20 yrs' },
+    ],
+    sections: [
+      {
+        heading: 'What defines Fat FIRE',
+        body: 'Fat FIRE is informal for retiring early on $100,000/year or more in spending. At $100k/year with a 4% SWR, the portfolio target is $2.5M. At $150k, it\'s $3.75M. The appeal is a retirement without lifestyle trade-offs: business class flights, private health coverage, dining out regularly, and funding adult children\'s lives if desired. The tradeoff is a longer working timeline to accumulate the larger portfolio.',
+      },
+      {
+        heading: 'How to realistically reach Fat FIRE',
+        body: 'Fat FIRE typically requires either high income ($200k+/year household), equity events (startup exits, RSU vesting, business sales), or both. High savings rates alone rarely get someone to $2.5M+ inside 15 years on median income. The most common Fat FIRE path: high-earning professional career (finance, tech, medicine, law) combined with a savings rate above 40% and equity compensation.',
+      },
+      {
+        heading: 'Fat FIRE vs. staying one more year',
+        body: 'The biggest Fat FIRE risk isn\'t investment returns — it\'s "just one more year" syndrome. Because the number is large and always growing with lifestyle inflation, many Fat FIRE candidates delay indefinitely. Setting a firm target (e.g. $3M by age 50, not $3M adjusted for whatever I want by then) and committing to it is the most important behavioral step.',
+      },
+    ],
+    faqs: [
+      { q: 'Is Fat FIRE achievable on a single income?', a: 'Yes, but rare below $250k/year salary. It\'s more common with dual high-income households, equity compensation, or a liquidity event like a business sale.' },
+      { q: 'Does Fat FIRE require a 4% SWR?', a: 'Many Fat FIRE planners use 3.5% for a 40–50 year horizon, which pushes a $100k/year target to $2.86M. The extra margin matters less in dollar terms when the portfolio is large, but emotionally provides more security.' },
+      { q: 'What\'s the difference between Fat FIRE and just being wealthy?', a: 'Fat FIRE specifically means having enough invested to fund retirement indefinitely — it\'s about financial independence, not net worth. A $5M paid-off home and no investments isn\'t Fat FIRE.' },
+    ],
+    ctaLabel: 'Calculate My Fat FIRE Number',
+    ctaHref: '/',
+    related: [
+      { href: '/learn/lean-fire', label: 'What Is Lean FIRE?', sub: 'Frugal early retirement' },
+      { href: '/learn/barista-fire', label: 'What Is Barista FIRE?', sub: 'Semi-retirement planning' },
+      { href: '/learn/fire-number', label: 'What Is a FIRE Number?', sub: 'The 25x rule explained' },
+    ],
+  },
+
   'how-to-calculate-your-fire-number': {
     title: 'How to Calculate Your FIRE Number',
     metaTitle: 'How to Calculate Your FIRE Number — Step-by-Step Guide | UntilFire',
