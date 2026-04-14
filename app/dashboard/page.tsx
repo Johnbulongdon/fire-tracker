@@ -165,11 +165,11 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
     .reduce((s, [, v]) => s + (v || 0), 0);
 
   const effectiveFireTarget =
-    adjustedFireTarget && adjustedFireTarget > 0
-      ? adjustedFireTarget
-      : baselineFireTarget && baselineFireTarget > 0
-        ? baselineFireTarget
-        : undefined;
+  (adjustedFireTarget && adjustedFireTarget > 0)
+    ? adjustedFireTarget
+    : (baselineFireTarget && baselineFireTarget > 0)
+      ? baselineFireTarget
+      : 0;
 
   const investable  = k401 + rothIRA + taxable;
   const netWorth    = investable - totalDebt - mortgageBalance;
