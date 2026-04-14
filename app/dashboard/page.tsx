@@ -3,13 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import {
-  loadLocalInputs,
-  saveLocalInputs,
-  hasLocalInputs,
-  mergeInputs,
   DEFAULT_INPUTS,
-  hasCompletedOnboarding,
-  loadFireUserData,
+  FIRE_USER_STATE_PRIORITY,
+  registerFireUserStateInspector,
+  resolveFireUserState,
   type UntilFireInputs,
 } from "@/lib/local-inputs";
 import Link from "next/link";
@@ -39,6 +36,38 @@ const fmt = (n: number, compact = false) => {
   if (compact && Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}k`;
   return "$" + Math.round(n).toLocaleString();
 };
+
+function safeNumber(value: unknown): number {
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function buildFireChartData(input: {
+  effectiveFireTarget?: number;
+  investable: number;
+  netWorth: number;
+  k401: number;
+  rothIRA: number;
+  taxable: number;
+  totalDebt: number;
+  mortgageBalance: number;
+}) {
+  const effectiveFireTarget = safeNumber(input.effectiveFireTarget);
+  if (effectiveFireTarget <= 0) return [];
+
+  const point = {
+    year: 0,
+    "401(k)": Math.round(safeNumber(input.k401)),
+    "Roth IRA": Math.round(safeNumber(input.rothIRA)),
+    "Taxable": Math.round(safeNumber(input.taxable)),
+    "Net Worth": Math.round(safeNumber(input.netWorth)),
+    "FIRE Target": Math.round(effectiveFireTarget),
+    "Investable": Math.round(safeNumber(input.investable)),
+    "Debt": Math.round(-Math.abs(safeNumber(input.totalDebt) + safeNumber(input.mortgageBalance))),
+  };
+
+  return [point, { ...point, year: 1 }];
+}
 
 // ─── FIRE Engine ──────────────────────────────────────────────────────────────
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -147,16 +176,16 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
   const annualSavings = income * 12 - monthlyExpenses * 12 - mortgageMonthly * 12;
   const savingsRate = income > 0 ? ((annualSavings / 12) / income) * 100 : 0;
   const progress    = effectiveFireTarget && effectiveFireTarget > 0 ? Math.min(100, (investable / effectiveFireTarget) * 100) : 0;
-  const chartData   = effectiveFireTarget && effectiveFireTarget > 0 ? [{
-    year: 0,
-    "401(k)": Math.round(k401),
-    "Roth IRA": Math.round(rothIRA),
-    "Taxable": Math.round(taxable),
-    "Net Worth": Math.round(netWorth),
-    "FIRE Target": Math.round(effectiveFireTarget),
-    "Investable": Math.round(investable),
-    "Debt": Math.round(-(totalDebt + mortgageBalance)),
-  }] : [];
+  const chartData   = buildFireChartData({
+    effectiveFireTarget,
+    investable,
+    netWorth,
+    k401,
+    rothIRA,
+    taxable,
+    totalDebt,
+    mortgageBalance,
+  });
   const activeCats  = EXPENSE_CATS.filter(c => (expenses[c.key] || 0) > 0);
 
   if (!baselineFireTarget || baselineFireTarget <= 0) {
@@ -193,26 +222,32 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
         {/* FIRE snapshot chart */}
         <div className="uf-card">
           <SectionLabel icon="📈" text="FIRE Snapshot" color="#22d3a5" />
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="gInv" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22d3a5" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#22d3a5" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gTgt" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity={0.15} />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
-              <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={55} />
-              <Tooltip content={<ChartTooltip />} />
-              <Area type="monotone" dataKey="FIRE Target" stroke="#f97316" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gTgt)" dot={false} />
-              <Area type="monotone" dataKey="Investable" stroke="#22d3a5" strokeWidth={2.5} fill="url(#gInv)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {chartData.length === 0 ? (
+            <div style={{ color: "#5e5e7a", fontSize: 13, textAlign: "center", padding: "72px 0" }}>
+              Complete onboarding to unlock your FIRE snapshot
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="gInv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22d3a5" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#22d3a5" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gTgt" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
+                <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#5e5e7a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={55} />
+                <Tooltip content={<ChartTooltip />} />
+                <Area type="monotone" dataKey="FIRE Target" stroke="#f97316" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gTgt)" dot={false} />
+                <Area type="monotone" dataKey="Investable" stroke="#22d3a5" strokeWidth={2.5} fill="url(#gInv)" dot={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Spending breakdown */}
@@ -456,16 +491,16 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
   const annualSavings = income * 12 - monthlyExpenses * 12 - mortgageMonthly * 12;
   const savingsRate = income > 0 ? (annualSavings / 12 / income) * 100 : 0;
   const progress    = effectiveFireTarget && effectiveFireTarget > 0 ? Math.min(100, (investable / effectiveFireTarget) * 100) : 0;
-  const chartData   = effectiveFireTarget && effectiveFireTarget > 0 ? [{
-    year: 0,
-    "401(k)": Math.round(k401),
-    "Roth IRA": Math.round(rothIRA),
-    "Taxable": Math.round(taxable),
-    "Net Worth": Math.round(netWorth),
-    "FIRE Target": Math.round(effectiveFireTarget),
-    "Investable": Math.round(investable),
-    "Debt": Math.round(-(totalDebt + mortgageBalance)),
-  }] : [];
+  const chartData   = buildFireChartData({
+    effectiveFireTarget,
+    investable,
+    netWorth,
+    k401,
+    rothIRA,
+    taxable,
+    totalDebt,
+    mortgageBalance,
+  });
 
   if (!baselineFireTarget || baselineFireTarget <= 0) {
     return <FireOnboardingRequired title="Onboarding required" body="The FIRE tab requires a baseline FIRE target from onboarding before any dashboard adjustments can be made." />;
@@ -609,7 +644,11 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
           </div>
         </div>
 
-        {chartTab === "growth" && (
+        {chartData.length === 0 ? (
+          <div style={{ color: "#5e5e7a", fontSize: 13, textAlign: "center", padding: "72px 0" }}>
+            Add onboarding data to render this chart safely.
+          </div>
+        ) : chartTab === "growth" && (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
@@ -630,9 +669,9 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
               <Area type="monotone" dataKey="Investable" stroke="#22d3a5" strokeWidth={2.5} fill="url(#gI2)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
-        )}
+        ) : null}
 
-        {chartTab === "accounts" && (
+        {chartData.length > 0 && chartTab === "accounts" && (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
@@ -655,7 +694,7 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
           </ResponsiveContainer>
         )}
 
-        {chartTab === "networth" && (
+        {chartData.length > 0 && chartTab === "networth" && (
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1c1c2e" />
@@ -1069,6 +1108,10 @@ export default function Dashboard() {
   const [onboardingGateReady, setOnboardingGateReady] = useState(false);
   const onboardingRedirected = useRef(false);
 
+  useEffect(() => {
+    registerFireUserStateInspector();
+  }, []);
+
   // Read initial tab from URL query string (e.g. ?tab=budget)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1111,28 +1154,13 @@ export default function Dashboard() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [actuals, setActuals] = useState<Record<string, number>>({});
   const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lsTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoaded     = useRef(false);
-  const syncedToBackend = useRef(false); // guard: only POST local→backend once per session
-
-  function resolveHydratedInputs(
-    backendInputs: Partial<UntilFireInputs> | null,
-    localData: UntilFireInputs | null
-  ): UntilFireInputs | null {
-    // Precedence: backend > localStorage > onboarding fallback.
-    // Onboarding fallback is persisted inside localStorage, so backend wins on overlapping
-    // fields while local storage fills gaps such as baseline/adjusted FIRE targets.
-    if (backendInputs && hasLocalInputs(localData)) return mergeInputs(backendInputs, localData!);
-    if (backendInputs) return backendInputs as UntilFireInputs;
-    if (hasLocalInputs(localData)) return localData!;
-    return null;
-  }
 
   useEffect(() => {
-    const fireUserData = loadFireUserData();
-    console.log("[UntilFire] dashboard read result", fireUserData);
+    const fireUserData = resolveFireUserState();
+    console.log("[UntilFire] dashboard resolved FIRE state", fireUserData);
 
-    if (!hasCompletedOnboarding(fireUserData)) {
+    if (!fireUserData?.hasCompletedOnboarding) {
       if (!onboardingRedirected.current) {
         onboardingRedirected.current = true;
         window.location.replace("/");
@@ -1140,8 +1168,9 @@ export default function Dashboard() {
       return;
     }
 
-    setIncome(fireUserData.income);
-    setExpenses((prev) => ({ ...prev, other: fireUserData.expenses }));
+    setIncome(typeof fireUserData.income === "number" ? fireUserData.income : fireUserData.income.monthlyIncome);
+    setExpenses((prev) => ({ ...prev, other: safeNumber(fireUserData.expenses) }));
+    setFireAge(fireUserData.age ?? 30);
     setBaselineFireTarget(fireUserData.fireNumber);
     setOnboardingGateReady(true);
   }, []);
@@ -1151,7 +1180,8 @@ export default function Dashboard() {
     if (!onboardingGateReady) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { window.location.href = "/login"; return; }
-      const fireUserData = loadFireUserData();
+      // Strict priority for baseline FIRE state: fire_user_data first, Supabase second.
+      console.log("[UntilFire] FireUserState priority", FIRE_USER_STATE_PRIORITY);
 
       // Fetch current-month actuals from expenses table
       const nowD = new Date();
@@ -1167,9 +1197,7 @@ export default function Dashboard() {
           }
         });
 
-      supabase.from("user_budget").select("*").eq("user_id", session.user.id).single().then(async ({ data }) => {
-        const localData = loadLocalInputs();
-
+      supabase.from("user_budget").select("*").eq("user_id", session.user.id).single().then(({ data }) => {
         if (data) {
           // Backend has a row — extract it into the UntilFireInputs shape
           const raw = data.expenses || {};
@@ -1188,44 +1216,18 @@ export default function Dashboard() {
             mortgageMonthly:fp.mortgageMonthly || 0,
             growthRate:     fp.growthRate || 0.07,
             withdrawalRate: fp.withdrawalRate || 0.04,
-            baselineFireTarget: fireUserData?.fireNumber,
           };
-
-          if (hasLocalInputs(localData)) {
-            // Both exist — merge (backend wins on non-zero fields)
-            const merged = mergeInputs(backendInputs, localData!);
-            applyInputs(merged);
-            if (fireUserData?.fireNumber) setBaselineFireTarget(fireUserData.fireNumber);
-            console.log("[UntilFire] State restored: merged local + backend data");
-          } else {
-            // Only backend — apply directly
-            applyInputs(backendInputs as UntilFireInputs);
-            if (fireUserData?.fireNumber) setBaselineFireTarget(fireUserData.fireNumber);
+          const fireUserData = resolveFireUserState(backendInputs);
+          applyInputs(backendInputs as UntilFireInputs);
+          if (fireUserData?.fireNumber) {
+            setBaselineFireTarget(fireUserData.fireNumber);
           }
-        } else if (hasLocalInputs(localData)) {
-          // No backend row yet — hydrate from localStorage
-          applyInputs(localData!);
-          if (fireUserData?.fireNumber) setBaselineFireTarget(fireUserData.fireNumber);
-          console.log("[UntilFire] State restored from localStorage");
-
-          // POST local data to backend so it persists for future sessions
-          if (!syncedToBackend.current) {
-            syncedToBackend.current = true;
-            try {
-              const { data: { session: sess } } = await supabase.auth.getSession();
-              if (sess) {
-                await fetch("/api/save-user-inputs", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${sess.access_token}`,
-                  },
-                  body: JSON.stringify({ inputs: localData }),
-                });
-              }
-            } catch (e) {
-              console.warn("[UntilFire] Background sync failed, localStorage still intact", e);
-            }
+          if (fireUserData?.age) {
+            setFireAge(fireUserData.age);
+          }
+          if (fireUserData) {
+            setIncome(typeof fireUserData.income === "number" ? fireUserData.income : fireUserData.income.monthlyIncome);
+            setExpenses((prev) => ({ ...prev, other: safeNumber(fireUserData.expenses) }));
           }
         }
 
@@ -1234,21 +1236,7 @@ export default function Dashboard() {
     });
   }, [onboardingGateReady]);
 
-  // ─── 2. SAVE to localStorage on every change (debounced 500ms) ───────────────
-  useEffect(() => {
-    if (!isLoaded.current) return;
-    if (lsTimer.current) clearTimeout(lsTimer.current);
-    lsTimer.current = setTimeout(() => {
-      saveLocalInputs({
-        income, expenses, fireAge, k401, rothIRA, taxable,
-        totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate,
-        baselineFireTarget,
-        adjustedFireTarget,
-      });
-    }, 500);
-  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, baselineFireTarget, adjustedFireTarget]);
-
-  // ─── 3. SAVE to Supabase with 1s debounce (authenticated users only) ─────────
+  // ─── 2. SAVE to Supabase with 1s debounce (authenticated users only) ─────────
   useEffect(() => {
     if (!isLoaded.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);

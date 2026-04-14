@@ -6,13 +6,37 @@
 const STORAGE_KEY = "untilfire_inputs";
 export const FIRE_USER_DATA_KEY = "fire_user_data";
 
-export interface FireUserData {
-  income: number;
-  expenses: number;
+export type FireMode = "starter" | "advanced";
+export type FireGoal = "retire-early" | "financial-freedom" | "exploring";
+
+export interface FireIncomeRange {
+  id: string;
+  label: string;
+  monthlyIncome: number;
+}
+
+export interface FireUserState {
+  mode: FireMode;
+  age?: number;
+  income: number | FireIncomeRange;
+  expenses?: number;
   savings: number;
   fireNumber: number;
-  hasOnboarded: boolean;
+  hasCompletedOnboarding: boolean;
+  goal?: FireGoal;
+  portfolio?: number;
 }
+
+export interface FireUserStateValidationResult {
+  valid: boolean;
+  errors: string[];
+  value: FireUserState | null;
+}
+
+export const FIRE_USER_STATE_PRIORITY = {
+  onboardingDraft: ["in-memory draft", "localStorage draft"],
+  dashboardBaseline: ["fire_user_data", "Supabase persistence"],
+} as const;
 
 // ─── Type mirrors dashboard state exactly ─────────────────────────────────────
 export interface UntilFireInputs {
@@ -73,24 +97,220 @@ export const DEFAULT_INPUTS: UntilFireInputs = {
   city: undefined,
 };
 
-export function loadFireUserData(): FireUserData | null {
+function isFireIncomeRange(value: unknown): value is FireIncomeRange {
+  return !!value
+    && typeof value === "object"
+    && typeof (value as FireIncomeRange).label === "string"
+    && typeof (value as FireIncomeRange).monthlyIncome === "number";
+}
+
+function normalizeFireUserState(raw: unknown): FireUserState | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const legacy = raw as {
+    income?: unknown;
+    expenses?: unknown;
+    savings?: unknown;
+    fireNumber?: unknown;
+    hasOnboarded?: unknown;
+    hasCompletedOnboarding?: unknown;
+    mode?: unknown;
+    age?: unknown;
+    goal?: unknown;
+    portfolio?: unknown;
+  };
+
+  const normalizedIncome = typeof legacy.income === "number"
+    ? legacy.income
+    : isFireIncomeRange(legacy.income)
+      ? legacy.income
+      : null;
+
+  if (normalizedIncome === null) return null;
+
+  return {
+    mode: legacy.mode === "starter" || legacy.mode === "advanced" ? legacy.mode : "advanced",
+    age: typeof legacy.age === "number" ? legacy.age : undefined,
+    income: normalizedIncome,
+    expenses: typeof legacy.expenses === "number" ? legacy.expenses : undefined,
+    savings: typeof legacy.savings === "number" ? legacy.savings : 0,
+    fireNumber: typeof legacy.fireNumber === "number" ? legacy.fireNumber : 0,
+    hasCompletedOnboarding:
+      legacy.hasCompletedOnboarding === true || legacy.hasOnboarded === true,
+    goal:
+      legacy.goal === "retire-early"
+      || legacy.goal === "financial-freedom"
+      || legacy.goal === "exploring"
+        ? legacy.goal
+        : undefined,
+    portfolio: typeof legacy.portfolio === "number" ? legacy.portfolio : undefined,
+  };
+}
+
+export function validateFireUserState(raw: unknown): FireUserStateValidationResult {
+  const value = normalizeFireUserState(raw);
+  const errors: string[] = [];
+
+  if (!value) {
+    return { valid: false, errors: ["State is missing or malformed."], value: null };
+  }
+
+  if (value.mode !== "starter" && value.mode !== "advanced") {
+    errors.push("mode must be 'starter' or 'advanced'.");
+  }
+  if (value.age !== undefined && (!Number.isFinite(value.age) || value.age < 18 || value.age > 100)) {
+    errors.push("age must be between 18 and 100 when provided.");
+  }
+
+  const incomeAmount = resolveFireIncomeAmount(value.income);
+  if (!Number.isFinite(incomeAmount) || incomeAmount < 0) {
+    errors.push("income must resolve to a non-negative number.");
+  }
+  if (!Number.isFinite(value.savings) || value.savings < 0) {
+    errors.push("savings must be a non-negative number.");
+  }
+  if (value.expenses !== undefined && (!Number.isFinite(value.expenses) || value.expenses < 0)) {
+    errors.push("expenses must be a non-negative number when provided.");
+  }
+  if (!Number.isFinite(value.fireNumber) || value.fireNumber < 0) {
+    errors.push("fireNumber must be a non-negative number.");
+  }
+  if (typeof value.hasCompletedOnboarding !== "boolean") {
+    errors.push("hasCompletedOnboarding must be a boolean.");
+  }
+  if (value.mode === "starter" && !isFireIncomeRange(value.income)) {
+    errors.push("starter mode requires an income range.");
+  }
+  if (value.mode === "advanced" && typeof value.income !== "number") {
+    errors.push("advanced mode requires numeric income.");
+  }
+
+  return { valid: errors.length === 0, errors, value };
+}
+
+export function resolveFireIncomeAmount(income: FireUserState["income"]): number {
+  if (typeof income === "number") return income;
+  if (isFireIncomeRange(income)) return income.monthlyIncome;
+  return 0;
+}
+
+function deriveFireUserStateFromInputs(inputs: Partial<UntilFireInputs> | null | undefined): FireUserState | null {
+  if (!inputs) return null;
+
+  const expenses = Object.entries(inputs.expenses ?? {})
+    .filter(([key]) => !key.startsWith("_"))
+    .reduce((sum, [, value]) => sum + (typeof value === "number" ? value : 0), 0);
+  const income = typeof inputs.income === "number" ? inputs.income : 0;
+  const mortgageMonthly = typeof inputs.mortgageMonthly === "number" ? inputs.mortgageMonthly : 0;
+  const derivedSavings = Math.max(0, income - expenses - mortgageMonthly);
+  const derivedPortfolio =
+    (typeof inputs.k401 === "number" ? inputs.k401 : 0) +
+    (typeof inputs.rothIRA === "number" ? inputs.rothIRA : 0) +
+    (typeof inputs.taxable === "number" ? inputs.taxable : 0);
+
+  return {
+    mode: "advanced",
+    age: typeof inputs.fireAge === "number" ? inputs.fireAge : undefined,
+    income,
+    expenses,
+    savings: typeof inputs.savings === "number" ? inputs.savings : derivedSavings,
+    fireNumber: typeof inputs.baselineFireTarget === "number" ? inputs.baselineFireTarget : 0,
+    hasCompletedOnboarding: typeof inputs.baselineFireTarget === "number" && inputs.baselineFireTarget > 0,
+    portfolio: derivedPortfolio > 0 ? derivedPortfolio : undefined,
+  };
+}
+
+export function resolveFireUserState(backendInputs?: Partial<UntilFireInputs> | null): FireUserState | null {
+  const localValidation = validateFireUserState(loadFireUserData());
+  const localState = localValidation.value;
+  const backendValidation = validateFireUserState(deriveFireUserStateFromInputs(backendInputs));
+  const backendState = backendValidation.value;
+
+  const merged: FireUserState | null = localState || backendState
+    ? {
+        mode: localState?.mode ?? backendState?.mode ?? "advanced",
+        age: localState?.age ?? backendState?.age,
+        income: localState?.income ?? backendState?.income ?? 0,
+        expenses: localState?.expenses ?? backendState?.expenses,
+        savings: localState?.savings ?? backendState?.savings ?? 0,
+        fireNumber: localState?.fireNumber ?? backendState?.fireNumber ?? 0,
+        hasCompletedOnboarding:
+          localState?.hasCompletedOnboarding
+          ?? backendState?.hasCompletedOnboarding
+          ?? false,
+        goal: localState?.goal ?? backendState?.goal,
+        portfolio: localState?.portfolio ?? backendState?.portfolio,
+      }
+    : null;
+
+  const mergedValidation = validateFireUserState(merged);
+  if (!mergedValidation.valid) {
+    console.warn("[UntilFire] resolveFireUserState validation warnings", mergedValidation.errors);
+  }
+
+  return mergedValidation.value;
+}
+
+export function loadFireUserData(): FireUserState | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(FIRE_USER_DATA_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as FireUserData;
+    const parsed = JSON.parse(raw);
+    const validation = validateFireUserState(parsed);
+    if (!validation.valid) {
+      console.warn("[UntilFire] Invalid FireUserState in localStorage", validation.errors);
+      return validation.value;
+    }
+    return validation.value;
   } catch {
     return null;
   }
 }
 
-export async function saveFireUserData(data: FireUserData): Promise<void> {
+export async function saveFireUserData(data: FireUserState): Promise<void> {
   if (typeof window === "undefined") return;
+  const validation = validateFireUserState(data);
+  if (!validation.valid || !validation.value) {
+    console.warn("[UntilFire] Refusing to persist invalid FireUserState", validation.errors);
+    return;
+  }
   localStorage.setItem(FIRE_USER_DATA_KEY, JSON.stringify(data));
 }
 
-export function hasCompletedOnboarding(data: FireUserData | null): boolean {
-  return !!data && data.hasOnboarded === true;
+export function clearFireUserData(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(FIRE_USER_DATA_KEY);
+}
+
+export function hasCompletedOnboarding(data: FireUserState | null): boolean {
+  return !!data && data.hasCompletedOnboarding === true;
+}
+
+declare global {
+  interface Window {
+    __untilfireInspector?: {
+      getFireUserState: () => FireUserStateValidationResult;
+      getFireUserStatePriority: () => typeof FIRE_USER_STATE_PRIORITY;
+      clearFireUserState: () => void;
+    };
+  }
+}
+
+export function registerFireUserStateInspector(): void {
+  if (typeof window === "undefined") return;
+  window.__untilfireInspector = {
+    getFireUserState: () => {
+      try {
+        const raw = localStorage.getItem(FIRE_USER_DATA_KEY);
+        return validateFireUserState(raw ? JSON.parse(raw) : null);
+      } catch {
+        return { valid: false, errors: ["Unable to parse fire_user_data."], value: null };
+      }
+    },
+    getFireUserStatePriority: () => FIRE_USER_STATE_PRIORITY,
+    clearFireUserState: () => clearFireUserData(),
+  };
 }
 
 // ─── Read ──────────────────────────────────────────────────────────────────────
