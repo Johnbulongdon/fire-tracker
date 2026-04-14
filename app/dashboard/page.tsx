@@ -522,7 +522,7 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
+         )
       {/* Input panels */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
 
