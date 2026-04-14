@@ -8,6 +8,8 @@ import {
   hasLocalInputs,
   mergeInputs,
   DEFAULT_INPUTS,
+  hasCompletedOnboarding,
+  loadFireUserData,
   type UntilFireInputs,
 } from "@/lib/local-inputs";
 import Link from "next/link";
@@ -1064,6 +1066,8 @@ export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("dashboard");
   const [baselineFireTarget, setBaselineFireTarget] = useState<number | undefined>(undefined);
   const [adjustedFireTarget, setAdjustedFireTarget] = useState<number | undefined>(undefined);
+  const [onboardingGateReady, setOnboardingGateReady] = useState(false);
+  const onboardingRedirected = useRef(false);
 
   // Read initial tab from URL query string (e.g. ?tab=budget)
   useEffect(() => {
@@ -1124,10 +1128,30 @@ export default function Dashboard() {
     return null;
   }
 
+  useEffect(() => {
+    const fireUserData = loadFireUserData();
+    console.log("[UntilFire] dashboard read result", fireUserData);
+
+    if (!hasCompletedOnboarding(fireUserData)) {
+      if (!onboardingRedirected.current) {
+        onboardingRedirected.current = true;
+        window.location.replace("/");
+      }
+      return;
+    }
+
+    setIncome(fireUserData.income);
+    setExpenses((prev) => ({ ...prev, other: fireUserData.expenses }));
+    setBaselineFireTarget(fireUserData.fireNumber);
+    setOnboardingGateReady(true);
+  }, []);
+
   // ─── 1. HYDRATE: Load from Supabase on mount, merge with localStorage ────────
   useEffect(() => {
+    if (!onboardingGateReady) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { window.location.href = "/login"; return; }
+      const fireUserData = loadFireUserData();
 
       // Fetch current-month actuals from expenses table
       const nowD = new Date();
@@ -1164,20 +1188,24 @@ export default function Dashboard() {
             mortgageMonthly:fp.mortgageMonthly || 0,
             growthRate:     fp.growthRate || 0.07,
             withdrawalRate: fp.withdrawalRate || 0.04,
+            baselineFireTarget: fireUserData?.fireNumber,
           };
 
           if (hasLocalInputs(localData)) {
             // Both exist — merge (backend wins on non-zero fields)
             const merged = mergeInputs(backendInputs, localData!);
             applyInputs(merged);
+            if (fireUserData?.fireNumber) setBaselineFireTarget(fireUserData.fireNumber);
             console.log("[UntilFire] State restored: merged local + backend data");
           } else {
             // Only backend — apply directly
             applyInputs(backendInputs as UntilFireInputs);
+            if (fireUserData?.fireNumber) setBaselineFireTarget(fireUserData.fireNumber);
           }
         } else if (hasLocalInputs(localData)) {
           // No backend row yet — hydrate from localStorage
           applyInputs(localData!);
+          if (fireUserData?.fireNumber) setBaselineFireTarget(fireUserData.fireNumber);
           console.log("[UntilFire] State restored from localStorage");
 
           // POST local data to backend so it persists for future sessions
@@ -1204,7 +1232,7 @@ export default function Dashboard() {
         isLoaded.current = true;
       });
     });
-  }, []);
+  }, [onboardingGateReady]);
 
   // ─── 2. SAVE to localStorage on every change (debounced 500ms) ───────────────
   useEffect(() => {
@@ -1241,6 +1269,10 @@ export default function Dashboard() {
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1000);
   }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
+
+  if (!onboardingGateReady) {
+    return null;
+  }
 
   const navTabs: { key: TabKey; label: string }[] = [
     { key: "dashboard", label: "Overview" },

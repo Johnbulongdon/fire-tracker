@@ -4,6 +4,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "untilfire_inputs";
+export const FIRE_USER_DATA_KEY = "fire_user_data";
+
+export interface FireUserData {
+  income: number;
+  expenses: number;
+  savings: number;
+  fireNumber: number;
+  hasOnboarded: boolean;
+}
 
 // ─── Type mirrors dashboard state exactly ─────────────────────────────────────
 export interface UntilFireInputs {
@@ -63,6 +72,26 @@ export const DEFAULT_INPUTS: UntilFireInputs = {
   savings: undefined,
   city: undefined,
 };
+
+export function loadFireUserData(): FireUserData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(FIRE_USER_DATA_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as FireUserData;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveFireUserData(data: FireUserData): Promise<void> {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(FIRE_USER_DATA_KEY, JSON.stringify(data));
+}
+
+export function hasCompletedOnboarding(data: FireUserData | null): boolean {
+  return !!data && data.hasOnboarded === true;
+}
 
 // ─── Read ──────────────────────────────────────────────────────────────────────
 export function loadLocalInputs(): UntilFireInputs | null {

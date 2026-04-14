@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import {
   CITIES, City, calcTakeHome, calcFIRE, STATE_TAX,
 } from "@/lib/fire-data";
-import { saveLocalInputs } from "@/lib/local-inputs";
+import { hasCompletedOnboarding, loadFireUserData, saveFireUserData } from "@/lib/local-inputs";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -881,8 +881,23 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
   city: CityState; income: number; savings: number; stateKey: string;
   onAdjust: () => void;
 }) {
+  const router = useRouter();
   const result = calcFIRE(savings, city.col);
   const { takeHome } = calcTakeHome(income, stateKey);
+
+  async function handleCompleteOnboarding() {
+    const fireUserData = {
+      income: Math.round(takeHome / 12),
+      expenses: Math.round(city.col / 12),
+      savings: Math.round(savings),
+      fireNumber: Math.round(result.fireTarget),
+      hasOnboarded: true,
+    };
+
+    await saveFireUserData(fireUserData);
+    console.log("[UntilFire] onboarding save success", fireUserData);
+    router.push("/dashboard");
+  }
 
   // Persist wizard inputs to localStorage so dashboard can hydrate them after login
   useEffect(() => {
@@ -1058,9 +1073,9 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               </div>
 
               {/* PRIMARY CTA */}
-              <Link href="/dashboard" className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
+              <button type="button" onClick={handleCompleteOnboarding} className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center", width: "100%" }}>
                 Make this more accurate — it&apos;s free →
-              </Link>
+              </button>
               <Link href="/calculator" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
                 See full wealth projection + charts →
               </Link>
@@ -1156,10 +1171,12 @@ export default function Home() {
   // Auth redirect — keep existing behaviour
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.push("/dashboard");
+      const fireUserData = loadFireUserData();
+      if (session && hasCompletedOnboarding(fireUserData)) router.push("/dashboard");
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) router.push("/dashboard");
+      const fireUserData = loadFireUserData();
+      if (event === "SIGNED_IN" && session && hasCompletedOnboarding(fireUserData)) router.push("/dashboard");
     });
     return () => subscription.unsubscribe();
   }, [router]);
