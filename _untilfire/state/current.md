@@ -52,3 +52,13 @@ Also fixed 3 pre-existing JSX syntax errors that blocked the Vercel build.
 ## What's next (not started)
 
 - Nothing assigned — waiting for next task
+
+---
+
+## Previous: Onboarding simplification + dashboard fix
+
+Simplified onboarding wizard and fixed dashboard client-side error:
+
+1. **Dashboard fix**: `completeOnboarding()` never called `saveLocalInputs()` — replaced with `completeOnboardingWith(state)` that writes both `fire_user_data` (gate key) and `untilfire_inputs` (hydration key). Dashboard fast-hydrate now works on first login.
+
+2. **Onboarding simplification**: Removed path-choice screen, starter path, and summary screen. Flow is now: hero → 3-field form (age + income + expenses) → dashboard. Savings derived automatically. Portfolio starts at 0.
