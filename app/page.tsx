@@ -1370,22 +1370,17 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
   const [age, setAge] = useState(initialState?.age ?? 30);
   const [income, setIncome] = useState(initialIncome);
   const [expenses, setExpenses] = useState(initialState?.expenses ?? 4000);
-  const [savings, setSavings] = useState(initialState?.savings ?? 1500);
-  const [portfolio, setPortfolio] = useState(initialState?.portfolio ?? 0);
 
-  const preview = estimateAdvancedState(age, income, expenses, savings, portfolio);
-  const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
+  const derivedSavings = Math.max(0, income - expenses);
+  const preview = estimateAdvancedState(age, income, expenses, derivedSavings, 0);
+  const savingsRate = income > 0 ? Math.round((derivedSavings / income) * 100) : 0;
 
   return (
     <div className="uf-screen">
-      <p className="uf-step-label">Step 2 of 3</p>
-      <div className="uf-eyebrow">Advanced setup</div>
-      <h2 className="uf-h2">Use the numbers you already know.</h2>
-      <p className="uf-body" style={{ marginBottom: 28 }}>
-        This path keeps the onboarding tight, but it respects the fact that you&apos;re already optimizing your plan.
-      </p>
+      <div className="uf-eyebrow">Your numbers</div>
+      <h2 className="uf-h2">Find out when you can retire.</h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 24 }}>
         <div>
           <label className="uf-label">Current age</label>
           <div className="uf-prefixed-input">
@@ -1414,31 +1409,10 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
             <span className="uf-unit">/month</span>
           </div>
         </div>
-
-        <div>
-          <label className="uf-label">Monthly savings</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={savings} min={0} onChange={e => setSavings(Math.max(0, parseInt(e.target.value) || 0))} />
-            </div>
-            <span className="uf-unit">/month</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="uf-label">Portfolio balance (optional)</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={portfolio || ""} min={0} onChange={e => setPortfolio(Math.max(0, parseInt(e.target.value) || 0))} placeholder="0" />
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="uf-card uf-card-accent" style={{ marginTop: 20 }}>
-        <div className="uf-card-head">Advanced preview</div>
+        <div className="uf-card-head">Live preview</div>
         <div className="uf-stat-row" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginTop: 0 }}>
           <div className="uf-stat-box">
             <div className="uf-stat-val">{savingsRate}%</div>
@@ -1449,8 +1423,8 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
             <div className="uf-stat-lab">FIRE target</div>
           </div>
           <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(portfolio)}</div>
-            <div className="uf-stat-lab">Starting portfolio</div>
+            <div className="uf-stat-val">{fmtUSD(derivedSavings)}/mo</div>
+            <div className="uf-stat-lab">Savings / mo</div>
           </div>
         </div>
       </div>
@@ -1458,7 +1432,7 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
       <div className="uf-nav-row">
         <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(preview)}>
-          Continue
+          See my FIRE number →
         </button>
       </div>
     </div>
@@ -1529,7 +1503,7 @@ function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Screen = "hero" | "path" | "starter" | "advanced" | "summary";
+type Screen = "hero" | "advanced";
 
 export default function Home() {
   const router = useRouter();
@@ -1554,7 +1528,7 @@ export default function Home() {
     }
 
     setFireState(savedState);
-    setScreen(savedState.mode === "starter" ? "starter" : "advanced");
+    setScreen("advanced");
   }, []);
 
   useEffect(() => {
@@ -1583,24 +1557,36 @@ export default function Home() {
     });
   }
 
-  async function completeOnboarding() {
-    if (!fireState) return;
-    const completedState: FireUserState = {
-      ...fireState,
-      hasCompletedOnboarding: true,
-    };
+  async function completeOnboardingWith(state: FireUserState) {
+    const completedState: FireUserState = { ...state, hasCompletedOnboarding: true };
     const validation = validateFireUserState(completedState);
     if (!validation.valid) {
-      console.warn("[UntilFire] Refusing onboarding completion for invalid FireUserState", validation.errors);
+      console.warn("[UntilFire] Invalid onboarding state", validation.errors);
       return;
     }
     await saveFireUserData(completedState);
-    setFireState(completedState);
+    const incomeNum = typeof completedState.income === "number"
+      ? completedState.income
+      : (completedState.income as FireIncomeRange).monthlyIncome;
+    saveLocalInputs({
+      income: incomeNum,
+      expenses: {
+        housing: 0, food: 0, transport: 0,
+        subscriptions: 0, healthcare: 0, entertainment: 0,
+        other: typeof completedState.expenses === "number" ? completedState.expenses : 0,
+      },
+      fireAge: completedState.age ?? 30,
+      k401: 0, rothIRA: 0, taxable: 0,
+      totalDebt: 0, mortgageBalance: 0, mortgageMonthly: 0,
+      growthRate: 0.07, withdrawalRate: 0.04,
+      baselineFireTarget: completedState.fireNumber,
+      savings: completedState.savings,
+    });
     router.push("/dashboard");
   }
 
-  const STEP_MAP: Record<Screen, number> = { hero: 0, path: 1, starter: 2, advanced: 2, summary: 3 };
-  const totalDots = 4;
+  const STEP_MAP: Record<Screen, number> = { hero: 0, advanced: 1 };
+  const totalDots = 2;
 
   return (
     <>
@@ -1998,34 +1984,13 @@ export default function Home() {
           <div className="uf-atm-orb uf-atm-orb-3" />
         </div>
         {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("path")} onSignIn={signIn} />
-        )}
-        {screen === "path" && (
-          <PathChoiceScreen
-            onStarter={() => setScreen("starter")}
-            onAdvanced={() => setScreen("advanced")}
-            onBack={() => setScreen("hero")}
-          />
-        )}
-        {screen === "starter" && (
-          <StarterPathScreen
-            initialState={fireState}
-            onNext={(nextState) => { setFireState(nextState); setScreen("summary"); }}
-            onBack={() => setScreen("path")}
-          />
+          <HeroScreen onStart={() => setScreen("advanced")} onSignIn={signIn} />
         )}
         {screen === "advanced" && (
           <AdvancedPathScreen
             initialState={fireState}
-            onNext={(nextState) => { setFireState(nextState); setScreen("summary"); }}
-            onBack={() => setScreen("path")}
-          />
-        )}
-        {screen === "summary" && fireState && (
-          <OnboardingSummaryScreen
-            fireState={fireState}
-            onBack={() => setScreen(fireState.mode === "starter" ? "starter" : "advanced")}
-            onComplete={completeOnboarding}
+            onNext={(nextState) => { setFireState(nextState); void completeOnboardingWith(nextState); }}
+            onBack={() => setScreen("hero")}
           />
         )}
 
