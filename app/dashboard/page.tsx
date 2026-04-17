@@ -1185,7 +1185,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!onboardingGateReady) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { window.location.href = "/login"; return; }
+      if (!session) { isLoaded.current = true; return; }
       // Strict priority for baseline FIRE state: fire_user_data first, Supabase second.
       console.log("[UntilFire] FireUserState priority", FIRE_USER_STATE_PRIORITY);
 

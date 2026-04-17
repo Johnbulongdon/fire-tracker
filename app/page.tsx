@@ -1384,7 +1384,7 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
         <div>
           <label className="uf-label">Current age</label>
           <div className="uf-prefixed-input">
-            <input type="number" className="uf-input uf-input-mono" min={18} max={80} value={age} onChange={e => setAge(Math.max(18, parseInt(e.target.value) || 18))} />
+            <input type="number" className="uf-input uf-input-mono" value={age} onChange={e => setAge(Math.max(1, parseInt(e.target.value) || 1))} />
           </div>
         </div>
 

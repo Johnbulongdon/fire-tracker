@@ -158,8 +158,8 @@ export function validateFireUserState(raw: unknown): FireUserStateValidationResu
   if (value.mode !== "starter" && value.mode !== "advanced") {
     errors.push("mode must be 'starter' or 'advanced'.");
   }
-  if (value.age !== undefined && (!Number.isFinite(value.age) || value.age < 18 || value.age > 100)) {
-    errors.push("age must be between 18 and 100 when provided.");
+  if (value.age !== undefined && (!Number.isFinite(value.age) || value.age < 1 || value.age > 120)) {
+    errors.push("age must be between 1 and 120 when provided.");
   }
 
   const incomeAmount = resolveFireIncomeAmount(value.income);
