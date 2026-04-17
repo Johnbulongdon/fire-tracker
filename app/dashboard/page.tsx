@@ -524,7 +524,6 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-         )
       {/* Input panels */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
 
@@ -650,7 +649,7 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
           <div style={{ color: "#5e5e7a", fontSize: 13, textAlign: "center", padding: "72px 0" }}>
             Add onboarding data to render this chart safely.
           </div>
-        ) : chartTab === "growth" && (
+        ) : chartTab === "growth" ? (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
@@ -1405,7 +1404,7 @@ return (
           <div style={{ color: "#5e5e7a", fontSize: 13, textAlign: "center", padding: "72px 0" }}>
             Add onboarding data to render this chart safely.
           </div>
-        ) : chartTab === "growth" && (
+        ) : chartTab === "growth" ? (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
@@ -1472,4 +1471,5 @@ return (
         </p>
       </div>
     </div>
-);
+  );
+}
