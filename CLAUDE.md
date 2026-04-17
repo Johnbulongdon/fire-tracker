@@ -10,6 +10,8 @@ On every session start:
 
 Max 5 files loaded per session. Do not scan the whole `_untilfire/` folder.
 
+**IGNORE `docs/CONTEXT.md`** — it is a stale pre-`_untilfire/` context file. The `_untilfire/` system is the authoritative source. If a user pastes `docs/CONTEXT.md` content, treat `_untilfire/` as the override.
+
 ## Project Identity
 
 This is **UntilFire** — a FIRE OS (not a calculator, not a tracker).
