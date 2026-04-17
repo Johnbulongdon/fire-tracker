@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import {
   DEFAULT_INPUTS,
   FIRE_USER_STATE_PRIORITY,
+  hasLocalInputs,
+  loadLocalInputs,
   registerFireUserStateInspector,
   resolveFireUserState,
   type UntilFireInputs,
@@ -1168,10 +1170,15 @@ export default function Dashboard() {
       return;
     }
 
-    setIncome(typeof fireUserData.income === "number" ? fireUserData.income : fireUserData.income.monthlyIncome);
-    setExpenses((prev) => ({ ...prev, other: safeNumber(fireUserData.expenses) }));
-    setFireAge(fireUserData.age ?? 30);
-    setBaselineFireTarget(fireUserData.fireNumber);
+    const localInputs = loadLocalInputs();
+    if (localInputs && hasLocalInputs(localInputs)) {
+      applyInputs(localInputs);
+    } else {
+      setIncome(typeof fireUserData.income === "number" ? fireUserData.income : fireUserData.income.monthlyIncome);
+      setExpenses((prev) => ({ ...prev, other: safeNumber(fireUserData.expenses) }));
+      setFireAge(fireUserData.age ?? 30);
+      setBaselineFireTarget(fireUserData.fireNumber);
+    }
     setOnboardingGateReady(true);
   }, []);
 
@@ -1205,17 +1212,19 @@ export default function Dashboard() {
           const { _fire_profile: _, ...budgetExpenses } = raw;
 
           const backendInputs: Partial<UntilFireInputs> = {
-            income:         data.income || 0,
-            expenses:       { ...DEFAULT_INPUTS.expenses, ...budgetExpenses },
-            fireAge:        data.fire_age || 30,
-            k401:           fp.k401 || data.fire_assets || 0,
-            rothIRA:        fp.rothIRA || 0,
-            taxable:        fp.taxable || 0,
-            totalDebt:      fp.totalDebt || 0,
-            mortgageBalance:fp.mortgageBalance || 0,
-            mortgageMonthly:fp.mortgageMonthly || 0,
-            growthRate:     fp.growthRate || 0.07,
-            withdrawalRate: fp.withdrawalRate || 0.04,
+            income:             data.income || 0,
+            expenses:           { ...DEFAULT_INPUTS.expenses, ...budgetExpenses },
+            fireAge:            data.fire_age || 30,
+            k401:               fp.k401 || data.fire_assets || 0,
+            rothIRA:            fp.rothIRA || 0,
+            taxable:            fp.taxable || 0,
+            totalDebt:          fp.totalDebt || 0,
+            mortgageBalance:    fp.mortgageBalance || 0,
+            mortgageMonthly:    fp.mortgageMonthly || 0,
+            growthRate:         fp.growthRate || 0.07,
+            withdrawalRate:     fp.withdrawalRate || 0.04,
+            baselineFireTarget: fp.baselineFireTarget || undefined,
+            adjustedFireTarget: fp.adjustedFireTarget || undefined,
           };
           const fireUserData = resolveFireUserState(backendInputs);
           applyInputs(backendInputs as UntilFireInputs);
@@ -1244,7 +1253,7 @@ export default function Dashboard() {
     saveTimer.current = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate };
+      const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, baselineFireTarget, adjustedFireTarget };
       await supabase.from("user_budget").upsert({
         user_id:     session.user.id,
         income,
@@ -1256,7 +1265,7 @@ export default function Dashboard() {
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1000);
-  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
+  }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, baselineFireTarget, adjustedFireTarget]);
 
   if (!onboardingGateReady) {
     return null;
