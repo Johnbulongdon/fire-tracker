@@ -758,6 +758,19 @@ const expFmt = (n: number, currency = "USD") => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
 };
 
+function sumByCurrency(expenses: ExpenseRecord[]): Record<string, number> {
+  return expenses.reduce((acc, e) => {
+    acc[e.currency] = (acc[e.currency] ?? 0) + e.amount;
+    return acc;
+  }, {} as Record<string, number>);
+}
+
+function fmtMulti(byCurrency: Record<string, number>): string {
+  const entries = Object.entries(byCurrency);
+  if (entries.length === 0) return "—";
+  return entries.map(([c, n]) => expFmt(n, c)).join(" · ");
+}
+
 function keywordCategory(desc: string): string | null {
   const d = desc.toLowerCase();
   if (/dine|dining|restaurant|cafe|coffee|lunch|dinner|breakfast|meal|grocery|groceries|pizza|burger|sushi|ramen|noodle|steak|bbq|dessert|smoothie|boba|buffet|eatery|bistro|takeout|takeaway|doordash|grubhub|ubereats|food|snack|brunch|bar|pub|eat/.test(d)) return "food";
@@ -789,13 +802,18 @@ function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthExpenses = expenses.filter(e => e.date.startsWith(thisMonth));
-  const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
-  const workTotal = monthExpenses.filter(e => e.tags?.includes("work") || e.is_work_related).reduce((s, e) => s + e.amount, 0);
+  const totalByCurrency = sumByCurrency(monthExpenses);
+  const workByCurrency = sumByCurrency(monthExpenses.filter(e => e.tags?.includes("work") || e.is_work_related));
+  const hasWork = Object.keys(workByCurrency).length > 0;
+  const currencies = Object.keys(totalByCurrency);
+  const singleCurrency = currencies.length === 1 ? currencies[0] : null;
+  const grandTotal = monthExpenses.reduce((s, e) => s + e.amount, 0);
 
   const byCat = EXP_CATEGORIES.map(cat => ({
     ...cat,
-    total: monthExpenses.filter(e => e.category === cat.key).reduce((s, e) => s + e.amount, 0)
-  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
+    rawTotal: monthExpenses.filter(e => e.category === cat.key).reduce((s, e) => s + e.amount, 0),
+    byCurrency: sumByCurrency(monthExpenses.filter(e => e.category === cat.key)),
+  })).filter(c => c.rawTotal > 0).sort((a, b) => b.rawTotal - a.rawTotal);
 
   if (monthExpenses.length === 0) return null;
 
@@ -804,19 +822,19 @@ function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
       <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
         📊 {now.toLocaleDateString('en-US', { month: 'long' })} Summary
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: workTotal > 0 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: hasWork ? "1fr 1fr 1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
         <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
           <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Spent</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, fontWeight: 700, color: "#ef4444" }}>{expFmt(total)}</div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, color: "#ef4444", fontSize: singleCurrency ? 24 : 16, lineHeight: 1.4 }}>{fmtMulti(totalByCurrency)}</div>
         </div>
         <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
           <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Transactions</div>
           <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, fontWeight: 700, color: "#e8e8f2" }}>{monthExpenses.length}</div>
         </div>
-        {workTotal > 0 && (
+        {hasWork && (
           <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ color: "#6366f1", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💼 Work Costs</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, fontWeight: 700, color: "#6366f1" }}>{expFmt(workTotal)}</div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, color: "#6366f1", fontSize: Object.keys(workByCurrency).length > 1 ? 16 : 24, lineHeight: 1.4 }}>{fmtMulti(workByCurrency)}</div>
           </div>
         )}
       </div>
@@ -825,10 +843,13 @@ function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
           <div key={cat.key}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
               <span>{cat.label}</span>
-              <span style={{ color: cat.color, fontFamily: "'DM Mono', monospace", fontWeight: 600 }}>{expFmt(cat.total)} <span style={{ color: "#5e5e7a" }}>({((cat.total / total) * 100).toFixed(0)}%)</span></span>
+              <span style={{ color: cat.color, fontFamily: "'DM Mono', monospace", fontWeight: 600 }}>
+                {fmtMulti(cat.byCurrency)}
+                {singleCurrency && <span style={{ color: "#5e5e7a" }}> ({((cat.rawTotal / grandTotal) * 100).toFixed(0)}%)</span>}
+              </span>
             </div>
             <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${(cat.total / total) * 100}%`, background: cat.color, borderRadius: 4 }} />
+              <div style={{ height: "100%", width: `${(cat.rawTotal / grandTotal) * 100}%`, background: cat.color, borderRadius: 4 }} />
             </div>
           </div>
         ))}
@@ -1096,8 +1117,8 @@ function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate }: {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {months.map(month => {
         const monthExpenses = grouped[month];
-        const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
-        const workTotal = monthExpenses.filter(e => e.tags?.includes("work") || e.is_work_related).reduce((s, e) => s + e.amount, 0);
+        const monthTotalByCurrency = sumByCurrency(monthExpenses);
+        const workByCurrency = sumByCurrency(monthExpenses.filter(e => e.tags?.includes("work") || e.is_work_related));
         const date = new Date(month + '-01');
         const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -1106,13 +1127,13 @@ function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate }: {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{monthLabel}</div>
               <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                {workTotal > 0 && (
+                {Object.keys(workByCurrency).length > 0 && (
                   <span style={{ color: "#6366f1", fontSize: 12, fontWeight: 600 }}>
-                    💼 Work: {expFmt(workTotal)}
+                    💼 Work: {fmtMulti(workByCurrency)}
                   </span>
                 )}
                 <span style={{ fontFamily: "'DM Mono', monospace", color: "#f97316", fontWeight: 700 }}>
-                  {expFmt(total)}
+                  {fmtMulti(monthTotalByCurrency)}
                 </span>
               </div>
             </div>
