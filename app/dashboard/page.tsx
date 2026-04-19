@@ -733,6 +733,12 @@ const EXP_CATEGORIES = [
 ];
 
 const CURRENCIES = ["USD", "EUR", "GBP", "CNY", "JPY", "AUD", "CAD", "SGD", "HKD", "CHF", "KRW", "INR", "MXN", "BRL", "NZD", "THB", "SEK", "NOK", "DKK", "ZAR"];
+const CURRENCY_FLAGS: Record<string, string> = {
+  USD: "🇺🇸", EUR: "🇪🇺", GBP: "🇬🇧", CNY: "🇨🇳", JPY: "🇯🇵",
+  AUD: "🇦🇺", CAD: "🇨🇦", SGD: "🇸🇬", HKD: "🇭🇰", CHF: "🇨🇭",
+  KRW: "🇰🇷", INR: "🇮🇳", MXN: "🇲🇽", BRL: "🇧🇷", NZD: "🇳🇿",
+  THB: "🇹🇭", SEK: "🇸🇪", NOK: "🇳🇴", DKK: "🇩🇰", ZAR: "🇿🇦",
+};
 const PREDEFINED_TAGS = ["work", "reimbursable"];
 
 type ExpenseRecord = {
@@ -752,30 +758,31 @@ const expFmt = (n: number, currency = "USD") => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
 };
 
+function keywordCategory(desc: string): string | null {
+  const d = desc.toLowerCase();
+  if (/dine|dining|restaurant|cafe|coffee|lunch|dinner|breakfast|meal|grocery|groceries|pizza|burger|sushi|ramen|noodle|steak|bbq|dessert|smoothie|boba|buffet|eatery|bistro|takeout|takeaway|doordash|grubhub|ubereats|food|snack|brunch|bar|pub|eat/.test(d)) return "food";
+  if (/uber|lyft|taxi|cab|gas|fuel|petrol|parking|metro|bus|train|subway|tram|ferry|flight|airline|airfare|airport|toll|transit|commute|grab|gojek|bolt|mrt|bts/.test(d)) return "transport";
+  if (/rent|mortgage|electricity|water bill|power bill|internet|wifi|cable|maintenance|repair|plumber|electrician|furniture|home depot|ikea|landlord/.test(d)) return "housing";
+  if (/netflix|spotify|hulu|disney|amazon prime|apple tv|youtube premium|subscription|membership|saas/.test(d)) return "subscriptions";
+  if (/doctor|dentist|pharmacy|medicine|hospital|clinic|medical|prescription|therapy|therapist|dental|vision|optometrist|gym|fitness/.test(d)) return "healthcare";
+  if (/movie|cinema|concert|ticket|show|museum|event|sports|gaming|game|streaming/.test(d)) return "entertainment";
+  if (/amazon|shop|shopping|clothes|clothing|shoe|fashion|dress|pants|shirt|jacket|accessory|mall|store/.test(d)) return "shopping";
+  if (/work|office|client|business|conference|coworking|supplies/.test(d)) return "work";
+  return null;
+}
+
 async function aiCategorize(description: string): Promise<{ category: string; tags: string[] }> {
+  const keyword = keywordCategory(description);
+  if (keyword) return { category: keyword, tags: [] };
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/api/categorize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 100,
-        messages: [{
-          role: "user",
-          content: `Categorize this expense. Respond ONLY with valid JSON, no markdown:
-Description: "${description}"
-Categories: food, transport, housing, subscriptions, healthcare, entertainment, shopping, work, other
-Format: {"category": "food", "tags": ["lunch"]}
-Rules: tags = 1-2 short descriptive tags. Pick the most specific category.`
-        }]
-      })
+      body: JSON.stringify({ description }),
     });
-    const data = await response.json();
-    const text = data.content[0].text.trim();
-    return JSON.parse(text);
-  } catch {
-    return { category: "other", tags: [] };
-  }
+    if (res.ok) return await res.json();
+  } catch { /* fall through */ }
+  return { category: "other", tags: [] };
 }
 
 function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
@@ -889,7 +896,6 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
       setDescription("");
       setCategory(lastUsedCategory);
       setTags([]);
-      setDate(new Date().toISOString().split('T')[0]);
       amountRef.current?.focus();
     }
     setSaving(false);
@@ -988,7 +994,7 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
               <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Currency</div>
               <select value={currency} onChange={e => setCurrency(e.target.value)}
                 style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
-                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_FLAGS[c]} {c}</option>)}
               </select>
             </div>
           </div>
@@ -1031,10 +1037,27 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
   );
 }
 
-function ExpenseList({ expenses, onDelete, onUpdateTags }: { expenses: ExpenseRecord[]; onDelete: (id: string) => void; onUpdateTags: (id: string, tags: string[]) => void }) {
+function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate }: {
+  expenses: ExpenseRecord[];
+  onDelete: (id: string) => void;
+  onUpdateTags: (id: string, tags: string[]) => void;
+  onUpdate: (id: string, updates: Partial<ExpenseRecord>) => void;
+}) {
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null);
   const [editingTags, setEditingTags] = useState<string[]>([]);
   const [editTagInput, setEditTagInput] = useState("");
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<Partial<ExpenseRecord>>({});
+
+  const startEdit = (expense: ExpenseRecord) => {
+    setEditingExpenseId(expense.id);
+    setEditDraft({ amount: expense.amount, description: expense.description, date: expense.date, currency: expense.currency, category: expense.category });
+    setEditingTagsId(null);
+  };
+  const saveEdit = (id: string) => {
+    onUpdate(id, editDraft);
+    setEditingExpenseId(null);
+  };
 
   const startEditTags = (expense: ExpenseRecord) => {
     setEditingTagsId(expense.id);
@@ -1096,8 +1119,42 @@ function ExpenseList({ expenses, onDelete, onUpdateTags }: { expenses: ExpenseRe
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {monthExpenses.sort((a, b) => b.date.localeCompare(a.date)).map(expense => {
                 const cat = EXP_CATEGORIES.find(c => c.key === expense.category);
+                const isEditingThis = editingExpenseId === expense.id;
+                const editCat = EXP_CATEGORIES.find(c => c.key === editDraft.category);
                 return (
-                  <div key={expense.id} className="uf-card" style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div key={expense.id} className="uf-card" style={{ padding: "14px 18px" }}>
+                    {isEditingThis ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <input type="number" value={editDraft.amount ?? ""} onChange={e => setEditDraft(d => ({ ...d, amount: parseFloat(e.target.value) || 0 }))}
+                            style={{ width: 110, background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 15, fontFamily: "'DM Mono',monospace", fontWeight: 700, outline: "none" }} />
+                          <input type="text" value={editDraft.description ?? ""} onChange={e => setEditDraft(d => ({ ...d, description: e.target.value }))}
+                            placeholder="Description"
+                            style={{ flex: 1, minWidth: 140, background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+                          <input type="date" value={editDraft.date ?? ""} onChange={e => setEditDraft(d => ({ ...d, date: e.target.value }))}
+                            style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit", colorScheme: "dark" }} />
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <select value={editDraft.currency ?? "USD"} onChange={e => setEditDraft(d => ({ ...d, currency: e.target.value }))}
+                            style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "7px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
+                            {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_FLAGS[c]} {c}</option>)}
+                          </select>
+                          <select value={editDraft.category ?? ""} onChange={e => setEditDraft(d => ({ ...d, category: e.target.value }))}
+                            style={{ background: "#08080e", border: `1px solid ${editCat ? editCat.color + "55" : "#2a2a3e"}`, borderRadius: 8, padding: "7px 10px", color: editCat ? editCat.color : "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
+                            {EXP_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                          </select>
+                          <button onClick={() => saveEdit(expense.id)}
+                            style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 8, padding: "7px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                            Save
+                          </button>
+                          <button onClick={() => setEditingExpenseId(null)}
+                            style={{ background: "none", color: "#5e5e7a", border: "1px solid #2a2a3e", borderRadius: 8, padding: "7px 14px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `${cat?.color || '#6b6b85'}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
                       {cat?.label.split(' ')[0] || '📦'}
                     </div>
@@ -1153,11 +1210,19 @@ function ExpenseList({ expenses, onDelete, onUpdateTags }: { expenses: ExpenseRe
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: 15 }}>{expFmt(expense.amount, expense.currency)}</div>
-                      <button onClick={() => onDelete(expense.id)}
-                        style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 11, cursor: "pointer", marginTop: 4 }}>
-                        delete
-                      </button>
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+                        <button onClick={() => startEdit(expense)}
+                          style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 11, cursor: "pointer" }}>
+                          edit
+                        </button>
+                        <button onClick={() => onDelete(expense.id)}
+                          style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 11, cursor: "pointer" }}>
+                          delete
+                        </button>
+                      </div>
                     </div>
+                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -1208,6 +1273,11 @@ function ExpensesTab() {
     setExpensesList(prev => prev.map(e => e.id === id ? { ...e, tags } : e));
   };
 
+  const handleUpdate = async (id: string, updates: Partial<ExpenseRecord>) => {
+    await supabase.from('expenses').update(updates).eq('id', id);
+    setExpensesList(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+  };
+
   if (loading) {
     return <div style={{ textAlign: "center", padding: "60px 0", color: "#5e5e7a" }}>Loading expenses...</div>;
   }
@@ -1216,7 +1286,7 @@ function ExpensesTab() {
     <>
       <MonthlySummary expenses={expensesList} />
       <AddExpenseForm onAdd={handleAdd} />
-      <ExpenseList expenses={expensesList} onDelete={handleDelete} onUpdateTags={handleUpdateTags} />
+      <ExpenseList expenses={expensesList} onDelete={handleDelete} onUpdateTags={handleUpdateTags} onUpdate={handleUpdate} />
     </>
   );
 }
