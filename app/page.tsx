@@ -1366,14 +1366,19 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
   onNext: (state: FireUserState) => void;
   onBack: () => void;
 }) {
-  const initialIncome = initialState && typeof initialState.income === "number" ? initialState.income : 7500;
-  const [age, setAge] = useState(initialState?.age ?? 30);
+  const initialIncome = initialState && typeof initialState.income === "number" ? initialState.income : 0;
+  const [age, setAge] = useState<number | "">(initialState?.age ?? "");
   const [income, setIncome] = useState(initialIncome);
-  const [expenses, setExpenses] = useState(initialState?.expenses ?? 4000);
+  const [expenses, setExpenses] = useState<number | "">(initialState?.expenses ?? "");
 
-  const derivedSavings = Math.max(0, income - expenses);
-  const preview = estimateAdvancedState(age, income, expenses, derivedSavings, 0);
-  const savingsRate = income > 0 ? Math.round((derivedSavings / income) * 100) : 0;
+  const incomeNum  = typeof income  === "number" ? income  : 0;
+  const expenseNum = typeof expenses === "number" ? expenses : 0;
+  const ageNum     = typeof age     === "number" ? age     : 30;
+
+  const derivedSavings = Math.max(0, incomeNum - expenseNum);
+  const preview = estimateAdvancedState(ageNum, incomeNum, expenseNum, derivedSavings, 0);
+  const savingsRate = incomeNum > 0 ? Math.round((derivedSavings / incomeNum) * 100) : 0;
+  const canSubmit = incomeNum > 0;
 
   return (
     <div className="uf-screen">
@@ -1384,16 +1389,35 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
         <div>
           <label className="uf-label">Current age</label>
           <div className="uf-prefixed-input">
-            <input type="number" className="uf-input uf-input-mono" value={age} onChange={e => setAge(Math.max(1, parseInt(e.target.value) || 1))} />
+            <input
+              type="number"
+              className="uf-input uf-input-mono"
+              value={age}
+              placeholder="30"
+              onChange={e => {
+                const v = parseInt(e.target.value);
+                setAge(isNaN(v) ? "" : v);
+              }}
+            />
           </div>
         </div>
 
         <div>
-          <label className="uf-label">Monthly income</label>
+          <label className="uf-label">Monthly income <span style={{ color: "#ef4444" }}>*</span></label>
           <div className="uf-big-input-wrap">
             <div className="uf-prefixed-input">
               <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={income} min={0} onChange={e => setIncome(Math.max(0, parseInt(e.target.value) || 0))} />
+              <input
+                type="number"
+                className="uf-input uf-input-mono uf-input-big uf-input-with-prefix"
+                value={income}
+                placeholder="5000"
+                min={0}
+                onChange={e => {
+                  const v = parseInt(e.target.value);
+                  setIncome(isNaN(v) ? "" : Math.max(0, v));
+                }}
+              />
             </div>
             <span className="uf-unit">/month</span>
           </div>
@@ -1404,7 +1428,17 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
           <div className="uf-big-input-wrap">
             <div className="uf-prefixed-input">
               <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={expenses} min={0} onChange={e => setExpenses(Math.max(0, parseInt(e.target.value) || 0))} />
+              <input
+                type="number"
+                className="uf-input uf-input-mono uf-input-big uf-input-with-prefix"
+                value={expenses}
+                placeholder="3000"
+                min={0}
+                onChange={e => {
+                  const v = parseInt(e.target.value);
+                  setExpenses(isNaN(v) ? "" : Math.max(0, v));
+                }}
+              />
             </div>
             <span className="uf-unit">/month</span>
           </div>
@@ -1419,11 +1453,11 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
             <div className="uf-stat-lab">Savings rate</div>
           </div>
           <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(preview.fireNumber)}</div>
+            <div className="uf-stat-val">{incomeNum > 0 ? fmtUSD(preview.fireNumber) : "—"}</div>
             <div className="uf-stat-lab">FIRE target</div>
           </div>
           <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(derivedSavings)}/mo</div>
+            <div className="uf-stat-val">{incomeNum > 0 ? `${fmtUSD(derivedSavings)}/mo` : "—"}</div>
             <div className="uf-stat-lab">Savings / mo</div>
           </div>
         </div>
@@ -1431,7 +1465,12 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
 
       <div className="uf-nav-row">
         <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(preview)}>
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ flex: 1 }}
+          disabled={!canSubmit}
+          onClick={() => onNext(preview)}
+        >
           See my FIRE number →
         </button>
       </div>
@@ -1989,7 +2028,7 @@ export default function Home() {
         {screen === "advanced" && (
           <AdvancedPathScreen
             initialState={fireState}
-            onNext={(nextState) => { setFireState(nextState); void completeOnboardingWith(nextState); }}
+            onNext={(nextState) => { void completeOnboardingWith(nextState); }}
             onBack={() => setScreen("hero")}
           />
         )}
