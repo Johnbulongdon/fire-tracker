@@ -940,10 +940,9 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
       </div>
 
       {/* ── Date row (always visible) ── */}
-      <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ color: "#3a3a5a", fontSize: 12 }}>📅</span>
+      <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 12, outline: "none", fontFamily: "inherit", cursor: "pointer" }} />
+          style={{ background: "#12121e", border: "1px solid #2a2a3e", borderRadius: 8, color: "#a0a0c0", fontSize: 13, outline: "none", fontFamily: "inherit", cursor: "pointer", padding: "5px 10px", colorScheme: "dark" }} />
       </div>
 
       {/* ── Status line ── */}
