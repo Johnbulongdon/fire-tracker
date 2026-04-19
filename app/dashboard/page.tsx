@@ -732,7 +732,7 @@ const EXP_CATEGORIES = [
   { key: "other", label: "📦 Other", color: "#6b6b85" },
 ];
 
-const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "HKD"];
+const CURRENCIES = ["USD", "EUR", "GBP", "CNY", "JPY", "AUD", "CAD", "SGD", "HKD", "CHF", "KRW", "INR", "MXN", "BRL", "NZD", "THB", "SEK", "NOK", "DKK", "ZAR"];
 const PREDEFINED_TAGS = ["work", "reimbursable"];
 
 type ExpenseRecord = {
@@ -839,6 +839,7 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
   const [currency, setCurrency] = useState("USD");
   const [category, setCategory] = useState(lastUsedCategory);
   const [tags, setTags] = useState<string[]>([]);
+  const [customTagInput, setCustomTagInput] = useState("");
   const [categorizing, setCategorizing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -938,6 +939,13 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
         </button>
       </div>
 
+      {/* ── Date row (always visible) ── */}
+      <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ color: "#3a3a5a", fontSize: 12 }}>📅</span>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 12, outline: "none", fontFamily: "inherit", cursor: "pointer" }} />
+      </div>
+
       {/* ── Status line ── */}
       {(categorizing || category || tags.length > 0) && (
         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -968,12 +976,7 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
       {/* ── Expanded options ── */}
       {expanded && (
         <div style={{ marginTop: 12, paddingTop: 14, borderTop: "1px solid #1c1c2e", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <div>
-              <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Date</div>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Category</div>
               <select value={category} onChange={e => setCategory(e.target.value)}
@@ -992,13 +995,35 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
           </div>
           <div>
             <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Tags</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               {PREDEFINED_TAGS.map(tag => (
                 <button key={tag} onClick={() => toggleTag(tag)}
                   style={{ background: tags.includes(tag) ? (tag === "work" ? "rgba(99,102,241,0.2)" : "rgba(249,115,22,0.2)") : "#08080e", color: tags.includes(tag) ? (tag === "work" ? "#6366f1" : "#f97316") : "#5e5e7a", border: `1px solid ${tags.includes(tag) ? (tag === "work" ? "rgba(99,102,241,0.5)" : "rgba(249,115,22,0.5)") : "#1c1c2e"}`, borderRadius: 8, padding: "5px 14px", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
                   {tag === "work" ? "💼 work" : `#${tag}`}
                 </button>
               ))}
+              {tags.filter(t => !PREDEFINED_TAGS.includes(t)).map(t => (
+                <span key={t} style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(99,102,241,0.15)", color: "#8b8cf8", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 8, padding: "5px 10px", fontSize: 13 }}>
+                  #{t}
+                  <button onClick={() => setTags(prev => prev.filter(x => x !== t))}
+                    style={{ background: "none", border: "none", color: "#8b8cf8", cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1 }}>×</button>
+                </span>
+              ))}
+              <input
+                type="text"
+                placeholder="+ tag"
+                value={customTagInput}
+                onChange={e => setCustomTagInput(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && customTagInput.trim()) {
+                    e.preventDefault();
+                    const t = customTagInput.trim();
+                    if (!tags.includes(t)) setTags(prev => [...prev, t]);
+                    setCustomTagInput("");
+                  }
+                }}
+                style={{ background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "5px 12px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit", width: 110 }}
+              />
             </div>
           </div>
         </div>
@@ -1007,7 +1032,25 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
   );
 }
 
-function ExpenseList({ expenses, onDelete }: { expenses: ExpenseRecord[]; onDelete: (id: string) => void }) {
+function ExpenseList({ expenses, onDelete, onUpdateTags }: { expenses: ExpenseRecord[]; onDelete: (id: string) => void; onUpdateTags: (id: string, tags: string[]) => void }) {
+  const [editingTagsId, setEditingTagsId] = useState<string | null>(null);
+  const [editingTags, setEditingTags] = useState<string[]>([]);
+  const [editTagInput, setEditTagInput] = useState("");
+
+  const startEditTags = (expense: ExpenseRecord) => {
+    setEditingTagsId(expense.id);
+    setEditingTags([...(expense.tags ?? [])]);
+    setEditTagInput("");
+  };
+
+  const saveEditTags = (id: string) => {
+    onUpdateTags(id, editingTags);
+    setEditingTagsId(null);
+  };
+
+  const toggleEditTag = (tag: string) =>
+    setEditingTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+
   const grouped = expenses.reduce((acc, e) => {
     const month = e.date.slice(0, 7);
     if (!acc[month]) acc[month] = [];
@@ -1061,11 +1104,53 @@ function ExpenseList({ expenses, onDelete }: { expenses: ExpenseRecord[]; onDele
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{expense.description}</div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                        <span style={{ color: cat?.color || '#6b6b85', fontSize: 11, fontWeight: 600 }}>{cat?.label || expense.category}</span>
-                        {expense.tags?.map(t => <span key={t} style={{ background: t === "work" ? "rgba(99,102,241,0.15)" : "rgba(249,115,22,0.1)", color: t === "work" ? "#6366f1" : "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>{t === "work" ? "💼 work" : `#${t}`}</span>)}
-                        <span style={{ color: "#5e5e7a", fontSize: 11 }}>{new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      </div>
+                      {editingTagsId === expense.id ? (
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
+                          {PREDEFINED_TAGS.map(tag => (
+                            <button key={tag} onClick={() => toggleEditTag(tag)}
+                              style={{ background: editingTags.includes(tag) ? (tag === "work" ? "rgba(99,102,241,0.2)" : "rgba(249,115,22,0.2)") : "#08080e", color: editingTags.includes(tag) ? (tag === "work" ? "#6366f1" : "#f97316") : "#5e5e7a", border: `1px solid ${editingTags.includes(tag) ? (tag === "work" ? "rgba(99,102,241,0.5)" : "rgba(249,115,22,0.5)") : "#1c1c2e"}`, borderRadius: 6, padding: "3px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                              {tag === "work" ? "💼 work" : `#${tag}`}
+                            </button>
+                          ))}
+                          {editingTags.filter(t => !PREDEFINED_TAGS.includes(t)).map(t => (
+                            <span key={t} style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(99,102,241,0.15)", color: "#8b8cf8", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 6, padding: "3px 8px", fontSize: 12 }}>
+                              #{t}
+                              <button onClick={() => setEditingTags(prev => prev.filter(x => x !== t))}
+                                style={{ background: "none", border: "none", color: "#8b8cf8", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                            </span>
+                          ))}
+                          <input
+                            type="text"
+                            placeholder="+ tag"
+                            value={editTagInput}
+                            onChange={e => setEditTagInput(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                            onKeyDown={e => {
+                              if (e.key === "Enter" && editTagInput.trim()) {
+                                e.preventDefault();
+                                const t = editTagInput.trim();
+                                if (!editingTags.includes(t)) setEditingTags(prev => [...prev, t]);
+                                setEditTagInput("");
+                              }
+                            }}
+                            style={{ background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 6, padding: "3px 10px", color: "#e8e8f2", fontSize: 12, outline: "none", fontFamily: "inherit", width: 90 }}
+                          />
+                          <button onClick={() => saveEditTags(expense.id)}
+                            style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 6, padding: "3px 12px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>
+                            Done
+                          </button>
+                          <button onClick={() => setEditingTagsId(null)}
+                            style={{ background: "none", color: "#5e5e7a", border: "none", fontSize: 12, cursor: "pointer", padding: 0 }}>
+                            cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", cursor: "pointer" }} onClick={() => startEditTags(expense)}>
+                          <span style={{ color: cat?.color || '#6b6b85', fontSize: 11, fontWeight: 600 }}>{cat?.label || expense.category}</span>
+                          {expense.tags?.map(t => <span key={t} style={{ background: t === "work" ? "rgba(99,102,241,0.15)" : "rgba(249,115,22,0.1)", color: t === "work" ? "#6366f1" : "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>{t === "work" ? "💼 work" : `#${t}`}</span>)}
+                          <span style={{ color: "#3a3a5a", fontSize: 11 }}>+ tags</span>
+                          <span style={{ color: "#5e5e7a", fontSize: 11 }}>{new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: 15 }}>{expFmt(expense.amount, expense.currency)}</div>
@@ -1119,6 +1204,11 @@ function ExpensesTab() {
     setExpensesList(prev => prev.filter(e => e.id !== id));
   };
 
+  const handleUpdateTags = async (id: string, tags: string[]) => {
+    await supabase.from('expenses').update({ tags }).eq('id', id);
+    setExpensesList(prev => prev.map(e => e.id === id ? { ...e, tags } : e));
+  };
+
   if (loading) {
     return <div style={{ textAlign: "center", padding: "60px 0", color: "#5e5e7a" }}>Loading expenses...</div>;
   }
@@ -1127,7 +1217,7 @@ function ExpensesTab() {
     <>
       <MonthlySummary expenses={expensesList} />
       <AddExpenseForm onAdd={handleAdd} />
-      <ExpenseList expenses={expensesList} onDelete={handleDelete} />
+      <ExpenseList expenses={expensesList} onDelete={handleDelete} onUpdateTags={handleUpdateTags} />
     </>
   );
 }
