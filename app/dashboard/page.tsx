@@ -733,6 +733,7 @@ const EXP_CATEGORIES = [
 ];
 
 const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "HKD"];
+const PREDEFINED_TAGS = ["work", "reimbursable"];
 
 type ExpenseRecord = {
   id: string;
@@ -742,35 +743,30 @@ type ExpenseRecord = {
   description: string;
   category: string;
   tags: string[];
-  is_work_related: boolean;
+  is_work_related?: boolean; // legacy — migrated into tags["work"] on load
 };
+
+let lastUsedCategory = "";
 
 const expFmt = (n: number, currency = "USD") => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
 };
 
-async function aiCategorize(description: string): Promise<{ category: string; tags: string[]; is_work_related: boolean }> {
+async function aiCategorize(description: string): Promise<{ category: string; tags: string[] }> {
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 200,
+        max_tokens: 100,
         messages: [{
           role: "user",
-          content: `Categorize this expense and respond ONLY with valid JSON, no markdown, no explanation:
+          content: `Categorize this expense. Respond ONLY with valid JSON, no markdown:
 Description: "${description}"
-
 Categories: food, transport, housing, subscriptions, healthcare, entertainment, shopping, work, other
-
-Respond with exactly this JSON format:
-{"category": "food", "tags": ["lunch", "restaurant"], "is_work_related": false}
-
-Rules:
-- tags: 1-3 short descriptive tags
-- is_work_related: true if this could be a work expense (lunch on weekday, commute, office supplies, etc)
-- Pick the most specific category`
+Format: {"category": "food", "tags": ["lunch"]}
+Rules: tags = 1-2 short descriptive tags. Pick the most specific category.`
         }]
       })
     });
@@ -778,7 +774,7 @@ Rules:
     const text = data.content[0].text.trim();
     return JSON.parse(text);
   } catch {
-    return { category: "other", tags: [], is_work_related: false };
+    return { category: "other", tags: [] };
   }
 }
 
@@ -787,7 +783,7 @@ function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthExpenses = expenses.filter(e => e.date.startsWith(thisMonth));
   const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
-  const workTotal = monthExpenses.filter(e => e.is_work_related).reduce((s, e) => s + e.amount, 0);
+  const workTotal = monthExpenses.filter(e => e.tags?.includes("work") || e.is_work_related).reduce((s, e) => s + e.amount, 0);
 
   const byCat = EXP_CATEGORIES.map(cat => ({
     ...cat,
@@ -835,132 +831,178 @@ function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
 }
 
 function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const amountRef = useRef<HTMLInputElement>(null);
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [currency, setCurrency] = useState("USD");
+  const [category, setCategory] = useState(lastUsedCategory);
   const [tags, setTags] = useState<string[]>([]);
-  const [isWorkRelated, setIsWorkRelated] = useState(false);
   const [categorizing, setCategorizing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [aiUsed, setAiUsed] = useState(false);
+
+  useEffect(() => { amountRef.current?.focus(); }, []);
 
   const handleDescriptionBlur = async () => {
     if (!description || category) return;
     setCategorizing(true);
     const result = await aiCategorize(description);
     setCategory(result.category);
-    setTags(result.tags);
-    setIsWorkRelated(result.is_work_related);
-    setAiUsed(true);
+    if (tags.length === 0) setTags(result.tags);
     setCategorizing(false);
   };
 
   const handleSubmit = async () => {
-    if (!date || !amount || !description) return;
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0) return;
     setSaving(true);
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) { setSaving(false); return; }
 
     let finalCategory = category;
-    let finalTags = tags;
-    let finalWorkRelated = isWorkRelated;
+    let finalTags = [...tags];
 
-    if (!finalCategory) {
+    if (!finalCategory && description) {
       const result = await aiCategorize(description);
       finalCategory = result.category;
-      finalTags = result.tags;
-      finalWorkRelated = result.is_work_related;
+      if (finalTags.length === 0) finalTags = result.tags;
     }
+    if (!finalCategory) finalCategory = "other";
 
     const { data, error } = await supabase.from('expenses').insert({
       user_id: session.user.id,
       date,
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       currency,
-      description,
+      description: description || "",
       category: finalCategory,
       tags: finalTags,
-      is_work_related: finalWorkRelated,
     }).select().single();
 
     if (!error && data) {
-      onAdd(data);
+      lastUsedCategory = finalCategory;
+      onAdd({ ...data, tags: data.tags ?? [] });
       setAmount("");
       setDescription("");
-      setCategory("");
+      setCategory(lastUsedCategory);
       setTags([]);
-      setIsWorkRelated(false);
-      setAiUsed(false);
+      setDate(new Date().toISOString().split('T')[0]);
+      amountRef.current?.focus();
     }
     setSaving(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") { e.preventDefault(); void handleSubmit(); }
+  };
+
+  const toggleTag = (tag: string) =>
+    setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+
   const catInfo = EXP_CATEGORIES.find(c => c.key === category);
+  const canSubmit = !!amount && parseFloat(amount) > 0;
 
   return (
     <div className="uf-card" style={{ marginBottom: 24 }}>
-      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>➕ Add Expense</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Date</div>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+      {/* ── Primary row ── */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ position: "relative", width: 148, flexShrink: 0 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#5e5e7a", fontSize: 16, pointerEvents: "none" }}>$</span>
+          <input
+            ref={amountRef}
+            type="number"
+            placeholder="0.00"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            onKeyDown={handleKeyDown}
+            style={{ width: "100%", background: "#08080e", border: `1px solid ${canSubmit ? "#2a2a3e" : "#1c1c2e"}`, borderRadius: 10, padding: "12px 12px 12px 28px", color: "#e8e8f2", fontSize: 18, fontFamily: "'DM Mono', monospace", fontWeight: 700, outline: "none" }}
+          />
         </div>
-        <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Amount</div>
-          <input type="number" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }} />
-        </div>
-        <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Currency</div>
-          <select value={currency} onChange={e => setCurrency(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
-            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>
-          Description
-          {categorizing && <span style={{ color: "#f97316", marginLeft: 8, fontSize: 11 }}>✨ AI categorizing...</span>}
-          {aiUsed && !categorizing && <span style={{ color: "#22d3a5", marginLeft: 8, fontSize: 11 }}>✨ AI categorized</span>}
-        </div>
-        <input type="text" placeholder="e.g. Starbucks latte, Uber to office, Netflix..."
-          value={description} onChange={e => { setDescription(e.target.value); setAiUsed(false); setCategory(""); }}
+        <input
+          type="text"
+          placeholder="What for? (optional)"
+          value={description}
+          onChange={e => { setDescription(e.target.value); if (category === lastUsedCategory) setCategory(""); }}
           onBlur={handleDescriptionBlur}
-          style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "10px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-        <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Category</div>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: `1px solid ${catInfo ? catInfo.color + '66' : '#1c1c2e'}`, borderRadius: 8, padding: "8px 12px", color: catInfo ? catInfo.color : "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
-            <option value="">Select category...</option>
-            {EXP_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Tags</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minHeight: 38, alignItems: "center", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "6px 12px" }}>
-            {tags.length === 0 ? <span style={{ color: "#5e5e7a", fontSize: 13 }}>AI will suggest tags</span> :
-              tags.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.15)", color: "#f97316", borderRadius: 4, padding: "2px 8px", fontSize: 12 }}>#{t}</span>)}
-          </div>
-        </div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#5e5e7a" }}>
-          <input type="checkbox" checked={isWorkRelated} onChange={e => setIsWorkRelated(e.target.checked)}
-            style={{ accentColor: "#6366f1" }} />
-          💼 Work expense
-        </label>
-        <button onClick={handleSubmit} disabled={saving || !amount || !description}
-          style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", opacity: saving || !amount || !description ? 0.5 : 1 }}>
-          {saving ? "Saving..." : "Add expense →"}
+          onKeyDown={handleKeyDown}
+          style={{ flex: 1, background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 10, padding: "12px 14px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+        />
+        <button
+          onClick={() => void handleSubmit()}
+          disabled={saving || !canSubmit}
+          style={{ background: canSubmit ? "#f97316" : "#1c1c2e", color: canSubmit ? "#fff" : "#3a3a5a", border: "none", borderRadius: 10, padding: "12px 22px", fontSize: 14, fontWeight: 700, cursor: canSubmit ? "pointer" : "default", fontFamily: "'Syne', sans-serif", transition: "all 0.15s", flexShrink: 0 }}
+        >
+          {saving ? "…" : "Add →"}
         </button>
       </div>
+
+      {/* ── Status line ── */}
+      {(categorizing || category || tags.length > 0) && (
+        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {categorizing && <span style={{ fontSize: 12, color: "#f97316" }}>✨ Categorizing…</span>}
+          {!categorizing && category && (
+            <span style={{ fontSize: 12, color: catInfo?.color || "#e8e8f2", background: `${catInfo?.color || "#e8e8f2"}18`, borderRadius: 6, padding: "2px 10px" }}>
+              {catInfo?.label || category}
+            </span>
+          )}
+          {tags.map(t => (
+            <span key={t} style={{ fontSize: 12, color: t === "work" ? "#6366f1" : "#f97316", background: t === "work" ? "rgba(99,102,241,0.12)" : "rgba(249,115,22,0.1)", borderRadius: 6, padding: "2px 10px" }}>
+              {t === "work" ? "💼 work" : `#${t}`}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* ── More options toggle ── */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        style={{ marginTop: 10, background: "none", border: "none", color: "#3a3a5a", fontSize: 12, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4, transition: "color 0.15s" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "#5e5e7a")}
+        onMouseLeave={e => (e.currentTarget.style.color = "#3a3a5a")}
+      >
+        {expanded ? "▲" : "▼"} More options
+      </button>
+
+      {/* ── Expanded options ── */}
+      {expanded && (
+        <div style={{ marginTop: 12, paddingTop: 14, borderTop: "1px solid #1c1c2e", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div>
+              <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Date</div>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+            </div>
+            <div>
+              <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Category</div>
+              <select value={category} onChange={e => setCategory(e.target.value)}
+                style={{ width: "100%", background: "#08080e", border: `1px solid ${catInfo ? catInfo.color + "44" : "#1c1c2e"}`, borderRadius: 8, padding: "8px 10px", color: catInfo ? catInfo.color : "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
+                <option value="">Auto-detect</option>
+                {EXP_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Currency</div>
+              <select value={currency} onChange={e => setCurrency(e.target.value)}
+                style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
+                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Tags</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {PREDEFINED_TAGS.map(tag => (
+                <button key={tag} onClick={() => toggleTag(tag)}
+                  style={{ background: tags.includes(tag) ? (tag === "work" ? "rgba(99,102,241,0.2)" : "rgba(249,115,22,0.2)") : "#08080e", color: tags.includes(tag) ? (tag === "work" ? "#6366f1" : "#f97316") : "#5e5e7a", border: `1px solid ${tags.includes(tag) ? (tag === "work" ? "rgba(99,102,241,0.5)" : "rgba(249,115,22,0.5)") : "#1c1c2e"}`, borderRadius: 8, padding: "5px 14px", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                  {tag === "work" ? "💼 work" : `#${tag}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -990,7 +1032,7 @@ function ExpenseList({ expenses, onDelete }: { expenses: ExpenseRecord[]; onDele
       {months.map(month => {
         const monthExpenses = grouped[month];
         const total = monthExpenses.reduce((s, e) => s + e.amount, 0);
-        const workTotal = monthExpenses.filter(e => e.is_work_related).reduce((s, e) => s + e.amount, 0);
+        const workTotal = monthExpenses.filter(e => e.tags?.includes("work") || e.is_work_related).reduce((s, e) => s + e.amount, 0);
         const date = new Date(month + '-01');
         const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -1021,8 +1063,7 @@ function ExpenseList({ expenses, onDelete }: { expenses: ExpenseRecord[]; onDele
                       <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{expense.description}</div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <span style={{ color: cat?.color || '#6b6b85', fontSize: 11, fontWeight: 600 }}>{cat?.label || expense.category}</span>
-                        {expense.is_work_related && <span style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>💼 work</span>}
-                        {expense.tags?.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>#{t}</span>)}
+                        {expense.tags?.map(t => <span key={t} style={{ background: t === "work" ? "rgba(99,102,241,0.15)" : "rgba(249,115,22,0.1)", color: t === "work" ? "#6366f1" : "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>{t === "work" ? "💼 work" : `#${t}`}</span>)}
                         <span style={{ color: "#5e5e7a", fontSize: 11 }}>{new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
                     </div>
@@ -1054,7 +1095,16 @@ function ExpensesTab() {
       supabase.from('expenses').select('*').eq('user_id', session.user.id)
         .order('date', { ascending: false })
         .then(({ data }) => {
-          if (data) setExpensesList(data);
+          if (data) {
+            // Migrate legacy is_work_related into tags["work"]
+            const migrated = data.map((e: ExpenseRecord) => {
+              if (e.is_work_related && !(e.tags ?? []).includes("work")) {
+                return { ...e, tags: [...(e.tags ?? []), "work"] };
+              }
+              return { ...e, tags: e.tags ?? [] };
+            });
+            setExpensesList(migrated);
+          }
           setLoading(false);
         });
     });
