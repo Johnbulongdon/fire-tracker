@@ -12,6 +12,7 @@ import {
   type UntilFireInputs,
 } from "@/lib/local-inputs";
 import Link from "next/link";
+import { loadPrefs, savePrefs } from "@/lib/preferences";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Legend, ReferenceLine,
@@ -19,7 +20,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
-type TabKey = "dashboard" | "budget" | "fire" | "expenses";
+type TabKey = "dashboard" | "budget" | "fire" | "expenses" | "settings";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -771,6 +772,16 @@ function fmtMulti(byCurrency: Record<string, number>): string {
   return entries.map(([c, n]) => expFmt(n, c)).join(" · ");
 }
 
+function convertToDisplay(byCurrency: Record<string, number>, displayCurrency: string, rates: Record<string, number>): number | null {
+  if (!rates[displayCurrency]) return null;
+  let total = 0;
+  for (const [cur, amount] of Object.entries(byCurrency)) {
+    if (!rates[cur]) return null;
+    total += (amount / rates[cur]) * rates[displayCurrency];
+  }
+  return total;
+}
+
 function keywordCategory(desc: string): string | null {
   const d = desc.toLowerCase();
   if (/dine|dining|restaurant|cafe|coffee|lunch|dinner|breakfast|meal|grocery|groceries|pizza|burger|sushi|ramen|noodle|steak|bbq|dessert|smoothie|boba|buffet|eatery|bistro|takeout|takeaway|doordash|grubhub|ubereats|food|snack|brunch|bar|pub|eat/.test(d)) return "food";
@@ -798,7 +809,11 @@ async function aiCategorize(description: string): Promise<{ category: string; ta
   return { category: "other", tags: [] };
 }
 
-function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
+function MonthlySummary({ expenses, displayCurrency, rates }: {
+  expenses: ExpenseRecord[];
+  displayCurrency?: string;
+  rates?: Record<string, number>;
+}) {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthExpenses = expenses.filter(e => e.date.startsWith(thisMonth));
@@ -825,7 +840,9 @@ function MonthlySummary({ expenses }: { expenses: ExpenseRecord[] }) {
       <div style={{ display: "grid", gridTemplateColumns: hasWork ? "1fr 1fr 1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
         <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
           <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Spent</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, color: "#ef4444", fontSize: singleCurrency ? 24 : 16, lineHeight: 1.4 }}>{fmtMulti(totalByCurrency)}</div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, color: "#ef4444", fontSize: 24, lineHeight: 1.4 }}>
+            {displayCurrency && rates ? (() => { const c = convertToDisplay(totalByCurrency, displayCurrency, rates); return c !== null ? `≈ ${expFmt(c, displayCurrency)}` : fmtMulti(totalByCurrency); })() : fmtMulti(totalByCurrency)}
+          </div>
         </div>
         <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
           <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Transactions</div>
@@ -1058,11 +1075,13 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
   );
 }
 
-function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate }: {
+function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate, displayCurrency, rates }: {
   expenses: ExpenseRecord[];
   onDelete: (id: string) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
   onUpdate: (id: string, updates: Partial<ExpenseRecord>) => void;
+  displayCurrency?: string;
+  rates?: Record<string, number>;
 }) {
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null);
   const [editingTags, setEditingTags] = useState<string[]>([]);
@@ -1133,7 +1152,7 @@ function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate }: {
                   </span>
                 )}
                 <span style={{ fontFamily: "'DM Mono', monospace", color: "#f97316", fontWeight: 700 }}>
-                  {fmtMulti(monthTotalByCurrency)}
+                  {displayCurrency && rates ? (() => { const c = convertToDisplay(monthTotalByCurrency, displayCurrency, rates); return c !== null ? `≈ ${expFmt(c, displayCurrency)}` : fmtMulti(monthTotalByCurrency); })() : fmtMulti(monthTotalByCurrency)}
                 </span>
               </div>
             </div>
@@ -1258,6 +1277,19 @@ function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate }: {
 function ExpensesTab() {
   const [expensesList, setExpensesList] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [displayCurrency, setDisplayCurrency] = useState("");
+  const [rates, setRates] = useState<Record<string, number> | undefined>(undefined);
+
+  useEffect(() => {
+    const prefs = loadPrefs();
+    setDisplayCurrency(prefs.preferredCurrency);
+    if (prefs.preferredCurrency) {
+      fetch("/api/exchange-rates")
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setRates(data); })
+        .catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1305,10 +1337,128 @@ function ExpensesTab() {
 
   return (
     <>
-      <MonthlySummary expenses={expensesList} />
+      <MonthlySummary expenses={expensesList} displayCurrency={displayCurrency} rates={rates} />
       <AddExpenseForm onAdd={handleAdd} />
-      <ExpenseList expenses={expensesList} onDelete={handleDelete} onUpdateTags={handleUpdateTags} onUpdate={handleUpdate} />
+      <ExpenseList expenses={expensesList} onDelete={handleDelete} onUpdateTags={handleUpdateTags} onUpdate={handleUpdate} displayCurrency={displayCurrency} rates={rates} />
     </>
+  );
+}
+
+// ─── Settings Tab ─────────────────────────────────────────────────────────────
+function SettingsTab() {
+  const [email, setEmail] = useState<string | null>(null);
+  const [savedMsg, setSavedMsg] = useState(false);
+  const [preferredCurrency, setPreferredCurrency] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setEmail(user?.email ?? null));
+    const prefs = loadPrefs();
+    setPreferredCurrency(prefs.preferredCurrency);
+  }, []);
+
+  const handleCurrencyChange = (v: string) => {
+    setPreferredCurrency(v);
+    savePrefs({ preferredCurrency: v });
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 2000);
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setDeleting(false); return; }
+    await fetch("/api/delete-account", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    // Clear localStorage
+    localStorage.removeItem("fire_user_data");
+    localStorage.removeItem("untilfire_inputs");
+    localStorage.removeItem("untilfire_prefs");
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
+  const cardStyle: React.CSSProperties = { background: "#0f0f18", border: "1px solid #1c1c2e", borderRadius: 16, padding: "24px 28px", marginBottom: 20 };
+  const labelStyle: React.CSSProperties = { fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "#5e5e7a", marginBottom: 6, fontFamily: "DM Mono, monospace" };
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <div style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: 22, marginBottom: 24 }}>Settings</div>
+
+      {/* Profile */}
+      <div style={cardStyle}>
+        <SectionLabel icon="👤" text="Profile" color="#818cf8" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div>
+            <div style={labelStyle}>Email</div>
+            <div style={{ color: "#e8e8f2", fontSize: 14, fontFamily: "DM Mono, monospace" }}>{email ?? "—"}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Sign-in method</div>
+            <div style={{ color: "#9090a8", fontSize: 14 }}>Google account</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preferences */}
+      <div style={cardStyle}>
+        <SectionLabel icon="⚙️" text="Preferences" color="#22d3a5" />
+        <div>
+          <div style={labelStyle}>Main display currency</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <select
+              value={preferredCurrency}
+              onChange={e => handleCurrencyChange(e.target.value)}
+              style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "9px 12px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit", minWidth: 200 }}
+            >
+              <option value="">Show each currency separately</option>
+              {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_FLAGS[c]} {c}</option>)}
+            </select>
+            {savedMsg && <span style={{ fontSize: 12, color: "#22d3a5" }}>Saved ✓</span>}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: "#3a3a5a" }}>
+            When set, expense totals convert to this currency using live rates.
+          </div>
+        </div>
+      </div>
+
+      {/* Account */}
+      <div style={cardStyle}>
+        <SectionLabel icon="🗑️" text="Account" color="#ef4444" />
+        {!deleteConfirm ? (
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            style={{ background: "transparent", color: "#ef4444", border: "1px solid rgba(239,68,68,0.4)", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            Delete my account
+          </button>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ color: "#ef4444", fontSize: 13, lineHeight: 1.5 }}>
+              This permanently deletes all your data. Continue?
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                style={{ background: "#ef4444", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: deleting ? "default" : "pointer", fontFamily: "inherit", opacity: deleting ? 0.7 : 1 }}
+              >
+                {deleting ? "Deleting…" : "Yes, delete everything"}
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                style={{ background: "transparent", color: "#5e5e7a", border: "1px solid #2a2a3e", borderRadius: 8, padding: "9px 14px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1347,7 +1497,7 @@ export default function Dashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab") as TabKey | null;
-    if (t && ["dashboard", "budget", "fire"].includes(t)) setTab(t);
+    if (t && ["dashboard", "budget", "fire", "expenses", "settings"].includes(t)) setTab(t);
   }, []);
 
   // ─── Helpers to apply a flat UntilFireInputs snapshot to all state setters ──
@@ -1505,6 +1655,7 @@ export default function Dashboard() {
     { key: "budget",    label: "Budget" },
     { key: "fire",      label: "FIRE Calculator" },
     { key: "expenses",  label: "Expenses" },
+    { key: "settings",  label: "Settings" },
   ];
 
   return (
@@ -1572,6 +1723,7 @@ export default function Dashboard() {
           />
         )}
         {tab === "expenses" && <ExpensesTab />}
+        {tab === "settings" && <SettingsTab />}
       </div>
     </div>
   );
