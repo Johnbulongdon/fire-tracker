@@ -1483,6 +1483,18 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
 // SCREEN — CURRENCY SELECTION
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Renders a flag emoji as a cross-platform Twemoji SVG image.
+function FlagEmoji({ emoji, size = 20 }: { emoji: string; size?: number }) {
+  const cp = [...emoji].map(c => c.codePointAt(0)!.toString(16)).join("-");
+  return (
+    <img
+      src={`https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${cp}.svg`}
+      width={size} height={size} alt={emoji}
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    />
+  );
+}
+
 const ONBOARDING_CURRENCIES = [
   { code: "USD", flag: "🇺🇸", name: "US Dollar" },
   { code: "EUR", flag: "🇪🇺", name: "Euro" },
@@ -1535,7 +1547,7 @@ function CurrencyScreen({ onNext, onBack }: { onNext: (currency: string) => void
               transition: "all 0.15s",
             }}
           >
-            <span style={{ fontSize: 28, lineHeight: 1 }}>{flag}</span>
+            <FlagEmoji emoji={flag} size={32} />
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: selected === code ? "#f97316" : "var(--text)" }}>{code}</span>
             <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{name}</span>
           </button>

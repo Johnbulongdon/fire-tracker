@@ -742,6 +742,19 @@ const CURRENCY_FLAGS: Record<string, string> = {
 };
 const PREDEFINED_TAGS = ["work", "reimbursable"];
 
+// Renders a flag emoji as a cross-platform Twemoji SVG image.
+// Unicode regional indicator flags don't render on Windows — this fixes that.
+function FlagEmoji({ emoji, size = 20 }: { emoji: string; size?: number }) {
+  const cp = [...emoji].map(c => c.codePointAt(0)!.toString(16)).join("-");
+  return (
+    <img
+      src={`https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${cp}.svg`}
+      width={size} height={size} alt={emoji}
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    />
+  );
+}
+
 type ExpenseRecord = {
   id: string;
   date: string;
@@ -810,7 +823,11 @@ async function aiCategorize(description: string): Promise<{ category: string; ta
 }
 
 // ─── Currency Select ───────────────────────────────────────────────────────────
-function CurrencySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function CurrencySelect({ value, onChange, allowEmpty }: {
+  value: string;
+  onChange: (v: string) => void;
+  allowEmpty?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -830,12 +847,21 @@ function CurrencySelect({ value, onChange }: { value: string; onChange: (v: stri
         onClick={() => setOpen(o => !o)}
         style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "7px 12px", color: "#e8e8f2", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "DM Mono, monospace" }}
       >
-        <span style={{ fontSize: 16, lineHeight: 1 }}>{CURRENCY_FLAGS[value]}</span>
-        <span>{value}</span>
+        {value ? <FlagEmoji emoji={CURRENCY_FLAGS[value]} size={18} /> : null}
+        <span>{value || "Per currency"}</span>
         <span style={{ color: "#5e5e7a", fontSize: 10 }}>▾</span>
       </button>
       {open && (
         <div style={{ position: "absolute", zIndex: 300, bottom: "calc(100% + 6px)", left: 0, background: "#0f0f18", border: "1px solid #2a2a3e", borderRadius: 12, padding: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5, width: 244 }}>
+          {allowEmpty && (
+            <button
+              type="button"
+              onClick={() => { onChange(""); setOpen(false); }}
+              style={{ gridColumn: "1 / -1", background: value === "" ? "rgba(249,115,22,0.12)" : "#08080e", border: `1px solid ${value === "" ? "#f97316" : "#1c1c2e"}`, borderRadius: 8, padding: "8px 10px", color: value === "" ? "#f97316" : "#9090a8", fontSize: 11, cursor: "pointer", fontFamily: "DM Mono, monospace", textAlign: "left" }}
+            >
+              — Show each currency separately
+            </button>
+          )}
           {CURRENCIES.map(c => (
             <button
               key={c}
@@ -843,7 +869,7 @@ function CurrencySelect({ value, onChange }: { value: string; onChange: (v: stri
               onClick={() => { onChange(c); setOpen(false); }}
               style={{ background: c === value ? "rgba(249,115,22,0.15)" : "#08080e", border: `1px solid ${c === value ? "#f97316" : "#1c1c2e"}`, borderRadius: 8, padding: "7px 4px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer", transition: "all 0.1s" }}
             >
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{CURRENCY_FLAGS[c]}</span>
+              <FlagEmoji emoji={CURRENCY_FLAGS[c]} size={22} />
               <span style={{ fontSize: 10, color: c === value ? "#f97316" : "#9090a8", fontFamily: "DM Mono, monospace" }}>{c}</span>
             </button>
           ))}
@@ -1447,14 +1473,7 @@ function SettingsTab() {
         <div>
           <div style={labelStyle}>Main display currency</div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <select
-              value={preferredCurrency}
-              onChange={e => handleCurrencyChange(e.target.value)}
-              style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "9px 12px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit", minWidth: 200 }}
-            >
-              <option value="">Show each currency separately</option>
-              {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_FLAGS[c]} {c}</option>)}
-            </select>
+            <CurrencySelect value={preferredCurrency} onChange={handleCurrencyChange} allowEmpty />
             {savedMsg && <span style={{ fontSize: 12, color: "#22d3a5" }}>Saved ✓</span>}
           </div>
           <div style={{ marginTop: 8, fontSize: 12, color: "#3a3a5a" }}>

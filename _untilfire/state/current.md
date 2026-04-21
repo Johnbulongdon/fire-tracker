@@ -1,53 +1,51 @@
 # Current State — UntilFire
-Last updated: 2026-04-17
+Last updated: 2026-04-21
 
 ## Active branch
-`claude/fix-onboarding-sync-2RxvW` → PR #7 (draft)
+`claude/fix-onboarding-sync-2RxvW` → PR #8 (draft)
 
 ## What was just done
 
-### Infrastructure cleanup (infra audit pass)
+### Settings tab + display currency + onboarding currency step + flag fix
 
-Cleaned up technical debt from Vite→Next.js migration:
+**Settings tab (dashboard):**
+- New "Settings" tab in dashboard nav (Profile, Preferences, Account sections)
+- `lib/preferences.ts` created: `untilfire_prefs` localStorage key with `preferredCurrency` + `defaultCurrency` fields
+- `app/api/exchange-rates/route.ts`: server-side proxy for live exchange rates (6h in-memory cache)
+- `app/api/delete-account/route.ts`: DELETE endpoint — wipes `expenses` + `user_budget`, client signs out
 
-**Security / debug code removed:**
-- Removed `console.log` + `window.supabaseClient` exposure from `lib/supabase.ts`
-- Deleted `/debug` route (`app/debug/page.tsx`) — was live with no auth, showed env vars
+**Display currency (Expenses tab):**
+- When `preferredCurrency` is set in Settings, expense totals in `MonthlySummary` and `ExpenseList` month headers convert and show as `≈ $X.XX USD`
+- Falls back to per-currency breakdown if unset
 
-**Dead files deleted:**
-- `next.config.ts` (duplicate of `next.config.js`)
-- `vite.config.ts`, `tsconfig.node.json`, `index.html` (Vite migration artifacts)
-- `components/` folder (7 components referencing old `user_plans` table, none imported)
+**Onboarding currency step:**
+- New `CurrencyScreen` step: hero → advanced form → **currency picker** → dashboard
+- 4-column grid of 20 flag boxes; selected currency saved as `defaultCurrency` in prefs
+- Nav dots: 3 total
+- Screen type union: `"hero" | "advanced" | "currency"`
 
-**Config fixes:**
-- `tsconfig.json`: removed `./src/*` path alias (pointed to non-existent `src/` dir)
-- `.gitignore`: added `build.log`
-- `package.json`: renamed from `fire-tracker` → `untilfire`
+**Flag emoji fix:**
+- Root cause: Unicode regional indicator flag emoji (🇺🇸) don't render on Windows in any DOM element
+- Fix: `FlagEmoji` component loads Twemoji SVG images from jsDelivr CDN (`jdecked/twemoji@15.1.0`)
+  - Defined inline in both `app/dashboard/page.tsx` and `app/page.tsx`
+  - `CurrencySelect` uses `<FlagEmoji>` for both the trigger button and grid
+  - `CurrencyScreen` uses `<FlagEmoji>` for each currency box
+  - Settings tab `<select>` replaced with `<CurrencySelect allowEmpty>` (includes "Show each separately" row)
+- `AddExpenseForm` currency defaults to `loadPrefs().defaultCurrency` (not hardcoded USD)
 
-**Dependencies removed:**
-- `@supabase/auth-helpers-nextjs` (deprecated, replaced by `@supabase/ssr`)
-- `@supabase/auth-ui-react` + `@supabase/auth-ui-shared` (unused — login page uses custom button)
-- `resend` (unused — no email routes exist)
+## Key architectural notes
 
-**Memory system improvements:**
-- `CLAUDE.md`: added explicit note to ignore `docs/CONTEXT.md` (stale pre-`_untilfire/` file)
-- `_untilfire/index/MEMORY.md`: indexed `docs/ROADMAP.md`, `docs/PRD.md`, `docs/USER_JOURNEY.md`
-- `_untilfire/core/decisions.md`: merged all architecture decisions from `docs/DECISIONS.md`
-
-### Previous: Onboarding → dashboard sync (3 bugs in app/dashboard/page.tsx)
-
-1. `baselineFireTarget` / `adjustedFireTarget` were never saved to Supabase `_fire_profile`
-2. Supabase hydrate never read `baselineFireTarget` back from `_fire_profile`
-3. First useEffect didn't call `applyInputs(loadLocalInputs())`
-
-Also fixed 3 pre-existing JSX syntax errors that blocked the Vercel build.
+- `lib/preferences.ts`: `untilfire_prefs` key — `{ preferredCurrency: "", defaultCurrency: "USD" }`
+- `FlagEmoji` URL formula: `[...emoji].map(c => c.codePointAt(0).toString(16)).join("-")` → Twemoji SVG
+- `CurrencySelect`: accepts `allowEmpty` prop for Settings tab (shows "—" empty option row)
 
 ## Known state
 
-- Vercel build: should be green (last working commit 25536d7; infra changes don't touch build output)
+- Vercel build: should be green
 - Data sync loop: functional
 - Auth: Google OAuth only, client-side session check on dashboard
 - Repo infra: clean — no Vite artifacts, no dead components, no deprecated packages
+- Pre-existing TS error in `app/page.tsx:1419` (AdvancedPathScreen income state `number | ""`): not introduced by us, not blocking build (`ignoreBuildErrors: true`)
 
 ## What's next (not started)
 
@@ -55,10 +53,17 @@ Also fixed 3 pre-existing JSX syntax errors that blocked the Vercel build.
 
 ---
 
-## Previous: Onboarding simplification + dashboard fix
+## Previous: Infrastructure cleanup (infra audit pass)
 
-Simplified onboarding wizard and fixed dashboard client-side error:
+Cleaned up technical debt from Vite→Next.js migration:
 
-1. **Dashboard fix**: `completeOnboarding()` never called `saveLocalInputs()` — replaced with `completeOnboardingWith(state)` that writes both `fire_user_data` (gate key) and `untilfire_inputs` (hydration key). Dashboard fast-hydrate now works on first login.
+- Removed `console.log` + `window.supabaseClient` from `lib/supabase.ts`
+- Deleted `/debug` route, `next.config.ts`, Vite artifacts, `components/` folder (dead code)
+- Removed deprecated packages: `@supabase/auth-helpers-nextjs`, `@supabase/auth-ui-react`, `resend`
+- Config fixes: `tsconfig.json`, `.gitignore`, `package.json` rename
 
-2. **Onboarding simplification**: Removed path-choice screen, starter path, and summary screen. Flow is now: hero → 3-field form (age + income + expenses) → dashboard. Savings derived automatically. Portfolio starts at 0.
+## Previous: Onboarding → dashboard sync
+
+1. `baselineFireTarget` / `adjustedFireTarget` never saved to Supabase `_fire_profile`
+2. Supabase hydrate never read `baselineFireTarget` back
+3. First useEffect didn't call `applyInputs(loadLocalInputs())`
