@@ -809,6 +809,50 @@ async function aiCategorize(description: string): Promise<{ category: string; ta
   return { category: "other", tags: [] };
 }
 
+// ─── Currency Select ───────────────────────────────────────────────────────────
+function CurrencySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "7px 12px", color: "#e8e8f2", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "DM Mono, monospace" }}
+      >
+        <span style={{ fontSize: 16, lineHeight: 1 }}>{CURRENCY_FLAGS[value]}</span>
+        <span>{value}</span>
+        <span style={{ color: "#5e5e7a", fontSize: 10 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ position: "absolute", zIndex: 300, bottom: "calc(100% + 6px)", left: 0, background: "#0f0f18", border: "1px solid #2a2a3e", borderRadius: 12, padding: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5, width: 244 }}>
+          {CURRENCIES.map(c => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => { onChange(c); setOpen(false); }}
+              style={{ background: c === value ? "rgba(249,115,22,0.15)" : "#08080e", border: `1px solid ${c === value ? "#f97316" : "#1c1c2e"}`, borderRadius: 8, padding: "7px 4px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer", transition: "all 0.1s" }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{CURRENCY_FLAGS[c]}</span>
+              <span style={{ fontSize: 10, color: c === value ? "#f97316" : "#9090a8", fontFamily: "DM Mono, monospace" }}>{c}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MonthlySummary({ expenses, displayCurrency, rates }: {
   expenses: ExpenseRecord[];
   displayCurrency?: string;
@@ -881,7 +925,7 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
   const [description, setDescription] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(() => loadPrefs().defaultCurrency || "USD");
   const [category, setCategory] = useState(lastUsedCategory);
   const [tags, setTags] = useState<string[]>([]);
   const [customTagInput, setCustomTagInput] = useState("");
@@ -1030,10 +1074,7 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
             </div>
             <div>
               <div style={{ color: "#5e5e7a", fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Currency</div>
-              <select value={currency} onChange={e => setCurrency(e.target.value)}
-                style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
-                {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_FLAGS[c]} {c}</option>)}
-              </select>
+              <CurrencySelect value={currency} onChange={setCurrency} />
             </div>
           </div>
           <div>
@@ -1175,10 +1216,7 @@ function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate, displayCurren
                             style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "8px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit", colorScheme: "dark" }} />
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                          <select value={editDraft.currency ?? "USD"} onChange={e => setEditDraft(d => ({ ...d, currency: e.target.value }))}
-                            style={{ background: "#08080e", border: "1px solid #2a2a3e", borderRadius: 8, padding: "7px 10px", color: "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
-                            {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_FLAGS[c]} {c}</option>)}
-                          </select>
+                          <CurrencySelect value={editDraft.currency ?? "USD"} onChange={v => setEditDraft(d => ({ ...d, currency: v }))} />
                           <select value={editDraft.category ?? ""} onChange={e => setEditDraft(d => ({ ...d, category: e.target.value }))}
                             style={{ background: "#08080e", border: `1px solid ${editCat ? editCat.color + "55" : "#2a2a3e"}`, borderRadius: 8, padding: "7px 10px", color: editCat ? editCat.color : "#e8e8f2", fontSize: 13, outline: "none", fontFamily: "inherit" }}>
                             {EXP_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
@@ -1360,7 +1398,7 @@ function SettingsTab() {
 
   const handleCurrencyChange = (v: string) => {
     setPreferredCurrency(v);
-    savePrefs({ preferredCurrency: v });
+    savePrefs({ ...loadPrefs(), preferredCurrency: v });
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 2000);
   };

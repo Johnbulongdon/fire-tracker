@@ -20,6 +20,7 @@ import {
   type FireIncomeRange,
   type FireUserState,
 } from "@/lib/local-inputs";
+import { loadPrefs, savePrefs } from "@/lib/preferences";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -1478,6 +1479,83 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — CURRENCY SELECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ONBOARDING_CURRENCIES = [
+  { code: "USD", flag: "🇺🇸", name: "US Dollar" },
+  { code: "EUR", flag: "🇪🇺", name: "Euro" },
+  { code: "GBP", flag: "🇬🇧", name: "Pound" },
+  { code: "CNY", flag: "🇨🇳", name: "Yuan" },
+  { code: "JPY", flag: "🇯🇵", name: "Yen" },
+  { code: "AUD", flag: "🇦🇺", name: "AUD" },
+  { code: "CAD", flag: "🇨🇦", name: "CAD" },
+  { code: "SGD", flag: "🇸🇬", name: "SGD" },
+  { code: "HKD", flag: "🇭🇰", name: "HKD" },
+  { code: "CHF", flag: "🇨🇭", name: "CHF" },
+  { code: "KRW", flag: "🇰🇷", name: "Won" },
+  { code: "INR", flag: "🇮🇳", name: "Rupee" },
+  { code: "MXN", flag: "🇲🇽", name: "Peso" },
+  { code: "BRL", flag: "🇧🇷", name: "Real" },
+  { code: "NZD", flag: "🇳🇿", name: "NZD" },
+  { code: "THB", flag: "🇹🇭", name: "Baht" },
+  { code: "SEK", flag: "🇸🇪", name: "Krona" },
+  { code: "NOK", flag: "🇳🇴", name: "Krone" },
+  { code: "DKK", flag: "🇩🇰", name: "Krone" },
+  { code: "ZAR", flag: "🇿🇦", name: "Rand" },
+];
+
+function CurrencyScreen({ onNext, onBack }: { onNext: (currency: string) => void; onBack: () => void }) {
+  const [selected, setSelected] = useState("USD");
+
+  return (
+    <div className="uf-screen">
+      <div className="uf-eyebrow">Almost there</div>
+      <h2 className="uf-h2">What's your main currency?</h2>
+      <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8, marginBottom: 28, lineHeight: 1.5 }}>
+        This will be the default for tracking your expenses.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        {ONBOARDING_CURRENCIES.map(({ code, flag, name }) => (
+          <button
+            key={code}
+            onClick={() => setSelected(code)}
+            style={{
+              background: selected === code ? "rgba(249,115,22,0.12)" : "var(--bg-card)",
+              border: `1.5px solid ${selected === code ? "#f97316" : "var(--border)"}`,
+              borderRadius: 12,
+              padding: "14px 8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            <span style={{ fontSize: 28, lineHeight: 1 }}>{flag}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: selected === code ? "#f97316" : "var(--text)" }}>{code}</span>
+            <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="uf-nav-row" style={{ marginTop: 28 }}>
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ flex: 1 }}
+          onClick={() => onNext(selected)}
+        >
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
   fireState: FireUserState;
   onBack: () => void;
@@ -1542,12 +1620,13 @@ function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Screen = "hero" | "advanced";
+type Screen = "hero" | "advanced" | "currency";
 
 export default function Home() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("hero");
   const [fireState, setFireState] = useState<FireUserState | null>(null);
+  const [pendingState, setPendingState] = useState<FireUserState | null>(null);
 
   useEffect(() => {
     registerFireUserStateInspector();
@@ -1596,7 +1675,7 @@ export default function Home() {
     });
   }
 
-  async function completeOnboardingWith(state: FireUserState) {
+  async function completeOnboardingWith(state: FireUserState, currency: string) {
     const completedState: FireUserState = { ...state, hasCompletedOnboarding: true };
     const validation = validateFireUserState(completedState);
     if (!validation.valid) {
@@ -1621,11 +1700,12 @@ export default function Home() {
       baselineFireTarget: completedState.fireNumber,
       savings: completedState.savings,
     });
+    savePrefs({ ...loadPrefs(), defaultCurrency: currency });
     router.push("/dashboard");
   }
 
-  const STEP_MAP: Record<Screen, number> = { hero: 0, advanced: 1 };
-  const totalDots = 2;
+  const STEP_MAP: Record<Screen, number> = { hero: 0, advanced: 1, currency: 2 };
+  const totalDots = 3;
 
   return (
     <>
@@ -2028,8 +2108,14 @@ export default function Home() {
         {screen === "advanced" && (
           <AdvancedPathScreen
             initialState={fireState}
-            onNext={(nextState) => { void completeOnboardingWith(nextState); }}
+            onNext={(nextState) => { setPendingState(nextState); setScreen("currency"); }}
             onBack={() => setScreen("hero")}
+          />
+        )}
+        {screen === "currency" && (
+          <CurrencyScreen
+            onNext={(currency) => { void completeOnboardingWith(pendingState!, currency); }}
+            onBack={() => setScreen("advanced")}
           />
         )}
 
