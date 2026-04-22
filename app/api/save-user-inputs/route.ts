@@ -1,15 +1,17 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // app/api/save-user-inputs/route.ts
-// Called automatically after login to sync localStorage data → Supabase.
-// Uses the user's own access token — no service role key required.
+// Called automatically after login to sync localStorage data 鈫?Supabase.
+// Uses the user's own access token 鈥?no service role key required.
 // Only writes if backend row is empty to avoid overwriting real data.
-// ─────────────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { type UntilFireInputs } from "@/lib/local-inputs";
 
-function hasValidInputShape(inputs: UntilFireInputs): boolean {
+// Legacy budget snapshot sync only. Canonical onboarding FIRE state remains in fire_user_data.
+
+function hasValidBudgetSnapshotShape(inputs: UntilFireInputs): boolean {
   const expenseKeys = ["housing", "food", "transport", "subscriptions", "healthcare", "entertainment", "other"] as const;
   return (
     typeof inputs.income === "number" &&
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing inputs" }, { status: 400 });
     }
 
-    if (!hasValidInputShape(inputs)) {
+    if (!hasValidBudgetSnapshotShape(inputs)) {
       return NextResponse.json({ error: "Invalid input shape" }, { status: 400 });
     }
 
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "skipped", reason: "backend_has_data" });
     }
 
-    // Backend is empty — write local data to Supabase
+    // Backend is empty 鈥?write local data to Supabase
     const fireProfile = {
       k401: inputs.k401,
       rothIRA: inputs.rothIRA,
