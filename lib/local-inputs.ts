@@ -1,7 +1,7 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // lib/local-inputs.ts
-// Anonymous → authenticated state persistence layer for UntilFire
-// ─────────────────────────────────────────────────────────────────────────────
+// Anonymous 鈫?authenticated state persistence layer for UntilFire
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 const STORAGE_KEY = "untilfire_inputs";
 export const FIRE_USER_DATA_KEY = "fire_user_data";
@@ -38,7 +38,7 @@ export const FIRE_USER_STATE_PRIORITY = {
   dashboardBaseline: ["fire_user_data", "Supabase persistence"],
 } as const;
 
-// ─── Type mirrors dashboard state exactly ─────────────────────────────────────
+// 鈹€鈹€鈹€ Type mirrors dashboard state exactly 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 export interface UntilFireInputs {
   income: number;
   expenses: {
@@ -222,33 +222,32 @@ function deriveFireUserStateFromInputs(inputs: Partial<UntilFireInputs> | null |
 
 export function resolveFireUserState(backendInputs?: Partial<UntilFireInputs> | null): FireUserState | null {
   const localValidation = validateFireUserState(loadFireUserData());
-  const localState = localValidation.value;
+  const localState =
+    localValidation.valid
+    && localValidation.value
+    && localValidation.value.hasCompletedOnboarding
+      ? localValidation.value
+      : null;
   const backendValidation = validateFireUserState(deriveFireUserStateFromInputs(backendInputs));
-  const backendState = backendValidation.value;
+  const backendState =
+    backendValidation.valid
+    && backendValidation.value
+    && backendValidation.value.hasCompletedOnboarding
+      ? backendValidation.value
+      : null;
 
-  const merged: FireUserState | null = localState || backendState
-    ? {
-        mode: localState?.mode ?? backendState?.mode ?? "advanced",
-        age: localState?.age ?? backendState?.age,
-        income: localState?.income ?? backendState?.income ?? 0,
-        expenses: localState?.expenses ?? backendState?.expenses,
-        savings: localState?.savings ?? backendState?.savings ?? 0,
-        fireNumber: localState?.fireNumber ?? backendState?.fireNumber ?? 0,
-        hasCompletedOnboarding:
-          localState?.hasCompletedOnboarding
-          ?? backendState?.hasCompletedOnboarding
-          ?? false,
-        goal: localState?.goal ?? backendState?.goal,
-        portfolio: localState?.portfolio ?? backendState?.portfolio,
-      }
-    : null;
-
-  const mergedValidation = validateFireUserState(merged);
-  if (!mergedValidation.valid) {
-    console.warn("[UntilFire] resolveFireUserState validation warnings", mergedValidation.errors);
+  if (!localValidation.valid && localValidation.errors.length > 0) {
+    console.warn("[UntilFire] resolveFireUserState ignored local FireUserState", localValidation.errors);
   }
 
-  return mergedValidation.value;
+  if (!backendValidation.valid && backendValidation.errors.length > 0) {
+    console.warn("[UntilFire] resolveFireUserState ignored backend FireUserState", backendValidation.errors);
+  }
+
+  if (localState) return localState;
+  if (backendState) return backendState;
+
+  return null;
 }
 
 export function loadFireUserData(): FireUserState | null {
@@ -313,7 +312,7 @@ export function registerFireUserStateInspector(): void {
   };
 }
 
-// ─── Read ──────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Read 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 export function loadLocalInputs(): UntilFireInputs | null {
   if (typeof window === "undefined") return null;
   try {
@@ -325,17 +324,17 @@ export function loadLocalInputs(): UntilFireInputs | null {
   }
 }
 
-// ─── Write ─────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Write 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 export function saveLocalInputs(inputs: UntilFireInputs): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs));
   } catch {
-    // Storage quota exceeded — fail silently
+    // Storage quota exceeded 鈥?fail silently
   }
 }
 
-// ─── Check if local data has any meaningful user input ─────────────────────────
+// 鈹€鈹€鈹€ Check if local data has any meaningful user input 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 export function hasLocalInputs(inputs: UntilFireInputs | null): boolean {
   if (!inputs) return false;
   const legacyFireTarget = (inputs as UntilFireInputs & { fireTarget?: number }).fireTarget;
@@ -358,7 +357,7 @@ export function hasCompleteOnboardingSnapshot(inputs: UntilFireInputs | null): b
   return !!(((inputs.baselineFireTarget && inputs.baselineFireTarget > 0) || (legacyFireTarget && legacyFireTarget > 0)) && hasCompleteExpenses(inputs));
 }
 
-// ─── Merge: backend wins on non-zero fields, local fills in gaps ───────────────
+// 鈹€鈹€鈹€ Merge: backend wins on non-zero fields, local fills in gaps 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 export function mergeInputs(
   backend: Partial<UntilFireInputs>,
   local: UntilFireInputs
