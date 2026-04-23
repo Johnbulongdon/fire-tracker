@@ -1690,11 +1690,11 @@ export default function Home() {
   async function completeOnboardingWith(state: FireUserState, currency: string) {
     const completedState: FireUserState = { ...state, hasCompletedOnboarding: true };
     const validation = validateFireUserState(completedState);
-    if (!validation.valid) {
-      console.warn("[UntilFire] Invalid onboarding state", validation.errors);
+    if (!validation.value) {
+      console.warn("[UntilFire] Onboarding state could not be normalized", validation.errors);
       return;
     }
-    await saveFireUserData(completedState);
+    await saveFireUserData(validation.value);
     const incomeNum = typeof completedState.income === "number"
       ? completedState.income
       : (completedState.income as FireIncomeRange).monthlyIncome;

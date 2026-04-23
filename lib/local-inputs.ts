@@ -271,8 +271,8 @@ export function loadFireUserData(): FireUserState | null {
 export async function saveFireUserData(data: FireUserState): Promise<void> {
   if (typeof window === "undefined") return;
   const validation = validateFireUserState(data);
-  if (!validation.valid || !validation.value) {
-    console.warn("[UntilFire] Refusing to persist invalid FireUserState", validation.errors);
+  if (!validation.value) {
+    console.warn("[UntilFire] Refusing to persist unnormalizable FireUserState", validation.errors);
     return;
   }
   localStorage.setItem(FIRE_USER_DATA_KEY, JSON.stringify(data));

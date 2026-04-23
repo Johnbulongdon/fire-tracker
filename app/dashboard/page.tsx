@@ -1704,7 +1704,7 @@ export default function Dashboard() {
   }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, baselineFireTarget, adjustedFireTarget]);
 
   if (!onboardingGateReady) {
-    return null;
+    return <div style={{ minHeight: "100vh", background: "#08080e" }} />;
   }
 
   const navTabs: { key: TabKey; label: string }[] = [
