@@ -18,6 +18,7 @@ import {
   validateFireUserState,
   type FireGoal,
   type FireIncomeRange,
+  type FireStyle,
   type FireUserState,
 } from "@/lib/local-inputs";
 import { loadPrefs, savePrefs } from "@/lib/preferences";
@@ -173,9 +174,10 @@ interface CityState {
   isCustom: boolean;
 }
 
-function CityScreen({ onNext, onBack }: {
+function CityScreen({ onNext, onBack, stepLabel = "Step 2 of 9" }: {
   onNext: (c: CityState) => void;
   onBack: () => void;
+  stepLabel?: string;
 }) {
   const [query, setQuery]           = useState("");
   const [open, setOpen]             = useState(false);
@@ -226,12 +228,11 @@ function CityScreen({ onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={0} />
-      <p className="uf-step-label">Step 1 of 3</p>
+      <p className="uf-step-label">{stepLabel}</p>
       <div className="uf-eyebrow">Location</div>
-      <h2 className="uf-h2">Where do you want<br />to <span className="uf-accent">retire?</span></h2>
-      <p className="uf-body" style={{ marginBottom: 32 }}>
-        Your FIRE number changes significantly by city. We use real cost-of-living data — not national averages.
+      <h2 className="uf-h2">Where do you live<br />right <span className="uf-accent">now?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 16 }}>
+        Your city&apos;s cost of living shapes your FIRE number more than almost anything else.
       </p>
 
       {/* Search input */}
@@ -389,10 +390,11 @@ function toAnnualGross(value: number, mode: IncomeMode): number {
   }
 }
 
-function IncomeScreen({ stateKey, onNext, onBack }: {
+function IncomeScreen({ stateKey, onNext, onBack, stepLabel = "Step 3 of 9" }: {
   stateKey: string;
   onNext: (income: number, takeHomeOverride?: number) => void;
   onBack: () => void;
+  stepLabel?: string;
 }) {
   const [mode, setMode]         = useState<IncomeMode>('annual');
   const [rawValue, setRawValue] = useState<string>('90000');
@@ -444,8 +446,7 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={1} />
-      <p className="uf-step-label">Step 2 of 3</p>
+      <p className="uf-step-label">{stepLabel}</p>
       <div className="uf-eyebrow">Income</div>
       <h2 className="uf-h2">What do you <span className="uf-accent">earn?</span></h2>
       <p className="uf-body" style={{ marginBottom: 24 }}>
@@ -890,7 +891,7 @@ function useCountUp(target: number, duration: number, running: boolean) {
   return val;
 }
 
-function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
+function _DeprecatedRevealScreen({ city, income, savings, stateKey, onAdjust }: {
   city: CityState; income: number; savings: number; stateKey: string;
   onAdjust: () => void;
 }) {
@@ -1369,7 +1370,7 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
 }) {
   const initialIncome = initialState && typeof initialState.income === "number" ? initialState.income : 0;
   const [age, setAge] = useState<number | "">(initialState?.age ?? "");
-  const [income, setIncome] = useState(initialIncome);
+  const [income, setIncome] = useState<number | "">(initialIncome);
   const [expenses, setExpenses] = useState<number | "">(initialState?.expenses ?? "");
 
   const incomeNum  = typeof income  === "number" ? income  : 0;
@@ -1629,45 +1630,451 @@ function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FIRE CALC BY STYLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function calcFireNumberByStyle(
+  style: FireStyle,
+  monthlyExpenses: number,
+  age: number,
+  targetAge: number,
+): number {
+  const annual = monthlyExpenses * 12;
+  switch (style) {
+    case "lean":    return 35000 * 25;
+    case "fat":     return Math.max(annual, 150000) * 25;
+    case "barista": return Math.max(0, annual - 15000) * 25;
+    case "coast": {
+      const full = Math.max(annual, 1) * 25;
+      const years = Math.max(1, targetAge - age);
+      return Math.round(full / Math.pow(1.07, years));
+    }
+    default: return Math.max(annual, 1) * 25;
+  }
+}
+
+const FIRE_STYLE_LABELS: Record<FireStyle, string> = {
+  lean: "Lean FIRE", standard: "Standard FIRE", fat: "Fat FIRE",
+  barista: "Barista FIRE", coast: "Coast FIRE", unsure: "Standard FIRE",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ONBOARDING DRAFT
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface OnboardingDraft {
+  goal?: FireGoal;
+  city?: { name: string; col: number; stateKey: string; isCustom: boolean };
+  fireStyle?: FireStyle;
+  age?: number;
+  targetAge?: number;
+  annualIncome?: number;
+  expenses?: { housing: number; food: number; transport: number; other: number };
+  portfolio?: number;
+  currency?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — GOAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function GoalScreen({ onNext, onBack }: { onNext: (goal: FireGoal) => void; onBack: () => void }) {
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+
+  const GOAL_CARDS = [
+    { key: "retire-early",      value: "retire-early"      as FireGoal, label: "Retire before 50",  sub: "I want my time back. All of it." },
+    { key: "financial-freedom", value: "financial-freedom" as FireGoal, label: "Financial freedom", sub: "Options, not obligations." },
+    { key: "build-wealth",      value: "financial-freedom" as FireGoal, label: "Build real wealth", sub: "I want my money to work harder than I do." },
+    { key: "exploring",         value: "exploring"         as FireGoal, label: "Just exploring",    sub: "I'm curious what's actually possible for me." },
+  ];
+
+  const CONTEXT: Record<string, string> = {
+    "retire-early":      "Let's map your fastest path out.",
+    "financial-freedom": "Let's find the number that sets you free.",
+    "build-wealth":      "Let's find the number that sets you free.",
+    "exploring":         "No pressure — let's just see what's possible.",
+  };
+
+  const selectedGoal = selectedCard ? GOAL_CARDS.find(c => c.key === selectedCard)?.value : null;
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 1 of 9</p>
+      <h2 className="uf-h2">What&apos;s pulling you toward <span className="uf-accent">FIRE?</span></h2>
+      <div className="uf-goal-cards">
+        {GOAL_CARDS.map(card => (
+          <button key={card.key} className={`uf-goal-card ${selectedCard === card.key ? "active" : ""}`} onClick={() => setSelectedCard(card.key)}>
+            <div className="uf-goal-label">{card.label}</div>
+            <div className="uf-goal-sub">{card.sub}</div>
+          </button>
+        ))}
+      </div>
+      {selectedCard && <p className="uf-goal-message">{CONTEXT[selectedCard]}</p>}
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!selectedGoal} onClick={() => selectedGoal && onNext(selectedGoal)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — EXPENSES
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ExpensesScreen({ monthlyIncome, city, onNext, onBack }: {
+  monthlyIncome: number;
+  city: { name: string; col: number; stateKey: string; isCustom: boolean } | undefined;
+  onNext: (exp: { housing: number; food: number; transport: number; other: number }) => void;
+  onBack: () => void;
+}) {
+  const [housing,   setHousing]   = useState<number | "">("");
+  const [food,      setFood]      = useState<number | "">("");
+  const [transport, setTransport] = useState<number | "">("");
+  const [other,     setOther]     = useState<number | "">("");
+
+  const h = typeof housing   === "number" ? housing   : 0;
+  const f = typeof food      === "number" ? food      : 0;
+  const t = typeof transport === "number" ? transport : 0;
+  const o = typeof other     === "number" ? other     : 0;
+  const total = h + f + t + o;
+  const savings = Math.max(0, monthlyIncome - total);
+  const rate = monthlyIncome > 0 ? Math.round((savings / monthlyIncome) * 100) : 0;
+  const rateColor = rate >= 30 ? "var(--teal)" : rate >= 10 ? "#fbbf24" : "var(--accent)";
+  const overBudget = monthlyIncome > 0 && total > monthlyIncome;
+  const col = city ? city.col / 12 : 0;
+
+  function ExpRow({ val, set, icon, label, hint }: { val: number | ""; set: (v: number | "") => void; icon: string; label: string; hint?: number }) {
+    return (
+      <div className="uf-expense-row">
+        <div className="uf-expense-icon">{icon}</div>
+        <div style={{ flex: 1 }}>
+          <label className="uf-label" style={{ marginBottom: 2 }}>{label}</label>
+          {hint !== undefined && city && <div className="uf-hint" style={{ marginBottom: 0 }}>~{fmtUSD(hint)}/mo in {city.name}</div>}
+        </div>
+        <div className="uf-prefixed-input" style={{ width: 140 }}>
+          <span className="uf-input-prefix">$</span>
+          <input type="number" className="uf-input uf-input-mono uf-input-with-prefix" value={val}
+            placeholder={hint !== undefined ? String(hint) : "0"} min={0}
+            onChange={e => { const v = parseInt(e.target.value); set(isNaN(v) ? "" : Math.max(0, v)); }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 4 of 9</p>
+      <h2 className="uf-h2">Where does your <span className="uf-accent">money go?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 24 }}>Rough estimates are fine — refine on the dashboard.</p>
+      <div className="uf-expense-rows">
+        <ExpRow val={housing}   set={setHousing}   icon="🏠" label="Housing"         hint={col > 0 ? Math.round(col * 0.35) : undefined} />
+        <ExpRow val={food}      set={setFood}      icon="🍔" label="Food & dining"   hint={col > 0 ? Math.round(col * 0.15) : undefined} />
+        <ExpRow val={transport} set={setTransport} icon="🚗" label="Transport"       hint={col > 0 ? Math.round(col * 0.12) : undefined} />
+        <ExpRow val={other}     set={setOther}     icon="📦" label="Everything else" hint={col > 0 ? Math.round(col * 0.38) : undefined} />
+      </div>
+      {overBudget && <div className="uf-expenses-warning">Your expenses exceed your income — double-check the numbers</div>}
+      {monthlyIncome > 0 && (
+        <div className="uf-card uf-card-accent" style={{ marginTop: 16 }}>
+          <div className="uf-rate-head">
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Monthly savings toward FIRE</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: rateColor }}>{rate}%</span>
+          </div>
+          <div className="uf-progress-track"><div className="uf-progress-fill" style={{ width: `${Math.min(100, rate)}%`, background: rateColor }} /></div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, color: rateColor, marginTop: 10 }}>
+            {fmtUSD(savings)}<span style={{ fontSize: 13, color: "var(--text-muted)" }}>/mo</span>
+          </div>
+        </div>
+      )}
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={() => onNext({ housing: h, food: f, transport: t, other: o })}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — FIRE STYLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FireStyleScreen({ monthlyExpenses, onNext, onBack }: {
+  monthlyExpenses: number;
+  onNext: (style: FireStyle) => void;
+  onBack: () => void;
+}) {
+  const [selected, setSelected] = useState<FireStyle | null>(null);
+
+  const STYLES: { key: FireStyle; icon: string; name: string; tagline: string; tooltip: string }[] = [
+    { key: "lean",     icon: "🌿", name: "Lean FIRE",     tagline: "Live simply. Retire fast.",       tooltip: "Minimal lifestyle, maximum speed to freedom." },
+    { key: "standard", icon: "⚖️", name: "Standard FIRE", tagline: "Comfortable. Independent.",       tooltip: "The classic 25× rule — solid foundation." },
+    { key: "fat",      icon: "👑", name: "Fat FIRE",      tagline: "No compromises.",                 tooltip: "Premium lifestyle maintained indefinitely." },
+    { key: "barista",  icon: "☕", name: "Barista FIRE",  tagline: "Semi-retire, part-time.",          tooltip: "Part-time income covers living costs while investments grow." },
+    { key: "coast",    icon: "🌊", name: "Coast FIRE",    tagline: "Invest now. Time does the rest.", tooltip: "Hit a lump sum today — then coast to full FIRE." },
+    { key: "unsure",   icon: "🔭", name: "Not sure yet",  tagline: "Show me everything.",             tooltip: "We'll use Standard FIRE as your baseline." },
+  ];
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 5 of 9</p>
+      <h2 className="uf-h2">What does your <span className="uf-accent">retirement</span> look like?</h2>
+      <p className="uf-body" style={{ marginBottom: 20 }}>Pick a style — we&apos;ll show your actual target for each.</p>
+      <div className="uf-style-grid">
+        {STYLES.map(s => {
+          const target = calcFireNumberByStyle(s.key, monthlyExpenses, 30, 55);
+          return (
+            <button key={s.key} className={`uf-style-card ${selected === s.key ? "active" : ""}`} onClick={() => setSelected(s.key)}>
+              <div className="uf-style-icon">{s.icon}</div>
+              <div className="uf-style-name">{s.name}</div>
+              <div className="uf-style-tagline">{s.tagline}</div>
+              <div className="uf-style-target">{s.key === "coast" ? "Calculated next" : fmtUSD(target)}</div>
+              {selected === s.key && <div className="uf-style-tooltip">{s.tooltip}</div>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!selected} onClick={() => selected && onNext(selected)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — AGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AgeScreen({ monthlyIncome, monthlyExpenses, fireStyle, onNext, onBack }: {
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  fireStyle: FireStyle;
+  onNext: (age: number, targetAge: number) => void;
+  onBack: () => void;
+}) {
+  const [age,             setAge]             = useState<number | "">("");
+  const [targetAge,       setTargetAge]       = useState<number | "">("");
+  const [userEdited,      setUserEdited]      = useState(false);
+  const monthlySavings = Math.max(0, monthlyIncome - monthlyExpenses);
+
+  useEffect(() => {
+    if (typeof age !== "number" || age < 1 || userEdited) return;
+    const fireTarget = calcFireNumberByStyle("standard", monthlyExpenses, age, age + 25);
+    if (monthlySavings <= 0) { setTargetAge(Math.min(80, age + 30)); return; }
+    let suggested = age + 40;
+    for (let n = 5; n <= 45; n++) {
+      const fv = monthlySavings * 12 * ((Math.pow(1.07, n) - 1) / 0.07);
+      if (fv >= fireTarget) { suggested = age + n; break; }
+    }
+    setTargetAge(Math.min(80, suggested));
+  }, [age]);
+
+  const ageNum    = typeof age       === "number" ? age       : 0;
+  const targetNum = typeof targetAge === "number" ? targetAge : 0;
+  const canGo     = ageNum > 0 && targetNum > ageNum;
+  const ageError  = ageNum > 0 && targetNum > 0 && targetNum <= ageNum;
+  const yearsAway = canGo ? targetNum - ageNum : 0;
+  const badgeColor = yearsAway <= 15 ? "#fbbf24" : "var(--teal)";
+  const badgeLabel = yearsAway <= 15 ? "Stretch goal" : yearsAway <= 25 ? "Achievable" : "Comfortable pace";
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 6 of 9</p>
+      <h2 className="uf-h2">When do you want to be <span className="uf-accent">free?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 24 }}>We&apos;ve crunched your income and expenses. Here&apos;s our read.</p>
+      <div className="uf-age-inputs">
+        <div>
+          <label className="uf-label">Current age</label>
+          <input type="number" className="uf-input uf-input-mono" value={age} placeholder="30" min={1} max={80}
+            onChange={e => { const v = parseInt(e.target.value); setAge(isNaN(v) ? "" : Math.min(80, Math.max(1, v))); }} />
+        </div>
+        <div>
+          <label className="uf-label">Target retirement age <span style={{ color: "var(--text-dim)", fontSize: 11 }}>(pre-filled from your numbers)</span></label>
+          <input type="number" className="uf-input uf-input-mono" value={targetAge} placeholder="55" min={1} max={100}
+            onChange={e => { const v = parseInt(e.target.value); setTargetAge(isNaN(v) ? "" : v); setUserEdited(true); }} />
+          {canGo     && <div className="uf-age-badge" style={{ color: badgeColor }}>{badgeLabel}</div>}
+          {ageError  && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 4 }}>Target age must be after your current age</div>}
+        </div>
+      </div>
+      {ageNum > 0 && monthlySavings > 0 && (
+        <div className="uf-age-suggestion">
+          At {fmtUSD(monthlySavings)}/mo savings targeting {FIRE_STYLE_LABELS[fireStyle]} ({fmtUSD(calcFireNumberByStyle(fireStyle, monthlyExpenses, ageNum, targetNum || ageNum + 25))})
+        </div>
+      )}
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!canGo} onClick={() => canGo && onNext(ageNum, targetNum)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — PORTFOLIO
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PortfolioScreen({ fireStyle, monthlyExpenses, age, targetAge, onNext, onBack }: {
+  fireStyle: FireStyle;
+  monthlyExpenses: number;
+  age: number;
+  targetAge: number;
+  onNext: (portfolio: number) => void;
+  onBack: () => void;
+}) {
+  const [portfolio, setPortfolio] = useState<number | "">("");
+  const portNum = typeof portfolio === "number" ? portfolio : 0;
+  const coastTarget = fireStyle === "coast" ? calcFireNumberByStyle("coast", monthlyExpenses, age, targetAge) : 0;
+  const alreadyCoasted = fireStyle === "coast" && portNum >= coastTarget && coastTarget > 0;
+  const encouragement = portNum === 0
+    ? "Starting from $0 is where every FIRE story begins."
+    : portNum < 10000  ? "You've already started. This is your launchpad."
+    : portNum < 100000 ? "This is compounding for you every single day."
+    : "Significant head start — this could shave years off your timeline.";
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 7 of 9</p>
+      <h2 className="uf-h2">How much have you already <span className="uf-accent">invested?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 24 }}>Include 401k, Roth IRA, brokerage — everything.</p>
+      {fireStyle === "coast" && coastTarget > 0 && (
+        <div className="uf-portfolio-coast-callout">
+          <div className="uf-portfolio-coast-label">Coast FIRE lump sum needed</div>
+          <div className="uf-portfolio-coast-amount">{fmtUSD(coastTarget)}</div>
+          <div className="uf-portfolio-coast-sub">Invested today, grows to your full FIRE number by age {targetAge}</div>
+        </div>
+      )}
+      <div className="uf-big-input-wrap" style={{ marginBottom: 12 }}>
+        <div className="uf-prefixed-input">
+          <span className="uf-input-prefix uf-big-prefix">$</span>
+          <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={portfolio} placeholder="0" min={0}
+            onChange={e => { const v = parseInt(e.target.value); setPortfolio(isNaN(v) ? "" : Math.max(0, v)); }} />
+        </div>
+      </div>
+      {alreadyCoasted
+        ? <div className="uf-portfolio-already-coasted">You may already be done contributing. Your money just needs time.</div>
+        : <div className="uf-portfolio-encouragement">{encouragement}</div>
+      }
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-ghost" style={{ color: "var(--text-muted)" }} onClick={() => onNext(0)}>Skip</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={() => onNext(portNum)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — REVEAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function RevealScreen({ draft, onComplete }: { draft: OnboardingDraft; onComplete: () => void }) {
+  const [phase,      setPhase]      = useState<"calc" | "reveal">("calc");
+  const [displayNum, setDisplayNum] = useState(0);
+  const [calcStep,   setCalcStep]   = useState(0);
+  const [barWidth,   setBarWidth]   = useState(0);
+
+  const monthlyIncome = Math.round((draft.annualIncome ?? 0) / 12);
+  const exp = draft.expenses ?? { housing: 0, food: 0, transport: 0, other: 0 };
+  const totalExp = exp.housing + exp.food + exp.transport + exp.other;
+  const monthlySavings = Math.max(0, monthlyIncome - totalExp);
+  const fireStyle = draft.fireStyle ?? "standard";
+  const fireNumber = calcFireNumberByStyle(fireStyle, totalExp, draft.age ?? 30, draft.targetAge ?? 55);
+  const retireAge = draft.targetAge ?? (draft.age ? draft.age + 25 : 55);
+  const retireYear = new Date().getFullYear() + (retireAge - (draft.age ?? 30));
+
+  const CALC_STEPS = ["Analyzing income", "Modeling expenses", "Projecting portfolio", "Calculating timeline", "Crunching your number"];
+
+  useEffect(() => {
+    let step = 0;
+    const id = setInterval(() => {
+      step++;
+      setCalcStep(step);
+      setBarWidth(Math.round((step / CALC_STEPS.length) * 100));
+      if (step >= CALC_STEPS.length) { clearInterval(id); setTimeout(() => setPhase("reveal"), 500); }
+    }, 400);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    const duration = 1400;
+    const start = Date.now();
+    const animate = () => {
+      const p = Math.min((Date.now() - start) / duration, 1);
+      setDisplayNum(Math.round((1 - Math.pow(1 - p, 3)) * fireNumber));
+      if (p < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [phase, fireNumber]);
+
+  const STYLE_COPY: Record<FireStyle, string> = {
+    lean:     "You don't need much. That's your superpower.",
+    standard: "This is your number. Now let's own it.",
+    fat:      "Ambitious and achievable. Here's what it takes.",
+    barista:  "Part-time work could cut this number significantly.",
+    coast:    "If you hit this today, time handles the rest.",
+    unsure:   "Here's your baseline — you can tune it on the dashboard.",
+  };
+
+  if (phase === "calc") {
+    return (
+      <div className="uf-screen">
+        <div className="uf-calc-phase">
+          <div className="uf-calc-label">Computing your FIRE number</div>
+          <div className="uf-calc-steps">
+            {CALC_STEPS.map((s, i) => (
+              <span key={i}>
+                <span className={`uf-calc-step ${i < calcStep ? "lit" : ""}`}>{s}</span>
+                {i < CALC_STEPS.length - 1 && <span className="uf-calc-dot">·</span>}
+              </span>
+            ))}
+          </div>
+          <div className="uf-calc-bar-track"><div className="uf-calc-bar-fill" style={{ width: `${barWidth}%` }} /></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="uf-screen uf-reveal-screen">
+      <div className="uf-eyebrow">{FIRE_STYLE_LABELS[fireStyle]}</div>
+      <p style={{ color: "var(--text-muted)", fontSize: 15, marginBottom: 20 }}>{STYLE_COPY[fireStyle]}</p>
+      <div className="uf-fire-hero">
+        <div className="uf-fire-eyebrow">Your FIRE target</div>
+        <div className="uf-fire-num uf-fire-slam">{fmtUSD(displayNum)}</div>
+        <div className="uf-fire-date-row">
+          <div className="uf-fire-date-line" />
+          <div className="uf-fire-date">Target: age {retireAge} · {retireYear}</div>
+          <div className="uf-fire-date-line" />
+        </div>
+        {draft.city && <div className="uf-fire-city">{draft.city.name}</div>}
+      </div>
+      <div className="uf-stat-row" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="uf-stat-box"><div className="uf-stat-val">{fmtUSD(monthlyIncome)}/mo</div><div className="uf-stat-lab">Income</div></div>
+        <div className="uf-stat-box"><div className="uf-stat-val">{fmtUSD(totalExp)}/mo</div><div className="uf-stat-lab">Expenses</div></div>
+        <div className="uf-stat-box"><div className="uf-stat-val">{fmtUSD(monthlySavings)}/mo</div><div className="uf-stat-lab">Savings</div></div>
+      </div>
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-teal uf-btn-full" style={{ marginTop: 8 }} onClick={onComplete}>Open my dashboard →</button>
+      </div>
+      <p className="uf-disclaimer">You can refine all of this on the dashboard.</p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Screen = "hero" | "advanced" | "currency";
+type Screen = "hero" | "goal" | "city" | "income" | "expenses" | "fire-style" | "age" | "portfolio" | "currency" | "reveal";
 
 export default function Home() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("hero");
-  const [fireState, setFireState] = useState<FireUserState | null>(null);
-  const [pendingState, setPendingState] = useState<FireUserState | null>(null);
+  const [draft,  setDraft]  = useState<OnboardingDraft>({});
 
-  useEffect(() => {
-    registerFireUserStateInspector();
-  }, []);
+  useEffect(() => { registerFireUserStateInspector(); }, []);
 
-  useEffect(() => {
-    const savedState = loadFireUserData();
-    if (!savedState) return;
-    const validation = validateFireUserState(savedState);
-    if (!validation.valid) {
-      console.warn("[UntilFire] Onboarding draft validation warnings", validation.errors);
-    }
-
-    if (savedState.hasCompletedOnboarding) {
-      setFireState(savedState);
-      return;
-    }
-
-    setFireState(savedState);
-    setScreen("advanced");
-  }, []);
-
-  useEffect(() => {
-    if (!fireState || fireState.hasCompletedOnboarding) return;
-    // Priority: in-memory draft first, localStorage draft second.
-    void saveFireUserData(fireState);
-  }, [fireState]);
-
-  // Auth redirect — keep existing behaviour
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const fireUserData = loadFireUserData();
@@ -1680,6 +2087,10 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  function merge(partial: Partial<OnboardingDraft>) {
+    setDraft(prev => ({ ...prev, ...partial }));
+  }
+
   async function signIn() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -1687,37 +2098,63 @@ export default function Home() {
     });
   }
 
-  async function completeOnboardingWith(state: FireUserState, currency: string) {
-    const completedState: FireUserState = { ...state, hasCompletedOnboarding: true };
-    const validation = validateFireUserState(completedState);
-    if (!validation.value) {
-      console.warn("[UntilFire] Onboarding state could not be normalized", validation.errors);
-      return;
-    }
-    await saveFireUserData(validation.value);
-    const incomeNum = typeof completedState.income === "number"
-      ? completedState.income
-      : (completedState.income as FireIncomeRange).monthlyIncome;
+  async function completeOnboardingWith(currency: string) {
+    const monthlyIncome = Math.round((draft.annualIncome ?? 0) / 12);
+    const exp = draft.expenses ?? { housing: 0, food: 0, transport: 0, other: 0 };
+    const totalExp = exp.housing + exp.food + exp.transport + exp.other;
+    const monthlySavings = Math.max(0, monthlyIncome - totalExp);
+    const fireNumber = calcFireNumberByStyle(
+      draft.fireStyle ?? "standard", totalExp, draft.age ?? 30, draft.targetAge ?? 55,
+    );
+
+    const fireUserState: FireUserState = {
+      mode: "advanced",
+      age: draft.age,
+      income: monthlyIncome || 1,
+      expenses: totalExp,
+      savings: monthlySavings,
+      fireNumber,
+      hasCompletedOnboarding: true,
+      goal: draft.goal,
+      portfolio: draft.portfolio && draft.portfolio > 0 ? draft.portfolio : undefined,
+      fireStyle: draft.fireStyle,
+      targetAge: draft.targetAge,
+      city: draft.city,
+    };
+
+    const validation = validateFireUserState(fireUserState);
+    await saveFireUserData(validation.value ?? fireUserState);
+
     saveLocalInputs({
-      income: incomeNum,
+      income: monthlyIncome || 1,
       expenses: {
-        housing: 0, food: 0, transport: 0,
-        subscriptions: 0, healthcare: 0, entertainment: 0,
-        other: typeof completedState.expenses === "number" ? completedState.expenses : 0,
+        housing: exp.housing, food: exp.food, transport: exp.transport,
+        subscriptions: 0, healthcare: 0, entertainment: 0, other: exp.other,
       },
-      fireAge: completedState.age ?? 30,
-      k401: 0, rothIRA: 0, taxable: 0,
+      fireAge: draft.targetAge ?? (draft.age ? draft.age + 25 : 55),
+      k401: 0, rothIRA: 0,
+      taxable: draft.portfolio ?? 0,
       totalDebt: 0, mortgageBalance: 0, mortgageMonthly: 0,
       growthRate: 0.07, withdrawalRate: 0.04,
-      baselineFireTarget: completedState.fireNumber,
-      savings: completedState.savings,
+      baselineFireTarget: fireNumber,
+      savings: monthlySavings,
+      city: draft.city,
     });
+
     savePrefs({ ...loadPrefs(), defaultCurrency: currency });
     router.push("/dashboard");
   }
 
-  const STEP_MAP: Record<Screen, number> = { hero: 0, advanced: 1, currency: 2 };
-  const totalDots = 3;
+  const STEP_MAP: Record<Screen, number> = {
+    hero: 0, goal: 1, city: 2, income: 3, expenses: 4,
+    "fire-style": 5, age: 6, portfolio: 7, currency: 8, reveal: 9,
+  };
+  const totalDots = 10;
+
+  const monthlyIncome = Math.round((draft.annualIncome ?? 0) / 12);
+  const totalExp = draft.expenses
+    ? draft.expenses.housing + draft.expenses.food + draft.expenses.transport + draft.expenses.other
+    : 0;
 
   return (
     <>
@@ -2094,6 +2531,53 @@ export default function Home() {
         .uf-share-copy { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-light); }
         .uf-share-copy:hover { color: var(--text); background: var(--bg-card); border-color: var(--text-dim); }
 
+        /* ── ORB ANIMATIONS ── */
+        @keyframes orbDrift1 { 0% { transform: translateX(-50%) scale(1); } 100% { transform: translateX(-50%) scale(1.1) translateY(20px); } }
+        @keyframes orbDrift2 { 0% { transform: translateX(0) scale(1); } 100% { transform: translateX(40px) scale(1.08); } }
+        @keyframes orbDrift3 { 0% { transform: translateX(0); } 100% { transform: translateX(-30px) scale(1.06); } }
+
+        /* ── GOAL SCREEN ── */
+        .uf-goal-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; margin-bottom: 16px; }
+        .uf-goal-card { width: 100%; text-align: left; background: var(--bg-card); border: 1px solid var(--border-light); border-left: 3px solid transparent; border-radius: 14px; padding: 16px 20px; cursor: pointer; transition: all 0.18s; }
+        .uf-goal-card:hover { border-color: var(--teal); background: rgba(34,211,165,0.05); }
+        .uf-goal-card.active { border-color: var(--teal); border-left-color: var(--teal); background: rgba(34,211,165,0.08); }
+        .uf-goal-label { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .uf-goal-sub { font-size: 14px; color: var(--text-muted); }
+        .uf-goal-message { font-size: 14px; color: var(--teal); margin-bottom: 8px; font-style: italic; }
+
+        /* ── FIRE STYLE SCREEN ── */
+        .uf-style-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 4px; }
+        .uf-style-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 14px; padding: 16px; text-align: left; cursor: pointer; transition: all 0.18s; }
+        .uf-style-card:hover { border-color: var(--teal); background: rgba(34,211,165,0.05); }
+        .uf-style-card.active { border-color: var(--teal); background: rgba(34,211,165,0.08); }
+        .uf-style-icon { font-size: 22px; margin-bottom: 8px; }
+        .uf-style-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+        .uf-style-tagline { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+        .uf-style-target { font-family: var(--font-mono); font-size: 14px; color: var(--accent); font-weight: 500; }
+        .uf-style-tooltip { font-size: 12px; color: var(--teal); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(34,211,165,0.2); }
+
+        /* ── EXPENSES SCREEN ── */
+        .uf-expense-rows { display: flex; flex-direction: column; gap: 14px; margin-bottom: 4px; }
+        .uf-expense-row { display: flex; align-items: flex-start; gap: 12px; }
+        .uf-expense-icon { font-size: 22px; margin-top: 22px; flex-shrink: 0; }
+        .uf-expenses-warning { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-top: 12px; }
+
+        /* ── AGE SCREEN ── */
+        .uf-age-inputs { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+        .uf-age-suggestion { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.5; }
+        .uf-age-badge { font-size: 12px; font-weight: 600; margin-top: 6px; }
+
+        /* ── PORTFOLIO SCREEN ── */
+        .uf-portfolio-encouragement { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+        .uf-portfolio-coast-callout { background: rgba(34,211,165,0.08); border: 1px solid rgba(34,211,165,0.25); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+        .uf-portfolio-coast-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--teal); margin-bottom: 6px; }
+        .uf-portfolio-coast-amount { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: var(--teal); margin-bottom: 4px; }
+        .uf-portfolio-coast-sub { font-size: 13px; color: var(--text-muted); }
+        .uf-portfolio-already-coasted { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); border-radius: 10px; padding: 12px 16px; font-size: 14px; color: var(--teal); font-weight: 500; margin-bottom: 8px; }
+
+        /* ── BTN-TEAL DISABLED ── */
+        .uf-btn-teal:disabled { opacity: 0.4; cursor: not-allowed; }
+
         /* ── FOOTER DIVIDER ── */
       `}</style>
 
@@ -2102,7 +2586,7 @@ export default function Home() {
         totalSteps={totalDots}
         onRestart={() => {
           clearFireUserData();
-          setFireState(null);
+          setDraft({});
           setScreen("hero");
         }}
         onSignIn={signIn}
@@ -2115,19 +2599,73 @@ export default function Home() {
           <div className="uf-atm-orb uf-atm-orb-3" />
         </div>
         {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("advanced")} onSignIn={signIn} />
+          <HeroScreen onStart={() => setScreen("goal")} onSignIn={signIn} />
         )}
-        {screen === "advanced" && (
-          <AdvancedPathScreen
-            initialState={fireState}
-            onNext={(nextState) => { setPendingState(nextState); setScreen("currency"); }}
+        {screen === "goal" && (
+          <GoalScreen
+            onNext={goal => { merge({ goal }); setScreen("city"); }}
             onBack={() => setScreen("hero")}
+          />
+        )}
+        {screen === "city" && (
+          <CityScreen
+            stepLabel="Step 2 of 9"
+            onNext={city => { merge({ city }); setScreen("income"); }}
+            onBack={() => setScreen("goal")}
+          />
+        )}
+        {screen === "income" && (
+          <IncomeScreen
+            stepLabel="Step 3 of 9"
+            stateKey={draft.city?.stateKey ?? "tx"}
+            onNext={annualIncome => { merge({ annualIncome }); setScreen("expenses"); }}
+            onBack={() => setScreen("city")}
+          />
+        )}
+        {screen === "expenses" && (
+          <ExpensesScreen
+            monthlyIncome={monthlyIncome}
+            city={draft.city}
+            onNext={expenses => { merge({ expenses }); setScreen("fire-style"); }}
+            onBack={() => setScreen("income")}
+          />
+        )}
+        {screen === "fire-style" && (
+          <FireStyleScreen
+            monthlyExpenses={totalExp}
+            onNext={fireStyle => { merge({ fireStyle }); setScreen("age"); }}
+            onBack={() => setScreen("expenses")}
+          />
+        )}
+        {screen === "age" && (
+          <AgeScreen
+            monthlyIncome={monthlyIncome}
+            monthlyExpenses={totalExp}
+            fireStyle={draft.fireStyle ?? "standard"}
+            onNext={(age, targetAge) => { merge({ age, targetAge }); setScreen("portfolio"); }}
+            onBack={() => setScreen("fire-style")}
+          />
+        )}
+        {screen === "portfolio" && (
+          <PortfolioScreen
+            fireStyle={draft.fireStyle ?? "standard"}
+            monthlyExpenses={totalExp}
+            age={draft.age ?? 30}
+            targetAge={draft.targetAge ?? 55}
+            onNext={portfolio => { merge({ portfolio }); setScreen("currency"); }}
+            onBack={() => setScreen("age")}
           />
         )}
         {screen === "currency" && (
           <CurrencyScreen
-            onNext={(currency) => { void completeOnboardingWith(pendingState!, currency); }}
-            onBack={() => setScreen("advanced")}
+            onNext={currency => { merge({ currency }); setScreen("reveal"); }}
+            onBack={() => setScreen("portfolio")}
+          />
+        )}
+        {screen === "reveal" && (
+          <RevealScreen
+            draft={draft}
+            onComplete={() => { void completeOnboardingWith(draft.currency ?? "USD"); }}
           />
         )}
 
