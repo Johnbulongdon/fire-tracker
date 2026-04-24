@@ -18,8 +18,10 @@ import {
   validateFireUserState,
   type FireGoal,
   type FireIncomeRange,
+  type FireStyle,
   type FireUserState,
 } from "@/lib/local-inputs";
+import { loadPrefs, savePrefs } from "@/lib/preferences";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -30,46 +32,97 @@ function fmtUSD(n: number) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NAV
+// LOGO + HEADER + STEP BAR (wireframe design system)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Nav({ step, totalSteps, onRestart, onSignIn }: {
-  step: number; totalSteps: number; onRestart: () => void; onSignIn: () => void;
-}) {
+function Logo() {
   return (
-    <nav className="uf-nav">
-      <div className="uf-nav-logo">Until<span>Fire</span></div>
-      <div className="uf-nav-dots">
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <div key={i} className={`uf-nav-dot ${i === step ? "active" : i < step ? "done" : ""}`} />
-        ))}
+    <div className="uf-logo">
+      <div className="uf-logo-icon"><div className="uf-logo-icon-inner" /></div>
+      <div>
+        <div className="uf-logo-text">UntilFIRE</div>
+        <div className="uf-logo-sub">Financial Independence</div>
       </div>
-      {step > 0 && (
-        <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
-      )}
-      {step === 0 && (
-        <button className="uf-nav-signin" onClick={onSignIn}>Sign in →</button>
-      )}
-    </nav>
+    </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WIZARD PROGRESS BAR
-// ─────────────────────────────────────────────────────────────────────────────
-
-function WizardProgress({ step }: { step: number }) {
-  const steps = ["City", "Income", "Savings"];
+function OnboardingHeader({ onExit, isHero, onSignIn }: {
+  onExit: () => void; isHero: boolean; onSignIn?: () => void;
+}) {
   return (
-    <div className="uf-wizard-progress">
-      {steps.map((_, i) => (
-        <div key={i} className="uf-wizard-row">
-          <div className={`uf-wdot ${i < step ? "done" : i === step ? "active" : ""}`} />
-          {i < steps.length - 1 && (
-            <div className={`uf-wline ${i < step ? "done" : i === step ? "active" : ""}`} />
-          )}
-        </div>
-      ))}
+    <div className="uf-header">
+      <Logo />
+      <div className="uf-header-actions">
+        {isHero && onSignIn && (
+          <button className="uf-btn uf-btn-outline" onClick={onSignIn} style={{ padding: "7px 16px", fontSize: 13 }}>
+            Sign in →
+          </button>
+        )}
+        {!isHero && (
+          <button className="uf-header-exit" onClick={onExit}>Save &amp; Exit</button>
+        )}
+        <div className="uf-header-help">?</div>
+      </div>
+    </div>
+  );
+}
+
+const STEP_LABELS: Record<number, string> = {
+  1: "Goal", 2: "City", 3: "Income", 4: "Expenses",
+  5: "FIRE Style", 6: "Age", 7: "Portfolio", 8: "Currency",
+};
+
+function StepBar({ currentStep }: { currentStep: number }) {
+  const steps = [1, 2, 3, 4, 5, 6, 7, 8];
+  return (
+    <div className="uf-step-bar">
+      {steps.map((s, i) => {
+        const state = s < currentStep ? "done" : s === currentStep ? "active" : "pending";
+        return (
+          <div key={s} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+            <div className="uf-step-item">
+              <div className={`uf-step-circle ${state}`}>
+                {state === "done" ? "✓" : s}
+              </div>
+              <span className={`uf-step-label ${state}`}>{STEP_LABELS[s]}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`uf-step-line ${state === "done" ? "done" : ""}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function OnboardingFooter() {
+  return (
+    <footer className="uf-ob-footer">
+      <span className="uf-ob-footer-brand">UNTILFIRE</span>
+      <span className="uf-ob-footer-copy">© 2024 UntilFire. Financial Independence Through Trusted Growth.</span>
+      <div className="uf-ob-footer-links">
+        {["SECURITY", "PRIVACY", "TERMS", "SUPPORT"].map(l => (
+          <span key={l} className="uf-ob-footer-link">{l}</span>
+        ))}
+      </div>
+    </footer>
+  );
+}
+
+function StepProgress({ step, totalSteps, pct }: { step: number; totalSteps: number; pct: number }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--teal)", letterSpacing: "1px", textTransform: "uppercase" }}>
+          STEP {step} OF {totalSteps}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>{pct}% Complete</span>
+      </div>
+      <div style={{ background: "var(--border)", borderRadius: 99, height: 6, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent)", borderRadius: 99, transition: "width 0.4s" }} />
+      </div>
     </div>
   );
 }
@@ -143,7 +196,7 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
         </button>
         <div className="uf-social-proof">
           <div className="uf-avatars">
-            {["#f97316","#22d3a5","#a78bfa","#fb923c"].map((c, i) => (
+            {["#064E3B","#20D4BF","#475569","#065F46"].map((c, i) => (
               <div key={i} className="uf-avatar" style={{ background: c }} />
             ))}
           </div>
@@ -172,9 +225,10 @@ interface CityState {
   isCustom: boolean;
 }
 
-function CityScreen({ onNext, onBack }: {
+function CityScreen({ onNext, onBack, stepLabel = "Step 2 of 9" }: {
   onNext: (c: CityState) => void;
   onBack: () => void;
+  stepLabel?: string;
 }) {
   const [query, setQuery]           = useState("");
   const [open, setOpen]             = useState(false);
@@ -225,12 +279,11 @@ function CityScreen({ onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={0} />
-      <p className="uf-step-label">Step 1 of 3</p>
+      <p className="uf-step-label">{stepLabel}</p>
       <div className="uf-eyebrow">Location</div>
-      <h2 className="uf-h2">Where do you want<br />to <span className="uf-accent">retire?</span></h2>
-      <p className="uf-body" style={{ marginBottom: 32 }}>
-        Your FIRE number changes significantly by city. We use real cost-of-living data — not national averages.
+      <h2 className="uf-h2">Where do you live<br />right <span className="uf-accent">now?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 16 }}>
+        Your city&apos;s cost of living shapes your FIRE number more than almost anything else.
       </p>
 
       {/* Search input */}
@@ -348,7 +401,7 @@ function CityScreen({ onNext, onBack }: {
       )}
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button
           className="uf-btn uf-btn-primary"
           style={{ flex: 1 }}
@@ -388,10 +441,11 @@ function toAnnualGross(value: number, mode: IncomeMode): number {
   }
 }
 
-function IncomeScreen({ stateKey, onNext, onBack }: {
+function IncomeScreen({ stateKey, onNext, onBack, stepLabel = "Step 3 of 9" }: {
   stateKey: string;
   onNext: (income: number, takeHomeOverride?: number) => void;
   onBack: () => void;
+  stepLabel?: string;
 }) {
   const [mode, setMode]         = useState<IncomeMode>('annual');
   const [rawValue, setRawValue] = useState<string>('90000');
@@ -443,8 +497,7 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={1} />
-      <p className="uf-step-label">Step 2 of 3</p>
+      <p className="uf-step-label">{stepLabel}</p>
       <div className="uf-eyebrow">Income</div>
       <h2 className="uf-h2">What do you <span className="uf-accent">earn?</span></h2>
       <p className="uf-body" style={{ marginBottom: 24 }}>
@@ -595,7 +648,7 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
       )}
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button
           className="uf-btn uf-btn-primary"
           style={{ flex: 1 }}
@@ -630,7 +683,6 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={2} />
       <p className="uf-step-label">Step 3 of 3</p>
       <div className="uf-eyebrow">Savings</div>
       <h2 className="uf-h2">How much are you <span className="uf-accent">saving?</span></h2>
@@ -688,7 +740,7 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(savings)}>
           Show my FIRE number 🔥
         </button>
@@ -889,7 +941,7 @@ function useCountUp(target: number, duration: number, running: boolean) {
   return val;
 }
 
-function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
+function _DeprecatedRevealScreen({ city, income, savings, stateKey, onAdjust }: {
   city: CityState; income: number; savings: number; stateKey: string;
   onAdjust: () => void;
 }) {
@@ -1089,7 +1141,7 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               <button type="button" onClick={handleCompleteOnboarding} className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center", width: "100%" }}>
                 Make this more accurate — it&apos;s free →
               </button>
-              <Link href="/calculator" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              <Link href="/calculator" className="uf-btn uf-btn-outline uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
                 See full wealth projection + charts →
               </Link>
 
@@ -1097,7 +1149,7 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               <WaitlistInline fireTarget={result.fireTarget} retireYear={result.retireYear} />
 
               <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
+                <button className="uf-btn uf-btn-outline" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
                   ← Adjust inputs
                 </button>
               </div>
@@ -1262,7 +1314,7 @@ function PathChoiceScreen({ onStarter, onAdvanced, onBack }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
       </div>
     </div>
   );
@@ -1352,7 +1404,7 @@ function StarterPathScreen({ initialState, onNext, onBack }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(preview)}>
           Continue
         </button>
@@ -1366,39 +1418,58 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
   onNext: (state: FireUserState) => void;
   onBack: () => void;
 }) {
-  const initialIncome = initialState && typeof initialState.income === "number" ? initialState.income : 7500;
-  const [age, setAge] = useState(initialState?.age ?? 30);
-  const [income, setIncome] = useState(initialIncome);
-  const [expenses, setExpenses] = useState(initialState?.expenses ?? 4000);
-  const [savings, setSavings] = useState(initialState?.savings ?? 1500);
-  const [portfolio, setPortfolio] = useState(initialState?.portfolio ?? 0);
+  const initialIncome = initialState && typeof initialState.income === "number" ? initialState.income : 0;
+  const [age, setAge] = useState<number | "">(initialState?.age ?? "");
+  const [income, setIncome] = useState<number | "">(initialIncome);
+  const [expenses, setExpenses] = useState<number | "">(initialState?.expenses ?? "");
 
-  const preview = estimateAdvancedState(age, income, expenses, savings, portfolio);
-  const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
+  const incomeNum  = typeof income  === "number" ? income  : 0;
+  const expenseNum = typeof expenses === "number" ? expenses : 0;
+  const ageNum     = typeof age     === "number" ? age     : 30;
+
+  const derivedSavings = Math.max(0, incomeNum - expenseNum);
+  const preview = estimateAdvancedState(ageNum, incomeNum, expenseNum, derivedSavings, 0);
+  const savingsRate = incomeNum > 0 ? Math.round((derivedSavings / incomeNum) * 100) : 0;
+  const canSubmit = incomeNum > 0;
 
   return (
     <div className="uf-screen">
-      <p className="uf-step-label">Step 2 of 3</p>
-      <div className="uf-eyebrow">Advanced setup</div>
-      <h2 className="uf-h2">Use the numbers you already know.</h2>
-      <p className="uf-body" style={{ marginBottom: 28 }}>
-        This path keeps the onboarding tight, but it respects the fact that you&apos;re already optimizing your plan.
-      </p>
+      <div className="uf-eyebrow">Your numbers</div>
+      <h2 className="uf-h2">Find out when you can retire.</h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 24 }}>
         <div>
           <label className="uf-label">Current age</label>
           <div className="uf-prefixed-input">
-            <input type="number" className="uf-input uf-input-mono" min={18} max={80} value={age} onChange={e => setAge(Math.max(18, parseInt(e.target.value) || 18))} />
+            <input
+              type="number"
+              className="uf-input uf-input-mono"
+              value={age}
+              placeholder="30"
+              onChange={e => {
+                const v = parseInt(e.target.value);
+                setAge(isNaN(v) ? "" : v);
+              }}
+            />
           </div>
         </div>
 
         <div>
-          <label className="uf-label">Monthly income</label>
+          <label className="uf-label">Monthly income <span style={{ color: "#ef4444" }}>*</span></label>
           <div className="uf-big-input-wrap">
             <div className="uf-prefixed-input">
               <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={income} min={0} onChange={e => setIncome(Math.max(0, parseInt(e.target.value) || 0))} />
+              <input
+                type="number"
+                className="uf-input uf-input-mono uf-input-big uf-input-with-prefix"
+                value={income}
+                placeholder="5000"
+                min={0}
+                onChange={e => {
+                  const v = parseInt(e.target.value);
+                  setIncome(isNaN(v) ? "" : Math.max(0, v));
+                }}
+              />
             </div>
             <span className="uf-unit">/month</span>
           </div>
@@ -1409,56 +1480,139 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
           <div className="uf-big-input-wrap">
             <div className="uf-prefixed-input">
               <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={expenses} min={0} onChange={e => setExpenses(Math.max(0, parseInt(e.target.value) || 0))} />
+              <input
+                type="number"
+                className="uf-input uf-input-mono uf-input-big uf-input-with-prefix"
+                value={expenses}
+                placeholder="3000"
+                min={0}
+                onChange={e => {
+                  const v = parseInt(e.target.value);
+                  setExpenses(isNaN(v) ? "" : Math.max(0, v));
+                }}
+              />
             </div>
             <span className="uf-unit">/month</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="uf-label">Monthly savings</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={savings} min={0} onChange={e => setSavings(Math.max(0, parseInt(e.target.value) || 0))} />
-            </div>
-            <span className="uf-unit">/month</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="uf-label">Portfolio balance (optional)</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={portfolio || ""} min={0} onChange={e => setPortfolio(Math.max(0, parseInt(e.target.value) || 0))} placeholder="0" />
-            </div>
           </div>
         </div>
       </div>
 
       <div className="uf-card uf-card-accent" style={{ marginTop: 20 }}>
-        <div className="uf-card-head">Advanced preview</div>
+        <div className="uf-card-head">Live preview</div>
         <div className="uf-stat-row" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginTop: 0 }}>
           <div className="uf-stat-box">
             <div className="uf-stat-val">{savingsRate}%</div>
             <div className="uf-stat-lab">Savings rate</div>
           </div>
           <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(preview.fireNumber)}</div>
+            <div className="uf-stat-val">{incomeNum > 0 ? fmtUSD(preview.fireNumber) : "—"}</div>
             <div className="uf-stat-lab">FIRE target</div>
           </div>
           <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(portfolio)}</div>
-            <div className="uf-stat-lab">Starting portfolio</div>
+            <div className="uf-stat-val">{incomeNum > 0 ? `${fmtUSD(derivedSavings)}/mo` : "—"}</div>
+            <div className="uf-stat-lab">Savings / mo</div>
           </div>
         </div>
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(preview)}>
-          Continue
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ flex: 1 }}
+          disabled={!canSubmit}
+          onClick={() => onNext(preview)}
+        >
+          See my FIRE number →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — CURRENCY SELECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Renders a flag emoji as a cross-platform Twemoji SVG image.
+function FlagEmoji({ emoji, size = 20 }: { emoji: string; size?: number }) {
+  const cp = [...emoji].map(c => c.codePointAt(0)!.toString(16)).join("-");
+  return (
+    <img
+      src={`https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${cp}.svg`}
+      width={size} height={size} alt={emoji}
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    />
+  );
+}
+
+const ONBOARDING_CURRENCIES = [
+  { code: "USD", flag: "🇺🇸", name: "US Dollar" },
+  { code: "EUR", flag: "🇪🇺", name: "Euro" },
+  { code: "GBP", flag: "🇬🇧", name: "Pound" },
+  { code: "CNY", flag: "🇨🇳", name: "Yuan" },
+  { code: "JPY", flag: "🇯🇵", name: "Yen" },
+  { code: "AUD", flag: "🇦🇺", name: "AUD" },
+  { code: "CAD", flag: "🇨🇦", name: "CAD" },
+  { code: "SGD", flag: "🇸🇬", name: "SGD" },
+  { code: "HKD", flag: "🇭🇰", name: "HKD" },
+  { code: "CHF", flag: "🇨🇭", name: "CHF" },
+  { code: "KRW", flag: "🇰🇷", name: "Won" },
+  { code: "INR", flag: "🇮🇳", name: "Rupee" },
+  { code: "MXN", flag: "🇲🇽", name: "Peso" },
+  { code: "BRL", flag: "🇧🇷", name: "Real" },
+  { code: "NZD", flag: "🇳🇿", name: "NZD" },
+  { code: "THB", flag: "🇹🇭", name: "Baht" },
+  { code: "SEK", flag: "🇸🇪", name: "Krona" },
+  { code: "NOK", flag: "🇳🇴", name: "Krone" },
+  { code: "DKK", flag: "🇩🇰", name: "Krone" },
+  { code: "ZAR", flag: "🇿🇦", name: "Rand" },
+];
+
+function CurrencyScreen({ onNext, onBack }: { onNext: (currency: string) => void; onBack: () => void }) {
+  const [selected, setSelected] = useState("USD");
+
+  return (
+    <div className="uf-screen">
+      <div className="uf-eyebrow">Almost there</div>
+      <h2 className="uf-h2">What's your main currency?</h2>
+      <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8, marginBottom: 28, lineHeight: 1.5 }}>
+        This will be the default for tracking your expenses.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        {ONBOARDING_CURRENCIES.map(({ code, flag, name }) => (
+          <button
+            key={code}
+            onClick={() => setSelected(code)}
+            style={{
+              background: selected === code ? "rgba(6,78,59,0.10)" : "var(--bg-card)",
+              border: `1.5px solid ${selected === code ? "#064E3B" : "var(--border)"}`,
+              borderRadius: 12,
+              padding: "14px 8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            <FlagEmoji emoji={flag} size={32} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: selected === code ? "#064E3B" : "var(--text)" }}>{code}</span>
+            <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="uf-nav-row" style={{ marginTop: 28 }}>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ flex: 1 }}
+          onClick={() => onNext(selected)}
+        >
+          Continue →
         </button>
       </div>
     </div>
@@ -1516,7 +1670,7 @@ function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={onComplete}>
           Go to dashboard
         </button>
@@ -1526,44 +1680,451 @@ function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FIRE CALC BY STYLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function calcFireNumberByStyle(
+  style: FireStyle,
+  monthlyExpenses: number,
+  age: number,
+  targetAge: number,
+): number {
+  const annual = monthlyExpenses * 12;
+  switch (style) {
+    case "lean":    return 35000 * 25;
+    case "fat":     return Math.max(annual, 150000) * 25;
+    case "barista": return Math.max(0, annual - 15000) * 25;
+    case "coast": {
+      const full = Math.max(annual, 1) * 25;
+      const years = Math.max(1, targetAge - age);
+      return Math.round(full / Math.pow(1.07, years));
+    }
+    default: return Math.max(annual, 1) * 25;
+  }
+}
+
+const FIRE_STYLE_LABELS: Record<FireStyle, string> = {
+  lean: "Lean FIRE", standard: "Standard FIRE", fat: "Fat FIRE",
+  barista: "Barista FIRE", coast: "Coast FIRE", unsure: "Standard FIRE",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ONBOARDING DRAFT
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface OnboardingDraft {
+  goal?: FireGoal;
+  city?: { name: string; col: number; stateKey: string; isCustom: boolean };
+  fireStyle?: FireStyle;
+  age?: number;
+  targetAge?: number;
+  annualIncome?: number;
+  expenses?: { housing: number; food: number; transport: number; other: number };
+  portfolio?: number;
+  currency?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — GOAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function GoalScreen({ onNext, onBack }: { onNext: (goal: FireGoal) => void; onBack: () => void }) {
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+
+  const GOAL_CARDS = [
+    { key: "retire-early",      value: "retire-early"      as FireGoal, label: "Retire before 50",  sub: "I want my time back. All of it." },
+    { key: "financial-freedom", value: "financial-freedom" as FireGoal, label: "Financial freedom", sub: "Options, not obligations." },
+    { key: "build-wealth",      value: "financial-freedom" as FireGoal, label: "Build real wealth", sub: "I want my money to work harder than I do." },
+    { key: "exploring",         value: "exploring"         as FireGoal, label: "Just exploring",    sub: "I'm curious what's actually possible for me." },
+  ];
+
+  const CONTEXT: Record<string, string> = {
+    "retire-early":      "Let's map your fastest path out.",
+    "financial-freedom": "Let's find the number that sets you free.",
+    "build-wealth":      "Let's find the number that sets you free.",
+    "exploring":         "No pressure — let's just see what's possible.",
+  };
+
+  const selectedGoal = selectedCard ? GOAL_CARDS.find(c => c.key === selectedCard)?.value : null;
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 1 of 9</p>
+      <h2 className="uf-h2">What&apos;s pulling you toward <span className="uf-accent">FIRE?</span></h2>
+      <div className="uf-goal-cards">
+        {GOAL_CARDS.map(card => (
+          <button key={card.key} className={`uf-goal-card ${selectedCard === card.key ? "active" : ""}`} onClick={() => setSelectedCard(card.key)}>
+            <div className="uf-goal-label">{card.label}</div>
+            <div className="uf-goal-sub">{card.sub}</div>
+          </button>
+        ))}
+      </div>
+      {selectedCard && <p className="uf-goal-message">{CONTEXT[selectedCard]}</p>}
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!selectedGoal} onClick={() => selectedGoal && onNext(selectedGoal)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — EXPENSES
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ExpensesScreen({ monthlyIncome, city, onNext, onBack }: {
+  monthlyIncome: number;
+  city: { name: string; col: number; stateKey: string; isCustom: boolean } | undefined;
+  onNext: (exp: { housing: number; food: number; transport: number; other: number }) => void;
+  onBack: () => void;
+}) {
+  const [housing,   setHousing]   = useState<number | "">("");
+  const [food,      setFood]      = useState<number | "">("");
+  const [transport, setTransport] = useState<number | "">("");
+  const [other,     setOther]     = useState<number | "">("");
+
+  const h = typeof housing   === "number" ? housing   : 0;
+  const f = typeof food      === "number" ? food      : 0;
+  const t = typeof transport === "number" ? transport : 0;
+  const o = typeof other     === "number" ? other     : 0;
+  const total = h + f + t + o;
+  const savings = Math.max(0, monthlyIncome - total);
+  const rate = monthlyIncome > 0 ? Math.round((savings / monthlyIncome) * 100) : 0;
+  const rateColor = rate >= 30 ? "var(--teal)" : rate >= 10 ? "#fbbf24" : "var(--accent)";
+  const overBudget = monthlyIncome > 0 && total > monthlyIncome;
+  const col = city ? city.col / 12 : 0;
+
+  function ExpRow({ val, set, icon, label, hint }: { val: number | ""; set: (v: number | "") => void; icon: string; label: string; hint?: number }) {
+    return (
+      <div className="uf-expense-row">
+        <div className="uf-expense-icon">{icon}</div>
+        <div style={{ flex: 1 }}>
+          <label className="uf-label" style={{ marginBottom: 2 }}>{label}</label>
+          {hint !== undefined && city && <div className="uf-hint" style={{ marginBottom: 0 }}>~{fmtUSD(hint)}/mo in {city.name}</div>}
+        </div>
+        <div className="uf-prefixed-input" style={{ width: 140 }}>
+          <span className="uf-input-prefix">$</span>
+          <input type="number" className="uf-input uf-input-mono uf-input-with-prefix" value={val}
+            placeholder={hint !== undefined ? String(hint) : "0"} min={0}
+            onChange={e => { const v = parseInt(e.target.value); set(isNaN(v) ? "" : Math.max(0, v)); }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 4 of 9</p>
+      <h2 className="uf-h2">Where does your <span className="uf-accent">money go?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 24 }}>Rough estimates are fine — refine on the dashboard.</p>
+      <div className="uf-expense-rows">
+        <ExpRow val={housing}   set={setHousing}   icon="🏠" label="Housing"         hint={col > 0 ? Math.round(col * 0.35) : undefined} />
+        <ExpRow val={food}      set={setFood}      icon="🍔" label="Food & dining"   hint={col > 0 ? Math.round(col * 0.15) : undefined} />
+        <ExpRow val={transport} set={setTransport} icon="🚗" label="Transport"       hint={col > 0 ? Math.round(col * 0.12) : undefined} />
+        <ExpRow val={other}     set={setOther}     icon="📦" label="Everything else" hint={col > 0 ? Math.round(col * 0.38) : undefined} />
+      </div>
+      {overBudget && <div className="uf-expenses-warning">Your expenses exceed your income — double-check the numbers</div>}
+      {monthlyIncome > 0 && (
+        <div className="uf-card uf-card-accent" style={{ marginTop: 16 }}>
+          <div className="uf-rate-head">
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Monthly savings toward FIRE</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: rateColor }}>{rate}%</span>
+          </div>
+          <div className="uf-progress-track"><div className="uf-progress-fill" style={{ width: `${Math.min(100, rate)}%`, background: rateColor }} /></div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, color: rateColor, marginTop: 10 }}>
+            {fmtUSD(savings)}<span style={{ fontSize: 13, color: "var(--text-muted)" }}>/mo</span>
+          </div>
+        </div>
+      )}
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={() => onNext({ housing: h, food: f, transport: t, other: o })}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — FIRE STYLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FireStyleScreen({ monthlyExpenses, onNext, onBack }: {
+  monthlyExpenses: number;
+  onNext: (style: FireStyle) => void;
+  onBack: () => void;
+}) {
+  const [selected, setSelected] = useState<FireStyle | null>(null);
+
+  const STYLES: { key: FireStyle; icon: string; name: string; tagline: string; tooltip: string }[] = [
+    { key: "lean",     icon: "🌿", name: "Lean FIRE",     tagline: "Live simply. Retire fast.",       tooltip: "Minimal lifestyle, maximum speed to freedom." },
+    { key: "standard", icon: "⚖️", name: "Standard FIRE", tagline: "Comfortable. Independent.",       tooltip: "The classic 25× rule — solid foundation." },
+    { key: "fat",      icon: "👑", name: "Fat FIRE",      tagline: "No compromises.",                 tooltip: "Premium lifestyle maintained indefinitely." },
+    { key: "barista",  icon: "☕", name: "Barista FIRE",  tagline: "Semi-retire, part-time.",          tooltip: "Part-time income covers living costs while investments grow." },
+    { key: "coast",    icon: "🌊", name: "Coast FIRE",    tagline: "Invest now. Time does the rest.", tooltip: "Hit a lump sum today — then coast to full FIRE." },
+    { key: "unsure",   icon: "🔭", name: "Not sure yet",  tagline: "Show me everything.",             tooltip: "We'll use Standard FIRE as your baseline." },
+  ];
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 5 of 9</p>
+      <h2 className="uf-h2">What does your <span className="uf-accent">retirement</span> look like?</h2>
+      <p className="uf-body" style={{ marginBottom: 20 }}>Pick a style — we&apos;ll show your actual target for each.</p>
+      <div className="uf-style-grid">
+        {STYLES.map(s => {
+          const target = calcFireNumberByStyle(s.key, monthlyExpenses, 30, 55);
+          return (
+            <button key={s.key} className={`uf-style-card ${selected === s.key ? "active" : ""}`} onClick={() => setSelected(s.key)}>
+              <div className="uf-style-icon">{s.icon}</div>
+              <div className="uf-style-name">{s.name}</div>
+              <div className="uf-style-tagline">{s.tagline}</div>
+              <div className="uf-style-target">{s.key === "coast" ? "Calculated next" : fmtUSD(target)}</div>
+              {selected === s.key && <div className="uf-style-tooltip">{s.tooltip}</div>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!selected} onClick={() => selected && onNext(selected)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — AGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AgeScreen({ monthlyIncome, monthlyExpenses, fireStyle, onNext, onBack }: {
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  fireStyle: FireStyle;
+  onNext: (age: number, targetAge: number) => void;
+  onBack: () => void;
+}) {
+  const [age,             setAge]             = useState<number | "">("");
+  const [targetAge,       setTargetAge]       = useState<number | "">("");
+  const [userEdited,      setUserEdited]      = useState(false);
+  const monthlySavings = Math.max(0, monthlyIncome - monthlyExpenses);
+
+  useEffect(() => {
+    if (typeof age !== "number" || age < 1 || userEdited) return;
+    const fireTarget = calcFireNumberByStyle("standard", monthlyExpenses, age, age + 25);
+    if (monthlySavings <= 0) { setTargetAge(Math.min(80, age + 30)); return; }
+    let suggested = age + 40;
+    for (let n = 5; n <= 45; n++) {
+      const fv = monthlySavings * 12 * ((Math.pow(1.07, n) - 1) / 0.07);
+      if (fv >= fireTarget) { suggested = age + n; break; }
+    }
+    setTargetAge(Math.min(80, suggested));
+  }, [age]);
+
+  const ageNum    = typeof age       === "number" ? age       : 0;
+  const targetNum = typeof targetAge === "number" ? targetAge : 0;
+  const canGo     = ageNum > 0 && targetNum > ageNum;
+  const ageError  = ageNum > 0 && targetNum > 0 && targetNum <= ageNum;
+  const yearsAway = canGo ? targetNum - ageNum : 0;
+  const badgeColor = yearsAway <= 15 ? "#fbbf24" : "var(--teal)";
+  const badgeLabel = yearsAway <= 15 ? "Stretch goal" : yearsAway <= 25 ? "Achievable" : "Comfortable pace";
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 6 of 9</p>
+      <h2 className="uf-h2">When do you want to be <span className="uf-accent">free?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 24 }}>We&apos;ve crunched your income and expenses. Here&apos;s our read.</p>
+      <div className="uf-age-inputs">
+        <div>
+          <label className="uf-label">Current age</label>
+          <input type="number" className="uf-input uf-input-mono" value={age} placeholder="30" min={1} max={80}
+            onChange={e => { const v = parseInt(e.target.value); setAge(isNaN(v) ? "" : Math.min(80, Math.max(1, v))); }} />
+        </div>
+        <div>
+          <label className="uf-label">Target retirement age <span style={{ color: "var(--text-dim)", fontSize: 11 }}>(pre-filled from your numbers)</span></label>
+          <input type="number" className="uf-input uf-input-mono" value={targetAge} placeholder="55" min={1} max={100}
+            onChange={e => { const v = parseInt(e.target.value); setTargetAge(isNaN(v) ? "" : v); setUserEdited(true); }} />
+          {canGo     && <div className="uf-age-badge" style={{ color: badgeColor }}>{badgeLabel}</div>}
+          {ageError  && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 4 }}>Target age must be after your current age</div>}
+        </div>
+      </div>
+      {ageNum > 0 && monthlySavings > 0 && (
+        <div className="uf-age-suggestion">
+          At {fmtUSD(monthlySavings)}/mo savings targeting {FIRE_STYLE_LABELS[fireStyle]} ({fmtUSD(calcFireNumberByStyle(fireStyle, monthlyExpenses, ageNum, targetNum || ageNum + 25))})
+        </div>
+      )}
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!canGo} onClick={() => canGo && onNext(ageNum, targetNum)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — PORTFOLIO
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PortfolioScreen({ fireStyle, monthlyExpenses, age, targetAge, onNext, onBack }: {
+  fireStyle: FireStyle;
+  monthlyExpenses: number;
+  age: number;
+  targetAge: number;
+  onNext: (portfolio: number) => void;
+  onBack: () => void;
+}) {
+  const [portfolio, setPortfolio] = useState<number | "">("");
+  const portNum = typeof portfolio === "number" ? portfolio : 0;
+  const coastTarget = fireStyle === "coast" ? calcFireNumberByStyle("coast", monthlyExpenses, age, targetAge) : 0;
+  const alreadyCoasted = fireStyle === "coast" && portNum >= coastTarget && coastTarget > 0;
+  const encouragement = portNum === 0
+    ? "Starting from $0 is where every FIRE story begins."
+    : portNum < 10000  ? "You've already started. This is your launchpad."
+    : portNum < 100000 ? "This is compounding for you every single day."
+    : "Significant head start — this could shave years off your timeline.";
+
+  return (
+    <div className="uf-screen">
+      <p className="uf-step-label">Step 7 of 9</p>
+      <h2 className="uf-h2">How much have you already <span className="uf-accent">invested?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 24 }}>Include 401k, Roth IRA, brokerage — everything.</p>
+      {fireStyle === "coast" && coastTarget > 0 && (
+        <div className="uf-portfolio-coast-callout">
+          <div className="uf-portfolio-coast-label">Coast FIRE lump sum needed</div>
+          <div className="uf-portfolio-coast-amount">{fmtUSD(coastTarget)}</div>
+          <div className="uf-portfolio-coast-sub">Invested today, grows to your full FIRE number by age {targetAge}</div>
+        </div>
+      )}
+      <div className="uf-big-input-wrap" style={{ marginBottom: 12 }}>
+        <div className="uf-prefixed-input">
+          <span className="uf-input-prefix uf-big-prefix">$</span>
+          <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={portfolio} placeholder="0" min={0}
+            onChange={e => { const v = parseInt(e.target.value); setPortfolio(isNaN(v) ? "" : Math.max(0, v)); }} />
+        </div>
+      </div>
+      {alreadyCoasted
+        ? <div className="uf-portfolio-already-coasted">You may already be done contributing. Your money just needs time.</div>
+        : <div className="uf-portfolio-encouragement">{encouragement}</div>
+      }
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" style={{ color: "var(--text-muted)" }} onClick={() => onNext(0)}>Skip</button>
+        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={() => onNext(portNum)}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN — REVEAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function RevealScreen({ draft, onComplete }: { draft: OnboardingDraft; onComplete: () => void }) {
+  const [phase,      setPhase]      = useState<"calc" | "reveal">("calc");
+  const [displayNum, setDisplayNum] = useState(0);
+  const [calcStep,   setCalcStep]   = useState(0);
+  const [barWidth,   setBarWidth]   = useState(0);
+
+  const monthlyIncome = Math.round((draft.annualIncome ?? 0) / 12);
+  const exp = draft.expenses ?? { housing: 0, food: 0, transport: 0, other: 0 };
+  const totalExp = exp.housing + exp.food + exp.transport + exp.other;
+  const monthlySavings = Math.max(0, monthlyIncome - totalExp);
+  const fireStyle = draft.fireStyle ?? "standard";
+  const fireNumber = calcFireNumberByStyle(fireStyle, totalExp, draft.age ?? 30, draft.targetAge ?? 55);
+  const retireAge = draft.targetAge ?? (draft.age ? draft.age + 25 : 55);
+  const retireYear = new Date().getFullYear() + (retireAge - (draft.age ?? 30));
+
+  const CALC_STEPS = ["Analyzing income", "Modeling expenses", "Projecting portfolio", "Calculating timeline", "Crunching your number"];
+
+  useEffect(() => {
+    let step = 0;
+    const id = setInterval(() => {
+      step++;
+      setCalcStep(step);
+      setBarWidth(Math.round((step / CALC_STEPS.length) * 100));
+      if (step >= CALC_STEPS.length) { clearInterval(id); setTimeout(() => setPhase("reveal"), 500); }
+    }, 400);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    const duration = 1400;
+    const start = Date.now();
+    const animate = () => {
+      const p = Math.min((Date.now() - start) / duration, 1);
+      setDisplayNum(Math.round((1 - Math.pow(1 - p, 3)) * fireNumber));
+      if (p < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [phase, fireNumber]);
+
+  const STYLE_COPY: Record<FireStyle, string> = {
+    lean:     "You don't need much. That's your superpower.",
+    standard: "This is your number. Now let's own it.",
+    fat:      "Ambitious and achievable. Here's what it takes.",
+    barista:  "Part-time work could cut this number significantly.",
+    coast:    "If you hit this today, time handles the rest.",
+    unsure:   "Here's your baseline — you can tune it on the dashboard.",
+  };
+
+  if (phase === "calc") {
+    return (
+      <div className="uf-screen">
+        <div className="uf-calc-phase">
+          <div className="uf-calc-label">Computing your FIRE number</div>
+          <div className="uf-calc-steps">
+            {CALC_STEPS.map((s, i) => (
+              <span key={i}>
+                <span className={`uf-calc-step ${i < calcStep ? "lit" : ""}`}>{s}</span>
+                {i < CALC_STEPS.length - 1 && <span className="uf-calc-dot">·</span>}
+              </span>
+            ))}
+          </div>
+          <div className="uf-calc-bar-track"><div className="uf-calc-bar-fill" style={{ width: `${barWidth}%` }} /></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="uf-screen uf-reveal-screen">
+      <div className="uf-eyebrow">{FIRE_STYLE_LABELS[fireStyle]}</div>
+      <p style={{ color: "var(--text-muted)", fontSize: 15, marginBottom: 20 }}>{STYLE_COPY[fireStyle]}</p>
+      <div className="uf-fire-hero">
+        <div className="uf-fire-eyebrow">Your FIRE target</div>
+        <div className="uf-fire-num uf-fire-slam">{fmtUSD(displayNum)}</div>
+        <div className="uf-fire-date-row">
+          <div className="uf-fire-date-line" />
+          <div className="uf-fire-date">Target: age {retireAge} · {retireYear}</div>
+          <div className="uf-fire-date-line" />
+        </div>
+        {draft.city && <div className="uf-fire-city">{draft.city.name}</div>}
+      </div>
+      <div className="uf-stat-row" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="uf-stat-box"><div className="uf-stat-val">{fmtUSD(monthlyIncome)}/mo</div><div className="uf-stat-lab">Income</div></div>
+        <div className="uf-stat-box"><div className="uf-stat-val">{fmtUSD(totalExp)}/mo</div><div className="uf-stat-lab">Expenses</div></div>
+        <div className="uf-stat-box"><div className="uf-stat-val">{fmtUSD(monthlySavings)}/mo</div><div className="uf-stat-lab">Savings</div></div>
+      </div>
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-teal uf-btn-full" style={{ marginTop: 8 }} onClick={onComplete}>Open my dashboard →</button>
+      </div>
+      <p className="uf-disclaimer">You can refine all of this on the dashboard.</p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Screen = "hero" | "path" | "starter" | "advanced" | "summary";
+type Screen = "hero" | "goal" | "city" | "income" | "expenses" | "fire-style" | "age" | "portfolio" | "currency" | "reveal";
 
 export default function Home() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("hero");
-  const [fireState, setFireState] = useState<FireUserState | null>(null);
+  const [draft,  setDraft]  = useState<OnboardingDraft>({});
 
-  useEffect(() => {
-    registerFireUserStateInspector();
-  }, []);
+  useEffect(() => { registerFireUserStateInspector(); }, []);
 
-  useEffect(() => {
-    const savedState = loadFireUserData();
-    if (!savedState) return;
-    const validation = validateFireUserState(savedState);
-    if (!validation.valid) {
-      console.warn("[UntilFire] Onboarding draft validation warnings", validation.errors);
-    }
-
-    if (savedState.hasCompletedOnboarding) {
-      setFireState(savedState);
-      return;
-    }
-
-    setFireState(savedState);
-    setScreen(savedState.mode === "starter" ? "starter" : "advanced");
-  }, []);
-
-  useEffect(() => {
-    if (!fireState || fireState.hasCompletedOnboarding) return;
-    // Priority: in-memory draft first, localStorage draft second.
-    void saveFireUserData(fireState);
-  }, [fireState]);
-
-  // Auth redirect — keep existing behaviour
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const fireUserData = loadFireUserData();
@@ -1576,6 +2137,10 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  function merge(partial: Partial<OnboardingDraft>) {
+    setDraft(prev => ({ ...prev, ...partial }));
+  }
+
   async function signIn() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -1583,83 +2148,144 @@ export default function Home() {
     });
   }
 
-  async function completeOnboarding() {
-    if (!fireState) return;
-    const completedState: FireUserState = {
-      ...fireState,
+  async function completeOnboardingWith(currency: string) {
+    const monthlyIncome = Math.round((draft.annualIncome ?? 0) / 12);
+    const exp = draft.expenses ?? { housing: 0, food: 0, transport: 0, other: 0 };
+    const totalExp = exp.housing + exp.food + exp.transport + exp.other;
+    const monthlySavings = Math.max(0, monthlyIncome - totalExp);
+    const fireNumber = calcFireNumberByStyle(
+      draft.fireStyle ?? "standard", totalExp, draft.age ?? 30, draft.targetAge ?? 55,
+    );
+
+    const fireUserState: FireUserState = {
+      mode: "advanced",
+      age: draft.age,
+      income: monthlyIncome || 1,
+      expenses: totalExp,
+      savings: monthlySavings,
+      fireNumber,
       hasCompletedOnboarding: true,
+      goal: draft.goal,
+      portfolio: draft.portfolio && draft.portfolio > 0 ? draft.portfolio : undefined,
+      fireStyle: draft.fireStyle,
+      targetAge: draft.targetAge,
+      city: draft.city,
     };
-    const validation = validateFireUserState(completedState);
-    if (!validation.valid) {
-      console.warn("[UntilFire] Refusing onboarding completion for invalid FireUserState", validation.errors);
-      return;
-    }
-    await saveFireUserData(completedState);
-    setFireState(completedState);
+
+    const validation = validateFireUserState(fireUserState);
+    await saveFireUserData(validation.value ?? fireUserState);
+
+    saveLocalInputs({
+      income: monthlyIncome || 1,
+      expenses: {
+        housing: exp.housing, food: exp.food, transport: exp.transport,
+        subscriptions: 0, healthcare: 0, entertainment: 0, other: exp.other,
+      },
+      fireAge: draft.targetAge ?? (draft.age ? draft.age + 25 : 55),
+      k401: 0, rothIRA: 0,
+      taxable: draft.portfolio ?? 0,
+      totalDebt: 0, mortgageBalance: 0, mortgageMonthly: 0,
+      growthRate: 0.07, withdrawalRate: 0.04,
+      baselineFireTarget: fireNumber,
+      savings: monthlySavings,
+      city: draft.city,
+    });
+
+    savePrefs({ ...loadPrefs(), defaultCurrency: currency });
     router.push("/dashboard");
   }
 
-  const STEP_MAP: Record<Screen, number> = { hero: 0, path: 1, starter: 2, advanced: 2, summary: 3 };
-  const totalDots = 4;
+  const STEP_MAP: Record<Screen, number> = {
+    hero: 0, goal: 1, city: 2, income: 3, expenses: 4,
+    "fire-style": 5, age: 6, portfolio: 7, currency: 8, reveal: 9,
+  };
+  const monthlyIncome = Math.round((draft.annualIncome ?? 0) / 12);
+  const totalExp = draft.expenses
+    ? draft.expenses.housing + draft.expenses.food + draft.expenses.transport + draft.expenses.other
+    : 0;
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
-
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-          --bg: #08080e;
-          --bg-card: #13131e;
-          --bg-elevated: #1a1a28;
-          --border: #1c1c2e;
-          --border-light: #2a2a3e;
-          --text: #e8e8f2;
-          --text-muted: #6e6e8e;
-          --text-dim: #3a3a5a;
-          --accent: #f97316;
-          --accent-dim: rgba(249,115,22,0.12);
-          --accent-glow: rgba(249,115,22,0.25);
-          --teal: #22d3a5;
-          --teal-dim: rgba(34,211,165,0.12);
-          --danger: #ef4444;
-          --purple: #a78bfa;
-          --font-display: 'Syne', sans-serif;
-          --font-body: 'DM Sans', sans-serif;
-          --font-mono: 'DM Mono', monospace;
+          --bg: #F7F9FB;
+          --bg-card: #FFFFFF;
+          --bg-elevated: #F1F5F9;
+          --border: #E2E8F0;
+          --border-light: #CBD5E1;
+          --text: #0F172A;
+          --text-muted: #64748B;
+          --text-dim: #94A3B8;
+          --accent: #064E3B;
+          --accent-dim: rgba(6,78,59,0.10);
+          --accent-glow: rgba(6,78,59,0.20);
+          --teal: #20D4BF;
+          --teal-bright: #62FAE3;
+          --teal-dim: rgba(32,212,191,0.12);
+          --danger: #EF4444;
+          --purple: #475569;
+          --font-display: 'Manrope', sans-serif;
+          --font-body: 'Manrope', sans-serif;
+          --font-mono: 'Inter', monospace;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; background-image: radial-gradient(circle, rgba(255,255,255,0.038) 1px, transparent 1px); background-size: 28px 28px; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
 
-        /* ── NAV ── */
-        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(8,8,14,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px); }
-        .uf-nav-logo { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
-        .uf-nav-logo span { color: var(--accent); }
-        .uf-nav-dots { display: flex; gap: 6px; align-items: center; }
-        .uf-nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-light); transition: all 0.3s; }
-        .uf-nav-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
-        .uf-nav-dot.done { background: var(--teal); }
-        .uf-nav-restart { font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
-        .uf-nav-restart:hover { color: var(--text); }
-        .uf-nav-signin { font-size: 13px; font-weight: 500; color: var(--text-muted); background: none; border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
-        .uf-nav-signin:hover { color: var(--text); border-color: var(--text-dim); background: var(--bg-elevated); }
+        /* ── HEADER (new wireframe style) ── */
+        .uf-header { position: sticky; top: 0; left: 0; right: 0; height: 64px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 100; }
+        .uf-logo { display: flex; align-items: center; gap: 10px; }
+        .uf-logo-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .uf-logo-icon-inner { width: 14px; height: 14px; border-radius: 3px; background: var(--teal-bright); opacity: 0.9; }
+        .uf-logo-text { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: -0.4px; line-height: 1.1; }
+        .uf-logo-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase; }
+        .uf-header-actions { display: flex; align-items: center; gap: 12px; }
+        .uf-header-exit { font-size: 13px; font-weight: 600; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
+        .uf-header-exit:hover { color: var(--text); }
+        .uf-header-help { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+
+        /* ── STEP BAR ── */
+        .uf-step-bar { background: #fff; border-bottom: 1px solid var(--border); padding: 12px 32px; display: flex; align-items: center; gap: 0; overflow-x: auto; }
+        .uf-step-item { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .uf-step-circle { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; transition: all 0.2s; }
+        .uf-step-circle.done { background: #047857; color: #fff; }
+        .uf-step-circle.active { background: var(--accent); color: #fff; }
+        .uf-step-circle.pending { background: var(--border); color: var(--text-dim); }
+        .uf-step-label { font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .uf-step-label.done { color: #047857; }
+        .uf-step-label.active { color: var(--accent); }
+        .uf-step-label.pending { display: none; }
+        .uf-step-line { flex: 1; height: 1px; background: var(--border); min-width: 16px; margin: 0 2px; transition: background 0.3s; }
+        .uf-step-line.done { background: #34D399; }
+
+        /* ── ONBOARDING LAYOUT ── */
+        .uf-ob-page { min-height: calc(100vh - 64px); background: var(--bg); display: flex; flex-direction: column; }
+        .uf-ob-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px 24px; }
+        .uf-ob-width { width: 100%; max-width: 640px; }
+
+        /* ── LEGACY SCREEN (hero uses this) ── */
+        .uf-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform, opacity; }
+        .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(6,78,59,0.10) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
+        .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(32,212,191,0.09) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
+        .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(71,85,105,0.07) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
+        .uf-screen { width: 100%; max-width: 540px; padding: 0 0 24px; position: relative; z-index: 1; }
+        .uf-reveal-screen { max-width: 680px; }
+        .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
         .uf-hero-signin { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 14px; cursor: pointer; padding: 8px; transition: color 0.2s; }
         .uf-hero-signin:hover { color: var(--text); }
 
-        /* ── SCREEN ── */
-        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-        .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform, opacity; }
-        .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
-        .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(34,211,165,0.11) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
-        .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
-        .uf-screen { width: 100%; max-width: 540px; padding: 40px 24px 24px; position: relative; z-index: 1; }
-        .uf-reveal-screen { max-width: 680px; }
-        .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
+        /* ── ONBOARDING FOOTER ── */
+        .uf-ob-footer { background: #fff; border-top: 1px solid var(--border); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .uf-ob-footer-brand { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.8px; text-transform: uppercase; }
+        .uf-ob-footer-copy { font-size: 11px; color: var(--text-dim); }
+        .uf-ob-footer-links { display: flex; gap: 20px; }
+        .uf-ob-footer-link { font-size: 11px; font-weight: 700; color: var(--text-dim); cursor: pointer; letter-spacing: 0.5px; }
 
         /* ── TYPOGRAPHY ── */
         .uf-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
@@ -1669,7 +2295,7 @@ export default function Home() {
         .uf-body { font-size: 16px; line-height: 1.6; color: var(--text-muted); }
         .uf-mono { font-family: var(--font-mono); }
         .uf-hint { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
-        .uf-step-label { font-size: 12px; color: var(--text-muted); margin-bottom: 32px; }
+        .uf-ob-step-label { font-size: 12px; color: var(--text-muted); margin-bottom: 32px; }
 
         /* ── WIZARD PROGRESS ── */
         .uf-wizard-progress { display: flex; align-items: center; margin-bottom: 8px; }
@@ -1683,17 +2309,23 @@ export default function Home() {
         .uf-wline.active { background: var(--accent); }
 
         /* ── BUTTONS ── */
-        .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: 10px; font-family: var(--font-body); font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-family: var(--font-body); font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.15s; text-decoration: none; }
         .uf-btn-primary { background: var(--accent); color: #fff; }
-        .uf-btn-primary:hover:not(:disabled) { background: #ea6b10; transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .uf-btn-primary:hover:not(:disabled) { background: #065F46; transform: translateY(-1px); }
         .uf-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-        .uf-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
-        .uf-btn-ghost:hover { color: var(--text); background: var(--bg-elevated); }
-        .uf-btn-teal { background: var(--teal); color: #08080e; font-weight: 600; }
-        .uf-btn-teal:hover { background: #1dbf96; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(34,211,165,0.25); }
+        .uf-btn-dark { background: #11171D; color: #fff; }
+        .uf-btn-dark:hover:not(:disabled) { opacity: 0.88; }
+        .uf-btn-dark:disabled { opacity: 0.4; cursor: not-allowed; }
+        .uf-btn-outline { background: #fff; color: var(--text-muted); border: 1.5px solid var(--border); }
+        .uf-btn-outline:hover { color: var(--text); border-color: var(--border-light); background: var(--bg-elevated); }
+        .uf-btn-ghost { background: transparent; color: var(--text-muted); border: none; padding: 12px 16px; }
+        .uf-btn-ghost:hover { color: var(--text); }
+        .uf-btn-teal { background: var(--teal-bright); color: #003527; font-weight: 700; }
+        .uf-btn-teal:hover { opacity: 0.88; transform: translateY(-1px); }
         .uf-btn-full { width: 100%; }
-        .uf-btn-lg { padding: 18px 36px; font-size: 17px; }
-        .uf-nav-row { margin-top: 32px; display: flex; gap: 12px; }
+        .uf-btn-lg { padding: 14px 28px; font-size: 15px; }
+        .uf-nav-row { margin-top: 32px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .uf-nav-row-right { display: flex; gap: 10px; align-items: center; }
 
         /* ── INPUTS ── */
         .uf-label { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; display: block; }
@@ -1711,7 +2343,7 @@ export default function Home() {
         /* ── CHOOSER ── */
         .uf-choice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .uf-choice-card { width: 100%; text-align: left; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 18px; cursor: pointer; transition: transform 0.18s, border-color 0.18s, background 0.18s; }
-        .uf-choice-card:hover, .uf-choice-card.active { border-color: var(--accent); background: rgba(249,115,22,0.06); transform: translateY(-1px); }
+        .uf-choice-card:hover, .uf-choice-card.active { border-color: var(--accent); background: rgba(6,78,59,0.06); transform: translateY(-1px); }
         .uf-choice-card-inline { padding: 16px 18px; }
         .uf-choice-tag { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-family: var(--font-mono); }
         .uf-choice-title { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
@@ -1739,12 +2371,12 @@ export default function Home() {
         .uf-dropdown-flag { font-size: 18px; line-height: 1; flex-shrink: 0; }
         .uf-dropdown-name { font-size: 14px; color: var(--text); }
         .uf-dropdown-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-        .uf-dropdown-custom { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 16px; background: rgba(249,115,22,0.05); border: none; border-top: 1px solid rgba(249,115,22,0.18); cursor: pointer; transition: background 0.15s; text-align: left; }
-        .uf-dropdown-custom:hover { background: rgba(249,115,22,0.12); }
+        .uf-dropdown-custom { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 16px; background: rgba(6,78,59,0.05); border: none; border-top: 1px solid rgba(6,78,59,0.18); cursor: pointer; transition: background 0.15s; text-align: left; }
+        .uf-dropdown-custom:hover { background: rgba(6,78,59,0.10); }
         .uf-dropdown-custom-title { font-size: 14px; color: var(--accent); font-weight: 500; }
 
         /* ── CUSTOM CITY ── */
-        .uf-custom-city { background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.3); border-radius: 12px; padding: 16px; margin-top: 14px; }
+        .uf-custom-city { background: rgba(6,78,59,0.07); border: 1px solid rgba(6,78,59,0.25); border-radius: 12px; padding: 16px; margin-top: 14px; }
         .uf-custom-row { display: flex; gap: 10px; align-items: center; }
 
         /* ── CITY INFO ── */
@@ -1764,8 +2396,9 @@ export default function Home() {
         .uf-stat-lab { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
         /* ── CARD ── */
-        .uf-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 16px 20px; }
-        .uf-card-accent { background: var(--accent-dim); border-color: rgba(249,115,22,0.2); }
+        .uf-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .uf-card-dark { background: #003527; border: none; }
+        .uf-card-accent { background: var(--accent-dim); border-color: rgba(6,78,59,0.18); }
         .uf-card-head { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .uf-card-sub { font-size: 13px; color: var(--text-muted); }
         .uf-card-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
@@ -1804,24 +2437,24 @@ export default function Home() {
         .uf-live-label { color: var(--text-dim); }
 
         /* Badge */
-        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 14px; border: 1px solid rgba(249,115,22,0.2); }
+        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 14px; border: 1px solid rgba(6,78,59,0.18); }
         .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 
         /* Flame headline span */
-        .uf-accent-flame { background: linear-gradient(92deg, #f97316 0%, #fb923c 30%, #fbbf24 52%, #f97316 68%, #ea580c 85%, #f97316 100%); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline; animation: flameShimmer 4s linear infinite, flamePulse 3s ease-in-out infinite alternate; }
+        .uf-accent-flame { background: linear-gradient(92deg, #064E3B 0%, #20D4BF 30%, #065F46 52%, #064E3B 68%, #20D4BF 85%, #064E3B 100%); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline; animation: flameShimmer 4s linear infinite, flamePulse 3s ease-in-out infinite alternate; }
         @keyframes flameShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 240% 50%; } }
         @keyframes flamePulse {
-          from { filter: drop-shadow(0 0 6px rgba(249,115,22,0.0)); }
-          to   { filter: drop-shadow(0 0 18px rgba(249,115,22,0.6)); }
+          from { filter: drop-shadow(0 0 6px rgba(6,78,59,0.0)); }
+          to   { filter: drop-shadow(0 0 18px rgba(6,78,59,0.5)); }
         }
 
         /* Power CTA — persistent breathing glow */
         .uf-btn-power { animation: ctaBreath 2.8s ease-in-out infinite; }
         @keyframes ctaBreath {
-          0%, 100% { box-shadow: 0 6px 28px rgba(249,115,22,0.22); }
-          50%       { box-shadow: 0 10px 48px rgba(249,115,22,0.52), 0 0 0 5px rgba(249,115,22,0.07); }
+          0%, 100% { box-shadow: 0 6px 28px rgba(6,78,59,0.18); }
+          50%       { box-shadow: 0 10px 48px rgba(6,78,59,0.38), 0 0 0 5px rgba(6,78,59,0.07); }
         }
-        .uf-btn-power:hover { animation: none; box-shadow: 0 8px 40px rgba(249,115,22,0.6), 0 0 0 6px rgba(249,115,22,0.12) !important; }
+        .uf-btn-power:hover { animation: none; box-shadow: 0 8px 40px rgba(6,78,59,0.5), 0 0 0 6px rgba(6,78,59,0.10) !important; }
 
         /* Entrance animations — scoped to mounted so they re-fire on Start over */
         @keyframes heroEnter { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
@@ -1866,10 +2499,10 @@ export default function Home() {
         .uf-number-phase {}
 
         @keyframes fireGlow {
-          0%   { text-shadow: 0 0 0px rgba(249,115,22,0); }
-          40%  { text-shadow: 0 0 60px rgba(249,115,22,0.9), 0 0 120px rgba(249,115,22,0.5); }
-          70%  { text-shadow: 0 0 40px rgba(249,115,22,0.7), 0 0 80px rgba(249,115,22,0.35); }
-          100% { text-shadow: 0 0 28px rgba(249,115,22,0.5), 0 0 60px rgba(249,115,22,0.2); }
+          0%   { text-shadow: 0 0 0px rgba(6,78,59,0); }
+          40%  { text-shadow: 0 0 60px rgba(6,78,59,0.8), 0 0 120px rgba(6,78,59,0.45); }
+          70%  { text-shadow: 0 0 40px rgba(6,78,59,0.6), 0 0 80px rgba(6,78,59,0.3); }
+          100% { text-shadow: 0 0 28px rgba(6,78,59,0.45), 0 0 60px rgba(6,78,59,0.18); }
         }
         @keyframes revealSlam {
           0%   { opacity: 0; transform: scale(0.55); }
@@ -1878,8 +2511,8 @@ export default function Home() {
           100% { transform: scale(1); }
         }
         @keyframes pulseBorder {
-          0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
-          50%      { box-shadow: 0 0 0 8px rgba(249,115,22,0.12); }
+          0%,100% { box-shadow: 0 0 0 0 rgba(6,78,59,0); }
+          50%      { box-shadow: 0 0 0 8px rgba(6,78,59,0.10); }
         }
         .uf-fire-slam { animation: revealSlam 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards, fireGlow 1.6s ease 0.5s forwards; }
 
@@ -1888,7 +2521,7 @@ export default function Home() {
           padding: 40px 24px;
           margin-bottom: 28px;
           border-radius: 20px;
-          background: radial-gradient(ellipse at 50% 50%, rgba(249,115,22,0.08) 0%, transparent 70%);
+          background: radial-gradient(ellipse at 50% 50%, rgba(6,78,59,0.07) 0%, transparent 70%);
           animation: pulseBorder 2.5s ease 0.8s infinite;
           width: 100%;
           overflow: hidden;
@@ -1910,14 +2543,14 @@ export default function Home() {
         .uf-fire-date { font-family: var(--font-mono); font-size: 16px; color: var(--teal); letter-spacing: 0.5px; }
         .uf-fire-city { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
 
-        .uf-cost-card { background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.18); border-radius: 14px; padding: 20px 24px; text-align: center; margin-bottom: 20px; }
+        .uf-cost-card { background: rgba(6,78,59,0.06); border: 1px solid rgba(6,78,59,0.18); border-radius: 14px; padding: 20px 24px; text-align: center; margin-bottom: 20px; }
         .uf-cost-label { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
         .uf-cost-years { font-family: var(--font-display); font-size: 40px; font-weight: 800; color: var(--accent); line-height: 1; }
         .uf-cost-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 
         .uf-delta-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
         .uf-delta-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-        .uf-delta-card.positive { border-color: rgba(34,211,165,0.25); }
+        .uf-delta-card.positive { border-color: rgba(32,212,191,0.25); }
         .uf-delta-card.negative { border-color: rgba(239,68,68,0.2); }
         .uf-delta-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
         .uf-delta-val { font-family: var(--font-mono); font-size: 20px; font-weight: 500; }
@@ -1927,12 +2560,12 @@ export default function Home() {
         .uf-disclaimer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 14px; }
 
         /* ── WAITLIST INLINE ── */
-        .uf-wl-inline { background: var(--bg-card); border: 1px solid rgba(249,115,22,0.2); border-radius: 14px; padding: 18px 20px; margin-top: 12px; }
+        .uf-wl-inline { background: var(--bg-card); border: 1px solid rgba(6,78,59,0.18); border-radius: 14px; padding: 18px 20px; margin-top: 12px; }
         .uf-wl-inline-head { margin-bottom: 12px; }
         .uf-wl-inline-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
         .uf-wl-inline-sub { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
         .uf-wl-inline-form { display: flex; gap: 8px; }
-        .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(34,211,165,0.25); }
+        .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(32,212,191,0.25); }
 
         /* ── WAITLIST ── */
         .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 48px 24px 64px; position: relative; z-index: 1; }
@@ -1940,8 +2573,8 @@ export default function Home() {
         .uf-waitlist-form { display: flex; gap: 10px; }
 
         /* ── SHARE TRIGGER ── */
-        .uf-share-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 18px auto 0; padding: 10px 22px; border-radius: 10px; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .uf-share-trigger:hover { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.45); transform: translateY(-1px); }
+        .uf-share-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 18px auto 0; padding: 10px 22px; border-radius: 10px; background: rgba(6,78,59,0.08); border: 1px solid rgba(6,78,59,0.22); color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .uf-share-trigger:hover { background: rgba(6,78,59,0.18); border-color: rgba(6,78,59,0.4); transform: translateY(-1px); }
 
         /* ── SHARE MODAL ── */
         .uf-share-overlay { position: fixed; inset: 0; background: rgba(8,8,14,0.88); backdrop-filter: blur(10px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.15s ease; }
@@ -1953,13 +2586,13 @@ export default function Home() {
         .uf-share-heading { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 20px; letter-spacing: -0.3px; }
 
         /* Share preview card */
-        .uf-share-card { background: radial-gradient(ellipse at 50% -10%, rgba(249,115,22,0.18) 0%, transparent 65%), #0c0c16; border: 1px solid rgba(249,115,22,0.2); border-radius: 16px; padding: 26px 24px 20px; margin-bottom: 20px; text-align: center; position: relative; overflow: hidden; }
-        .uf-share-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent); }
+        .uf-share-card { background: radial-gradient(ellipse at 50% -10%, rgba(6,78,59,0.18) 0%, transparent 65%), #0c0c16; border: 1px solid rgba(6,78,59,0.18); border-radius: 16px; padding: 26px 24px 20px; margin-bottom: 20px; text-align: center; position: relative; overflow: hidden; }
+        .uf-share-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(6,78,59,0.45), transparent); }
         .uf-share-card-brand { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 18px; }
         .uf-share-card-logo { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-muted); letter-spacing: -0.3px; }
         .uf-share-card-logo span { color: var(--accent); }
         .uf-share-card-label { font-size: 10px; font-weight: 500; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
-        .uf-share-card-number { font-family: var(--font-mono); font-size: clamp(30px, 7vw, 46px); font-weight: 500; color: var(--accent); text-shadow: 0 0 40px rgba(249,115,22,0.45), 0 0 80px rgba(249,115,22,0.15); margin-bottom: 10px; line-height: 1; }
+        .uf-share-card-number { font-family: var(--font-mono); font-size: clamp(30px, 7vw, 46px); font-weight: 500; color: var(--accent); text-shadow: 0 0 40px rgba(6,78,59,0.4), 0 0 80px rgba(6,78,59,0.12); margin-bottom: 10px; line-height: 1; }
         .uf-share-card-meta { font-family: var(--font-mono); font-size: 12px; color: var(--teal); margin-bottom: 5px; letter-spacing: 0.3px; }
         .uf-share-card-city { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
         .uf-share-card-divider { height: 1px; background: var(--border); margin-bottom: 14px; }
@@ -1977,60 +2610,147 @@ export default function Home() {
         .uf-share-copy { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-light); }
         .uf-share-copy:hover { color: var(--text); background: var(--bg-card); border-color: var(--text-dim); }
 
+        /* ── ORB ANIMATIONS ── */
+        @keyframes orbDrift1 { 0% { transform: translateX(-50%) scale(1); } 100% { transform: translateX(-50%) scale(1.1) translateY(20px); } }
+        @keyframes orbDrift2 { 0% { transform: translateX(0) scale(1); } 100% { transform: translateX(40px) scale(1.08); } }
+        @keyframes orbDrift3 { 0% { transform: translateX(0); } 100% { transform: translateX(-30px) scale(1.06); } }
+
+        /* ── GOAL SCREEN ── */
+        .uf-goal-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; margin-bottom: 16px; }
+        .uf-goal-card { width: 100%; text-align: left; background: var(--bg-card); border: 1px solid var(--border-light); border-left: 3px solid transparent; border-radius: 14px; padding: 16px 20px; cursor: pointer; transition: all 0.18s; }
+        .uf-goal-card:hover { border-color: var(--teal); background: rgba(34,211,165,0.05); }
+        .uf-goal-card.active { border-color: var(--teal); border-left-color: var(--teal); background: rgba(34,211,165,0.08); }
+        .uf-goal-label { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .uf-goal-sub { font-size: 14px; color: var(--text-muted); }
+        .uf-goal-message { font-size: 14px; color: var(--teal); margin-bottom: 8px; font-style: italic; }
+
+        /* ── FIRE STYLE SCREEN ── */
+        .uf-style-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 4px; }
+        .uf-style-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 14px; padding: 16px; text-align: left; cursor: pointer; transition: all 0.18s; }
+        .uf-style-card:hover { border-color: var(--teal); background: rgba(34,211,165,0.05); }
+        .uf-style-card.active { border-color: var(--teal); background: rgba(34,211,165,0.08); }
+        .uf-style-icon { font-size: 22px; margin-bottom: 8px; }
+        .uf-style-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+        .uf-style-tagline { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+        .uf-style-target { font-family: var(--font-mono); font-size: 14px; color: var(--accent); font-weight: 500; }
+        .uf-style-tooltip { font-size: 12px; color: var(--teal); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(34,211,165,0.2); }
+
+        /* ── EXPENSES SCREEN ── */
+        .uf-expense-rows { display: flex; flex-direction: column; gap: 14px; margin-bottom: 4px; }
+        .uf-expense-row { display: flex; align-items: flex-start; gap: 12px; }
+        .uf-expense-icon { font-size: 22px; margin-top: 22px; flex-shrink: 0; }
+        .uf-expenses-warning { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-top: 12px; }
+
+        /* ── AGE SCREEN ── */
+        .uf-age-inputs { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+        .uf-age-suggestion { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.5; }
+        .uf-age-badge { font-size: 12px; font-weight: 600; margin-top: 6px; }
+
+        /* ── PORTFOLIO SCREEN ── */
+        .uf-portfolio-encouragement { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+        .uf-portfolio-coast-callout { background: rgba(34,211,165,0.08); border: 1px solid rgba(32,212,191,0.25); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+        .uf-portfolio-coast-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--teal); margin-bottom: 6px; }
+        .uf-portfolio-coast-amount { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: var(--teal); margin-bottom: 4px; }
+        .uf-portfolio-coast-sub { font-size: 13px; color: var(--text-muted); }
+        .uf-portfolio-already-coasted { background: rgba(34,211,165,0.1); border: 1px solid rgba(34,211,165,0.3); border-radius: 10px; padding: 12px 16px; font-size: 14px; color: var(--teal); font-weight: 500; margin-bottom: 8px; }
+
+        /* ── BTN-TEAL DISABLED ── */
+        .uf-btn-teal:disabled { opacity: 0.4; cursor: not-allowed; }
+
         /* ── FOOTER DIVIDER ── */
       `}</style>
 
-      <Nav
-        step={STEP_MAP[screen]}
-        totalSteps={totalDots}
-        onRestart={() => {
-          clearFireUserData();
-          setFireState(null);
-          setScreen("hero");
-        }}
+      <OnboardingHeader
+        isHero={screen === "hero"}
+        onExit={() => { clearFireUserData(); setDraft({}); setScreen("hero"); }}
         onSignIn={signIn}
       />
-
-      <div className="uf-page">
-        <div className="uf-page-bg" aria-hidden="true">
-          <div className="uf-atm-orb uf-atm-orb-1" />
-          <div className="uf-atm-orb uf-atm-orb-2" />
-          <div className="uf-atm-orb uf-atm-orb-3" />
+      {screen !== "hero" && screen !== "reveal" && (
+        <StepBar currentStep={STEP_MAP[screen]} />
+      )}
+      <div className="uf-ob-page">
+        <div className="uf-ob-main">
+          {screen !== "hero" && screen !== "reveal" && (
+            <div className="uf-ob-width">
+              <StepProgress
+                step={STEP_MAP[screen]}
+                totalSteps={8}
+                pct={Math.round((STEP_MAP[screen] / 8) * 100)}
+              />
+            </div>
+          )}
+          {screen === "hero" && (
+            <HeroScreen onStart={() => setScreen("goal")} onSignIn={signIn} />
+          )}
+          {screen === "goal" && (
+            <GoalScreen
+              onNext={goal => { merge({ goal }); setScreen("city"); }}
+              onBack={() => setScreen("hero")}
+            />
+          )}
+          {screen === "city" && (
+            <CityScreen
+              stepLabel="Step 2 of 9"
+              onNext={city => { merge({ city }); setScreen("income"); }}
+              onBack={() => setScreen("goal")}
+            />
+          )}
+          {screen === "income" && (
+            <IncomeScreen
+              stepLabel="Step 3 of 9"
+              stateKey={draft.city?.stateKey ?? "tx"}
+              onNext={annualIncome => { merge({ annualIncome }); setScreen("expenses"); }}
+              onBack={() => setScreen("city")}
+            />
+          )}
+          {screen === "expenses" && (
+            <ExpensesScreen
+              monthlyIncome={monthlyIncome}
+              city={draft.city}
+              onNext={expenses => { merge({ expenses }); setScreen("fire-style"); }}
+              onBack={() => setScreen("income")}
+            />
+          )}
+          {screen === "fire-style" && (
+            <FireStyleScreen
+              monthlyExpenses={totalExp}
+              onNext={fireStyle => { merge({ fireStyle }); setScreen("age"); }}
+              onBack={() => setScreen("expenses")}
+            />
+          )}
+          {screen === "age" && (
+            <AgeScreen
+              monthlyIncome={monthlyIncome}
+              monthlyExpenses={totalExp}
+              fireStyle={draft.fireStyle ?? "standard"}
+              onNext={(age, targetAge) => { merge({ age, targetAge }); setScreen("portfolio"); }}
+              onBack={() => setScreen("fire-style")}
+            />
+          )}
+          {screen === "portfolio" && (
+            <PortfolioScreen
+              fireStyle={draft.fireStyle ?? "standard"}
+              monthlyExpenses={totalExp}
+              age={draft.age ?? 30}
+              targetAge={draft.targetAge ?? 55}
+              onNext={portfolio => { merge({ portfolio }); setScreen("currency"); }}
+              onBack={() => setScreen("age")}
+            />
+          )}
+          {screen === "currency" && (
+            <CurrencyScreen
+              onNext={currency => { merge({ currency }); setScreen("reveal"); }}
+              onBack={() => setScreen("portfolio")}
+            />
+          )}
+          {screen === "reveal" && (
+            <RevealScreen
+              draft={draft}
+              onComplete={() => { void completeOnboardingWith(draft.currency ?? "USD"); }}
+            />
+          )}
         </div>
-        {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("path")} onSignIn={signIn} />
-        )}
-        {screen === "path" && (
-          <PathChoiceScreen
-            onStarter={() => setScreen("starter")}
-            onAdvanced={() => setScreen("advanced")}
-            onBack={() => setScreen("hero")}
-          />
-        )}
-        {screen === "starter" && (
-          <StarterPathScreen
-            initialState={fireState}
-            onNext={(nextState) => { setFireState(nextState); setScreen("summary"); }}
-            onBack={() => setScreen("path")}
-          />
-        )}
-        {screen === "advanced" && (
-          <AdvancedPathScreen
-            initialState={fireState}
-            onNext={(nextState) => { setFireState(nextState); setScreen("summary"); }}
-            onBack={() => setScreen("path")}
-          />
-        )}
-        {screen === "summary" && fireState && (
-          <OnboardingSummaryScreen
-            fireState={fireState}
-            onBack={() => setScreen(fireState.mode === "starter" ? "starter" : "advanced")}
-            onComplete={completeOnboarding}
-          />
-        )}
-
-        <div className="uf-section-sep" aria-hidden="true" />
-        <WaitlistSection />
+        {screen !== "hero" && <OnboardingFooter />}
       </div>
     </>
   );

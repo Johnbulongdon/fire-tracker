@@ -1,12 +1,9 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Free FIRE Calculator — Find Your Financial Independence Number | UntilFire',
@@ -37,6 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         {/* Existing script (keep) */}
         <Script id="remove-extension-attributes" strategy="beforeInteractive">
           {`
@@ -49,7 +49,7 @@ export default function RootLayout({
       </head>
 
       <body
-        className={`${inter.className} antialiased`}
+        className="antialiased"
         suppressHydrationWarning
       >
         {/* Structured Data: SoftwareApplication + WebSite */}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PieChart, Pie, Cell, Tooltip as ChartTooltip, ResponsiveContainer } from "recharts";
 
 const EXPENSE_CATEGORIES = [
-  { key: "food",          label: "🍔 Food & Dining",  color: "#f97316" },
+  { key: "food",          label: "🍔 Food & Dining",  color: "#064E3B" },
   { key: "transport",     label: "🚗 Transport",       color: "#22d3a5" },
   { key: "housing",       label: "🏠 Housing",         color: "#818cf8" },
   { key: "subscriptions", label: "📱 Subscriptions",   color: "#a78bfa" },
@@ -80,11 +80,11 @@ function UserNav() {
   }, []);
   const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = '/'; };
 
-  if (!email) return <Link href="/login" style={{ background: "#f97316", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>;
+  if (!email) return <Link href="/login" style={{ background: "#064E3B", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <span style={{ color: "#5e5e7a", fontSize: 13 }}>{email}</span>
-      <button onClick={handleSignOut} style={{ background: "transparent", color: "#f97316", border: "1px solid #f97316", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Sign Out</button>
+      <span style={{ color: "#64748B", fontSize: 13 }}>{email}</span>
+      <button onClick={handleSignOut} style={{ background: "transparent", color: "#064E3B", border: "1px solid #064E3B", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Sign Out</button>
     </div>
   );
 }
@@ -176,7 +176,7 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
             <button key={t} onClick={() => switchType(t)} style={{
               background: transactionType === t ? (t === "income" ? "rgba(34,211,165,0.15)" : "rgba(239,68,68,0.12)") : "transparent",
               border: transactionType === t ? `1px solid ${t === "income" ? "rgba(34,211,165,0.3)" : "rgba(239,68,68,0.25)"}` : "1px solid transparent",
-              color: transactionType === t ? (t === "income" ? "#22d3a5" : "#ef4444") : "#5e5e7a",
+              color: transactionType === t ? (t === "income" ? "#22d3a5" : "#ef4444") : "#64748B",
               borderRadius: 6, padding: "5px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
             }}>
               {t === "expense" ? "💸 Expense" : "📥 Income"}
@@ -187,65 +187,65 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Date</div>
+          <div style={{ color: "#64748B", fontSize: 12, marginBottom: 6 }}>Date</div>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+            style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", color: "#0F172A", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
         </div>
         <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Amount</div>
+          <div style={{ color: "#64748B", fontSize: 12, marginBottom: 6 }}>Amount</div>
           <input type="number" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }} />
+            style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", color: "#0F172A", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }} />
         </div>
         <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Currency</div>
+          <div style={{ color: "#64748B", fontSize: 12, marginBottom: 6 }}>Currency</div>
           <select value={currency} onChange={e => setCurrency(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "8px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
+            style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", color: "#0F172A", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
             {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
       </div>
 
       <div style={{ marginBottom: 12 }}>
-        <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>
+        <div style={{ color: "#64748B", fontSize: 12, marginBottom: 6 }}>
           Description
-          {categorizing && <span style={{ color: "#f97316", marginLeft: 8, fontSize: 11 }}>✨ AI categorizing...</span>}
+          {categorizing && <span style={{ color: "#064E3B", marginLeft: 8, fontSize: 11 }}>✨ AI categorizing...</span>}
           {aiUsed && !categorizing && <span style={{ color: "#22d3a5", marginLeft: 8, fontSize: 11 }}>✨ AI categorized</span>}
         </div>
         <input type="text"
           placeholder={isIncome ? "e.g. Monthly salary, Freelance project, Dividend..." : "e.g. Starbucks latte, Uber to office, Netflix..."}
           value={description} onChange={e => { setDescription(e.target.value); setAiUsed(false); setCategory(""); }}
           onBlur={handleDescriptionBlur}
-          style={{ width: "100%", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "10px 12px", color: "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+          style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 12px", color: "#0F172A", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
         <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Category</div>
+          <div style={{ color: "#64748B", fontSize: 12, marginBottom: 6 }}>Category</div>
           <select value={category} onChange={e => setCategory(e.target.value)}
-            style={{ width: "100%", background: "#08080e", border: `1px solid ${catInfo ? catInfo.color + '66' : '#1c1c2e'}`, borderRadius: 8, padding: "8px 12px", color: catInfo ? catInfo.color : "#e8e8f2", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
+            style={{ width: "100%", background: "#F8FAFC", border: `1px solid ${catInfo ? catInfo.color + '66' : '#E2E8F0'}`, borderRadius: 8, padding: "8px 12px", color: catInfo ? catInfo.color : "#0F172A", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
             <option value="">Select category...</option>
             {categories.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
           </select>
         </div>
         <div>
-          <div style={{ color: "#5e5e7a", fontSize: 12, marginBottom: 6 }}>Tags</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minHeight: 38, alignItems: "center", background: "#08080e", border: "1px solid #1c1c2e", borderRadius: 8, padding: "6px 12px" }}>
+          <div style={{ color: "#64748B", fontSize: 12, marginBottom: 6 }}>Tags</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minHeight: 38, alignItems: "center", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "6px 12px" }}>
             {tags.length === 0
-              ? <span style={{ color: "#5e5e7a", fontSize: 13 }}>AI will suggest tags</span>
-              : tags.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.15)", color: "#f97316", borderRadius: 4, padding: "2px 8px", fontSize: 12 }}>#{t}</span>)}
+              ? <span style={{ color: "#64748B", fontSize: 13 }}>AI will suggest tags</span>
+              : tags.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.15)", color: "#064E3B", borderRadius: 4, padding: "2px 8px", fontSize: 12 }}>#{t}</span>)}
           </div>
         </div>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {!isIncome ? (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#5e5e7a" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#64748B" }}>
             <input type="checkbox" checked={isWorkRelated} onChange={e => setIsWorkRelated(e.target.checked)} style={{ accentColor: "#6366f1" }} />
             💼 Work expense
           </label>
         ) : <div />}
         <button onClick={handleSubmit} disabled={saving || !amount || !description}
-          style={{ background: isIncome ? "#22d3a5" : "#f97316", color: isIncome ? "#08080e" : "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", opacity: saving || !amount || !description ? 0.5 : 1 }}>
+          style={{ background: isIncome ? "#22d3a5" : "#064E3B", color: isIncome ? "#F8FAFC" : "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: saving || !amount || !description ? 0.5 : 1 }}>
           {saving ? "Saving..." : "Add transaction →"}
         </button>
       </div>
@@ -268,7 +268,7 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
       <div className="uf-card" style={{ textAlign: "center", padding: "48px 24px" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
         <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>No transactions yet</div>
-        <div style={{ color: "#5e5e7a", fontSize: 14 }}>Add your first transaction above — AI will categorize it automatically</div>
+        <div style={{ color: "#64748B", fontSize: 14 }}>Add your first transaction above — AI will categorize it automatically</div>
       </div>
     );
   }
@@ -291,7 +291,7 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
                 {income > 0 && <span style={{ fontFamily: "'DM Mono', monospace", color: "#22d3a5", fontSize: 13, fontWeight: 600 }}>+{fmt(income)}</span>}
                 {spent > 0 && <span style={{ fontFamily: "'DM Mono', monospace", color: "#ef4444", fontSize: 13, fontWeight: 600 }}>−{fmt(spent)}</span>}
                 {income > 0 && spent > 0 && (
-                  <span style={{ fontFamily: "'DM Mono', monospace", color: net >= 0 ? "#22d3a5" : "#ef4444", fontSize: 13, fontWeight: 700, borderLeft: "1px solid #1c1c2e", paddingLeft: 14 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", color: net >= 0 ? "#22d3a5" : "#ef4444", fontSize: 13, fontWeight: 700, borderLeft: "1px solid #E2E8F0", paddingLeft: 14 }}>
                     Net {net >= 0 ? "+" : "−"}{fmt(Math.abs(net))}
                   </span>
                 )}
@@ -311,16 +311,16 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <span style={{ color: cat?.color || '#6b6b85', fontSize: 11, fontWeight: 600 }}>{cat?.label || txn.category}</span>
                         {txn.is_work_related && <span style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>💼 work</span>}
-                        {txn.tags?.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>#{t}</span>)}
-                        <span style={{ color: "#5e5e7a", fontSize: 11 }}>{new Date(txn.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        {txn.tags?.map(t => <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#064E3B", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>#{t}</span>)}
+                        <span style={{ color: "#64748B", fontSize: 11 }}>{new Date(txn.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: 15, color: isIncome ? "#22d3a5" : "#e8e8f2" }}>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: 15, color: isIncome ? "#22d3a5" : "#0F172A" }}>
                         {isIncome ? "+" : ""}{fmt(txn.amount, txn.currency)}
                       </div>
                       <button onClick={() => onDelete(txn.id)}
-                        style={{ background: "none", border: "none", color: "#5e5e7a", fontSize: 11, cursor: "pointer", marginTop: 4 }}>
+                        style={{ background: "none", border: "none", color: "#64748B", fontSize: 11, cursor: "pointer", marginTop: 4 }}>
                         delete
                       </button>
                     </div>
@@ -372,28 +372,28 @@ function MonthlySummary({
         <div style={{ fontWeight: 700, fontSize: 16 }}>📊 {monthLabel}</div>
         <div style={{ display: "flex", gap: 4 }}>
           <button onClick={onPrevMonth}
-            style={{ background: "#1c1c2e", border: "none", color: "#e8e8f2", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>←</button>
+            style={{ background: "#E2E8F0", border: "none", color: "#0F172A", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>←</button>
           <button onClick={onNextMonth} disabled={isCurrentMonth}
-            style={{ background: "#1c1c2e", border: "none", color: isCurrentMonth ? "#3a3a5a" : "#e8e8f2", borderRadius: 6, padding: "4px 12px", cursor: isCurrentMonth ? "default" : "pointer", fontSize: 16, lineHeight: 1 }}>→</button>
+            style={{ background: "#E2E8F0", border: "none", color: isCurrentMonth ? "#94A3B8" : "#0F172A", borderRadius: 6, padding: "4px 12px", cursor: isCurrentMonth ? "default" : "pointer", fontSize: 16, lineHeight: 1 }}>→</button>
         </div>
       </div>
 
       {monthTxns.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "32px 0", color: "#5e5e7a", fontSize: 14 }}>No transactions for this month</div>
+        <div style={{ textAlign: "center", padding: "32px 0", color: "#64748B", fontSize: 14 }}>No transactions for this month</div>
       ) : (
         <>
           {/* KPI cards */}
           <div style={{ display: "grid", gridTemplateColumns: workTotal > 0 ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-            <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Income</div>
+            <div style={{ background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#64748B", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Income</div>
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#22d3a5" }}>{fmt(incomeTotal)}</div>
             </div>
-            <div style={{ background: "#08080e", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Spent</div>
+            <div style={{ background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#64748B", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Spent</div>
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmt(expenseTotal)}</div>
             </div>
             <div style={{ background: net >= 0 ? "rgba(34,211,165,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${net >= 0 ? "rgba(34,211,165,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#5e5e7a", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net</div>
+              <div style={{ color: "#64748B", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net</div>
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: net >= 0 ? "#22d3a5" : "#ef4444" }}>
                 {net >= 0 ? "+" : "−"}{fmt(Math.abs(net))}
               </div>
@@ -417,7 +417,7 @@ function MonthlySummary({
                     </Pie>
                     <ChartTooltip
                       formatter={(v: number) => [fmt(v), ""]}
-                      contentStyle={{ background: "#1a1a2e", border: "1px solid #1c1c2e", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
+                      contentStyle={{ background: "#1a1a2e", border: "1px solid #E2E8F0", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -434,12 +434,12 @@ function MonthlySummary({
                         <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 600, color: over ? "#ef4444" : cat.color }}>
                           {fmt(cat.total)}
                           {budget > 0
-                            ? <span style={{ color: "#5e5e7a", fontWeight: 400 }}> / {fmt(budget)}</span>
-                            : <span style={{ color: "#5e5e7a", fontWeight: 400 }}> ({((cat.total / expenseTotal) * 100).toFixed(0)}%)</span>
+                            ? <span style={{ color: "#64748B", fontWeight: 400 }}> / {fmt(budget)}</span>
+                            : <span style={{ color: "#64748B", fontWeight: 400 }}> ({((cat.total / expenseTotal) * 100).toFixed(0)}%)</span>
                           }
                         </span>
                       </div>
-                      <div style={{ height: 4, background: "#1c1c2e", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: 4, background: "#E2E8F0", borderRadius: 4, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${barPct}%`, background: over ? "#ef4444" : cat.color, borderRadius: 4, transition: "width 0.4s" }} />
                       </div>
                       {over && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>over by {fmt(cat.total - budget)}</div>}
@@ -511,21 +511,21 @@ export default function TransactionsPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
-        body { background: #08080e; color: #e8e8f2; font-family: 'DM Sans', sans-serif; margin: 0; }
+        body { background: #F8FAFC; color: #0F172A; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; }
         input::-webkit-inner-spin-button { -webkit-appearance: none; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #1c1c2e; border-radius: 4px; }
-        .uf-card { background: #13131e; border: 1px solid #1c1c2e; border-radius: 16px; padding: 20px 24px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
-        .uf-dash-nav { border-bottom: 1px solid #1c1c2e; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; background: rgba(8,8,14,0.95); backdrop-filter: blur(12px); z-index: 50; }
-        .uf-logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.04em; text-decoration: none; color: #e8e8f2; }
-        .uf-logo span { color: #f97316; }
+        ::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 4px; }
+        .uf-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 20px 24px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+        .uf-dash-nav { border-bottom: 1px solid #E2E8F0; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; background: rgba(8,8,14,0.95); backdrop-filter: blur(12px); z-index: 50; }
+        .uf-logo { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.04em; text-decoration: none; color: #0F172A; }
+        .uf-logo span { color: #064E3B; }
         .uf-tabs { display: flex; gap: 4px; background: #0f0f18; border-radius: 10px; padding: 4px; }
-        .uf-tab { background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: #5e5e7a; cursor: pointer; transition: all 0.2s; font-family: inherit; text-decoration: none; display: inline-block; }
-        .uf-tab.active { background: #13131e; border-color: #1c1c2e; color: #e8e8f2; }
+        .uf-tab { background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: #64748B; cursor: pointer; transition: all 0.2s; font-family: inherit; text-decoration: none; display: inline-block; }
+        .uf-tab.active { background: #FFFFFF; border-color: #E2E8F0; color: #0F172A; }
         .uf-content { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
-        select option { background: #13131e; }
+        select option { background: #FFFFFF; }
         @media(max-width:768px) {
           .uf-dash-nav { padding: 0 16px; }
           .uf-content { padding: 20px 16px; }
@@ -544,7 +544,7 @@ export default function TransactionsPage() {
 
       <div className="uf-content">
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#5e5e7a" }}>Loading transactions...</div>
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#64748B" }}>Loading transactions...</div>
         ) : (
           <>
             <MonthlySummary

@@ -7,6 +7,9 @@
 | `state/current.md` | ALWAYS — load first |
 | `core/product.md` | Architecture, data flow, onboarding, dashboard |
 | `core/decisions.md` | Why something was built a specific way |
+| `docs/ROADMAP.md` | Feature planning, phase sequencing, what's next |
+| `docs/PRD.md` | Product scope, requirements, acceptance criteria |
+| `docs/USER_JOURNEY.md` | Onboarding/UX tasks, flow design |
 
 ## What to ignore
 

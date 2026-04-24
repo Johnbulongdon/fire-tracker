@@ -8,6 +8,7 @@ export const FIRE_USER_DATA_KEY = "fire_user_data";
 
 export type FireMode = "starter" | "advanced";
 export type FireGoal = "retire-early" | "financial-freedom" | "exploring";
+export type FireStyle = "lean" | "standard" | "fat" | "barista" | "coast" | "unsure";
 
 export interface FireIncomeRange {
   id: string;
@@ -25,6 +26,9 @@ export interface FireUserState {
   hasCompletedOnboarding: boolean;
   goal?: FireGoal;
   portfolio?: number;
+  fireStyle?: FireStyle;
+  targetAge?: number;
+  city?: { name: string; col: number; stateKey: string; isCustom: boolean };
 }
 
 export interface FireUserStateValidationResult {
@@ -118,6 +122,9 @@ function normalizeFireUserState(raw: unknown): FireUserState | null {
     age?: unknown;
     goal?: unknown;
     portfolio?: unknown;
+    fireStyle?: unknown;
+    targetAge?: unknown;
+    city?: unknown;
   };
 
   const normalizedIncome = typeof legacy.income === "number"
@@ -144,6 +151,11 @@ function normalizeFireUserState(raw: unknown): FireUserState | null {
         ? legacy.goal
         : undefined,
     portfolio: typeof legacy.portfolio === "number" ? legacy.portfolio : undefined,
+    fireStyle: (["lean","standard","fat","barista","coast","unsure"] as FireStyle[]).includes(legacy.fireStyle as FireStyle)
+      ? (legacy.fireStyle as FireStyle) : undefined,
+    targetAge: typeof legacy.targetAge === "number" ? legacy.targetAge : undefined,
+    city: legacy.city && typeof legacy.city === "object"
+      ? (legacy.city as FireUserState["city"]) : undefined,
   };
 }
 
@@ -158,8 +170,8 @@ export function validateFireUserState(raw: unknown): FireUserStateValidationResu
   if (value.mode !== "starter" && value.mode !== "advanced") {
     errors.push("mode must be 'starter' or 'advanced'.");
   }
-  if (value.age !== undefined && (!Number.isFinite(value.age) || value.age < 18 || value.age > 100)) {
-    errors.push("age must be between 18 and 100 when provided.");
+  if (value.age !== undefined && (!Number.isFinite(value.age) || value.age < 1 || value.age > 120)) {
+    errors.push("age must be between 1 and 120 when provided.");
   }
 
   const incomeAmount = resolveFireIncomeAmount(value.income);
@@ -174,6 +186,12 @@ export function validateFireUserState(raw: unknown): FireUserStateValidationResu
   }
   if (!Number.isFinite(value.fireNumber) || value.fireNumber < 0) {
     errors.push("fireNumber must be a non-negative number.");
+  }
+  if (value.targetAge !== undefined && (!Number.isFinite(value.targetAge) || value.targetAge < 1 || value.targetAge > 120)) {
+    errors.push("targetAge must be between 1 and 120 when provided.");
+  }
+  if (value.targetAge !== undefined && value.age !== undefined && value.targetAge <= value.age) {
+    errors.push("targetAge must be after current age.");
   }
   if (typeof value.hasCompletedOnboarding !== "boolean") {
     errors.push("hasCompletedOnboarding must be a boolean.");
@@ -270,8 +288,8 @@ export function loadFireUserData(): FireUserState | null {
 export async function saveFireUserData(data: FireUserState): Promise<void> {
   if (typeof window === "undefined") return;
   const validation = validateFireUserState(data);
-  if (!validation.valid || !validation.value) {
-    console.warn("[UntilFire] Refusing to persist invalid FireUserState", validation.errors);
+  if (!validation.value) {
+    console.warn("[UntilFire] Refusing to persist unnormalizable FireUserState", validation.errors);
     return;
   }
   localStorage.setItem(FIRE_USER_DATA_KEY, JSON.stringify(data));
