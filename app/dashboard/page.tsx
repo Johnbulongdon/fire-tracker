@@ -168,186 +168,338 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
     .reduce((s, [, v]) => s + (v || 0), 0);
 
   const effectiveFireTarget =
-  (adjustedFireTarget && adjustedFireTarget > 0)
-    ? adjustedFireTarget
-    : (baselineFireTarget && baselineFireTarget > 0)
-      ? baselineFireTarget
-      : 0;
+    (adjustedFireTarget && adjustedFireTarget > 0)
+      ? adjustedFireTarget
+      : (baselineFireTarget && baselineFireTarget > 0)
+        ? baselineFireTarget
+        : 0;
 
-  const investable  = k401 + rothIRA + taxable;
-  const netWorth    = investable - totalDebt - mortgageBalance;
-  const annualSavings = income * 12 - monthlyExpenses * 12 - mortgageMonthly * 12;
-  const savingsRate = income > 0 ? ((annualSavings / 12) / income) * 100 : 0;
-  const progress    = effectiveFireTarget && effectiveFireTarget > 0 ? Math.min(100, (investable / effectiveFireTarget) * 100) : 0;
-  const chartData   = buildFireChartData({
-    effectiveFireTarget,
-    investable,
-    netWorth,
-    k401,
-    rothIRA,
-    taxable,
-    totalDebt,
-    mortgageBalance,
-  });
-  const activeCats  = EXPENSE_CATS.filter(c => (expenses[c.key] || 0) > 0);
+  const investable    = k401 + rothIRA + taxable;
+  const netWorth      = investable - totalDebt - mortgageBalance;
+  const monthlySavings = Math.max(0, income - monthlyExpenses - mortgageMonthly);
+  const savingsRate   = income > 0 ? (monthlySavings / income) * 100 : 0;
+  const progress      = effectiveFireTarget > 0 ? Math.min(100, (investable / effectiveFireTarget) * 100) : 0;
+  const activeCats    = EXPENSE_CATS.filter(c => (expenses[c.key] || 0) > 0);
+  const growthR       = (growthRate || 7) / 100;
+  const yearsToFire   = effectiveFireTarget > 0 && investable < effectiveFireTarget && monthlySavings > 0
+    ? Math.log((effectiveFireTarget * growthR + monthlySavings * 12) / (investable * growthR + monthlySavings * 12)) / Math.log(1 + growthR)
+    : 0;
+  const fireYear      = new Date().getFullYear() + Math.ceil(yearsToFire);
+
+  // Card base style
+  const card: React.CSSProperties = {
+    background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12,
+    padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+  };
+  const eyebrow: React.CSSProperties = {
+    fontSize: 10, fontWeight: 700, letterSpacing: "1px",
+    textTransform: "uppercase", color: "#64748B", marginBottom: 6,
+  };
 
   if (!baselineFireTarget || baselineFireTarget <= 0) {
-    return <FireOnboardingRequired title="Onboarding required" body="Complete onboarding to set your baseline FIRE target before using the dashboard FIRE view." />;
+    return <FireOnboardingRequired title="Onboarding required" body="Complete onboarding to set your baseline FIRE target before using the dashboard." />;
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
-        <KpiCard label="Net Worth" value={fmt(netWorth, true)} color={netWorth >= 0 ? "#22d3a5" : "#ef4444"} sub="Assets minus all debt" />
-        <KpiCard label="FIRE Target" value={effectiveFireTarget ? fmt(effectiveFireTarget, true) : "Not set"} sub={adjustedFireTarget ? "Dashboard override" : baselineFireTarget ? "Onboarding baseline" : "Complete onboarding"} />
-        <KpiCard label="FIRE Source" value={adjustedFireTarget ? "Override" : baselineFireTarget ? "Baseline" : "Missing"} color="#064E3B" sub={effectiveFireTarget ? "Projection removed from main UI" : "No FIRE target yet"} glow={!!effectiveFireTarget} />
-        <KpiCard label="Savings Rate" value={`${savingsRate.toFixed(0)}%`} color={savingsRate >= 50 ? "#064E3B" : savingsRate >= 25 ? "#22d3a5" : "#ef4444"} sub={savingsRate >= 50 ? "🔥 FIRE pace" : savingsRate >= 25 ? "Good progress" : "Needs work"} />
+      {/* Page header */}
+      <div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#003527", letterSpacing: "-0.4px", marginBottom: 4 }}>
+          Personal Dashboard
+        </h1>
+        <p style={{ fontSize: 15, color: "#64748B" }}>Your journey to financial independence, quantified.</p>
       </div>
 
-      {/* Progress bar */}
-      <div className="uf-card" style={{ padding: "18px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Progress to FIRE</span>
-          <span style={{ fontFamily: "DM Mono, monospace", fontSize: 13, color: "#064E3B" }}>{fmt(investable, true)} / {effectiveFireTarget ? fmt(effectiveFireTarget, true) : "Not set"}</span>
-        </div>
-        <div style={{ height: 10, background: "#E2E8F0", borderRadius: 99, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #22d3a5, #064E3B)", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748B", marginTop: 7, fontFamily: "DM Mono, monospace" }}>
-          <span>0%</span><span>{progress.toFixed(1)}% complete</span><span>100% = FIRE</span>
-        </div>
-      </div>
-
-      {/* Charts row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }}>
-        {/* FIRE snapshot chart */}
-        <div className="uf-card">
-          <SectionLabel icon="📈" text="FIRE Snapshot" color="#22d3a5" />
-          {chartData.length === 0 ? (
-            <div style={{ color: "#64748B", fontSize: 13, textAlign: "center", padding: "72px 0" }}>
-              Complete onboarding to unlock your FIRE snapshot
+      {/* Row 1: Net Worth + Savings Rate */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+        {/* Net Worth card */}
+        <div style={card}>
+          <div style={eyebrow}>Current Net Worth</div>
+          <div style={{ fontSize: 34, fontWeight: 800, color: "#003527", letterSpacing: "-0.5px", marginBottom: 4, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {fmt(netWorth)}
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", background: "#ECFDF5", padding: "2px 8px", borderRadius: 99 }}>
+              {progress.toFixed(1)}% to FIRE
+            </span>
+          </div>
+          {/* FIRE progress bar */}
+          <div style={{ margin: "14px 0 6px" }}>
+            <div style={{ height: 6, background: "#F1F5F9", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #34D399, #064E3B)", borderRadius: 99, transition: "width 0.8s" }} />
             </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                <defs>
-                  <linearGradient id="gInv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22d3a5" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#22d3a5" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gTgt" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#064E3B" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#064E3B" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#64748B", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#64748B", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} width={55} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="FIRE Target" stroke="#064E3B" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gTgt)" dot={false} />
-                <Area type="monotone" dataKey="Investable" stroke="#22d3a5" strokeWidth={2.5} fill="url(#gInv)" dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Spending breakdown */}
-        <div className="uf-card">
-          <SectionLabel icon="💸" text="Spending Breakdown" color="#ef4444" />
-          {activeCats.length === 0 ? (
-            <div style={{ color: "#64748B", fontSize: 13, textAlign: "center", padding: "40px 0" }}>
-              Add expenses in the<br />Budget Tracker tab
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {activeCats.map(cat => {
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94A3B8" }}>
+            <span>Invested: {fmt(investable, true)}</span>
+            <span>Target: {fmt(effectiveFireTarget, true)}</span>
+          </div>
+          {/* Spending breakdown mini */}
+          {activeCats.length > 0 && (
+            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.5px", color: "#94A3B8", textTransform: "uppercase" }}>Monthly Spending</div>
+              {activeCats.slice(0, 4).map(cat => {
                 const val = expenses[cat.key] || 0;
                 const pct = monthlyExpenses > 0 ? (val / monthlyExpenses) * 100 : 0;
                 return (
                   <div key={cat.key}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                      <span style={{ color: "#9090a8" }}>{cat.icon} {cat.label}</span>
-                      <span style={{ color: cat.color, fontFamily: "DM Mono, monospace" }}>{fmt(val)} <span style={{ color: "#64748B" }}>{pct.toFixed(0)}%</span></span>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                      <span style={{ color: "#64748B" }}>{cat.icon} {cat.label}</span>
+                      <span style={{ color: "#0F172A", fontWeight: 600 }}>{fmt(val)}</span>
                     </div>
-                    <div style={{ height: 3, background: "#E2E8F0", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pct}%`, background: cat.color, borderRadius: 4, transition: "width 0.5s" }} />
+                    <div style={{ height: 3, background: "#F1F5F9", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: cat.color, borderRadius: 99 }} />
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
+          <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 10 }}>Investable assets minus liabilities</div>
+        </div>
+
+        {/* Savings Rate card */}
+        <div style={card}>
+          <div style={eyebrow}>Savings Rate</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "#003527", letterSpacing: "-0.4px", marginBottom: 12 }}>
+            {savingsRate.toFixed(0)}%
+          </div>
+          <div style={{ height: 6, background: "#F1F5F9", borderRadius: 99, overflow: "hidden", marginBottom: 6 }}>
+            <div style={{ height: "100%", width: `${Math.min(100, savingsRate / 50 * 100)}%`, background: savingsRate >= 50 ? "#059669" : savingsRate >= 25 ? "#064E3B" : "#EF4444", borderRadius: 99 }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94A3B8", marginBottom: 12 }}>
+            <span>Target: 50%</span>
+            <span>{savingsRate >= 50 ? "🔥 FIRE pace" : savingsRate >= 25 ? "Good" : "Needs work"}</span>
+          </div>
+          <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
+            {savingsRate >= 50
+              ? `${savingsRate.toFixed(0)}% — aggressive FIRE track. Keep it up.`
+              : savingsRate >= 25
+              ? `${savingsRate.toFixed(0)}% is solid. Hitting 50% cuts years off your date.`
+              : `At ${savingsRate.toFixed(0)}%, reducing expenses is your biggest lever.`}
+          </p>
+          <div style={{ marginTop: 14, padding: 12, background: "#ECFDF5", borderRadius: 8, border: "1px solid #D1FAE5" }}>
+            <div style={{ fontSize: 11, color: "#64748B", marginBottom: 3 }}>Monthly Savings</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#003527" }}>{fmt(monthlySavings)}</div>
+          </div>
         </div>
       </div>
 
-      {/* Account snapshot + insights */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Account snapshot */}
-        <div className="uf-card">
-          <SectionLabel icon="🏦" text="Account Snapshot" color="#818cf8" />
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <tbody>
-              {[
-                { label: "401(k)",            val: k401,                     color: "#818cf8" },
-                { label: "Roth IRA",          val: rothIRA,                  color: "#22d3a5" },
-                { label: "Taxable Brokerage", val: taxable,                  color: "#a78bfa" },
-                null,
-                { label: "Consumer Debt",     val: -totalDebt,               color: "#ef4444" },
-                { label: "Mortgage",          val: -mortgageBalance,         color: "#ef4444" },
-                null,
-                { label: "Net Worth",         val: netWorth, bold: true,     color: netWorth >= 0 ? "#22d3a5" : "#ef4444" },
-              ].map((row, i) => {
-                if (!row) return (
-                  <tr key={`d${i}`}><td colSpan={2} style={{ borderTop: "1px solid #E2E8F0", padding: "4px 0" }} /></tr>
-                );
-                return (
-                  <tr key={row.label}>
-                    <td style={{ padding: "6px 0", fontSize: 13, color: row.bold ? "#0F172A" : "#9090a8", fontWeight: row.bold ? 600 : 400 }}>{row.label}</td>
-                    <td style={{ padding: "6px 0", textAlign: "right", fontFamily: "DM Mono, monospace", fontSize: 13, color: row.color, fontWeight: row.bold ? 700 : 400 }}>
-                      {row.val >= 0 ? fmt(row.val) : `−${fmt(Math.abs(row.val))}`}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {/* Row 2: FIRE Target Card + Milestones */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 16 }}>
+        {/* FIRE Target dark card */}
+        <div style={{ ...card, background: "#003527", border: "1px solid #065F46" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "#62FAE3", marginBottom: 6 }}>
+            FIRE Target Date
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginTop: 4, marginBottom: 16 }}>
+            {yearsToFire > 0 ? `${fireYear}` : progress >= 100 ? "You're FIRE ready!" : "Set your target"}
+          </div>
+          <div>
+            <span style={{ fontSize: 48, fontWeight: 800, color: "#fff", letterSpacing: "-1px" }}>
+              {yearsToFire > 0 ? yearsToFire.toFixed(1) : progress >= 100 ? "0" : "—"}
+            </span>
+            <span style={{ fontSize: 16, fontWeight: 600, color: "rgba(255,255,255,0.55)", marginLeft: 6 }}>
+              {yearsToFire > 0 ? "Years" : ""}
+            </span>
+          </div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 4, marginBottom: 20 }}>
+            Remaining until independence
+          </div>
+          <div style={{ height: 4, background: "rgba(255,255,255,0.1)", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${progress}%`, background: "#62FAE3", borderRadius: 99 }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+            <span>Today</span><span>{fireYear > new Date().getFullYear() ? fireYear : "FIRE"}</span>
+          </div>
+        </div>
+
+        {/* Milestones card */}
+        <div style={card}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#003527" }}>Goal Milestones</h3>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", cursor: "pointer" }}>View FIRE tab →</span>
+          </div>
+          {[
+            {
+              title: "Emergency Fund (3 Months)",
+              sub: monthlyExpenses > 0 && taxable >= monthlyExpenses * 3 ? "Achieved ✓" : "Build liquid reserves first",
+              current: Math.min(taxable, monthlyExpenses * 3),
+              target: monthlyExpenses * 3 || 1,
+              done: monthlyExpenses > 0 && taxable >= monthlyExpenses * 3,
+            },
+            {
+              title: "Investable Portfolio",
+              sub: `Targeting ${fmt(effectiveFireTarget, true)}`,
+              current: investable,
+              target: effectiveFireTarget || 1,
+              done: false,
+            },
+            {
+              title: "Lean FIRE (25× lean expenses)",
+              sub: "Long-term target",
+              current: investable,
+              target: monthlyExpenses > 0 ? monthlyExpenses * 12 * 25 : effectiveFireTarget || 1,
+              done: false,
+              pending: true,
+            },
+          ].map((m, i, arr) => {
+            const pct = Math.min(100, m.target > 0 ? (m.current / m.target) * 100 : 0);
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < arr.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.done ? "#059669" : m.pending ? "#CBD5E1" : "#064E3B", flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: m.pending ? "#94A3B8" : "#0F172A", marginBottom: 2 }}>{m.title}</div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: m.done ? 0 : 5 }}>{m.sub}</div>
+                  {!m.done && (
+                    <div style={{ height: 4, background: "#F1F5F9", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: m.pending ? "#CBD5E1" : "#059669", borderRadius: 99 }} />
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: m.pending ? "#94A3B8" : "#059669", whiteSpace: "nowrap" }}>
+                  {fmt(m.current, true)} / {fmt(m.target, true)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Row 3: Recommended Actions */}
+      <div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#003527", marginBottom: 14 }}>Recommended Next Steps</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          {[
+            {
+              title: savingsRate < 25 ? "Boost Your Savings Rate" : "Optimize Tax-Loss",
+              urgency: "HIGH IMPACT",
+              urgencyColor: "#059669", urgencyBg: "#ECFDF5",
+              body: savingsRate < 25
+                ? `Your ${savingsRate.toFixed(0)}% savings rate is below FIRE pace. Every 5% increase moves your date forward by ~2 years.`
+                : `Shift more taxable income to tax-advantaged accounts to lower your FIRE number.`,
+              cta: "Review Budget →",
+            },
+            {
+              title: investable < effectiveFireTarget * 0.5 ? "Automate Contributions" : "Rebalance Portfolio",
+              urgency: "MEDIUM",
+              urgencyColor: "#64748B", urgencyBg: "#F1F5F9",
+              body: investable < effectiveFireTarget * 0.5
+                ? `You're ${progress.toFixed(0)}% to your FIRE target. Automating monthly contributions removes friction.`
+                : "Your portfolio may have drifted from target allocation. Review your asset mix.",
+              cta: "View FIRE Tab →",
+            },
+            {
+              title: expenses.housing && expenses.housing / income > 0.3 ? "Reduce Housing Costs" : "Track All Expenses",
+              urgency: "ROUTINE",
+              urgencyColor: "#64748B", urgencyBg: "#F1F5F9",
+              body: expenses.housing && expenses.housing / income > 0.3
+                ? `Housing is ${((expenses.housing / income) * 100).toFixed(0)}% of take-home — above 30%. This is your biggest cost lever.`
+                : "Complete your expense breakdown in the Budget tab to unlock personalized insights.",
+              cta: "Open Budget →",
+            },
+          ].map((a, i) => (
+            <div key={i} style={{ ...card, padding: "20px 22px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 16, height: 16, borderRadius: 3, background: "#059669" }} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: a.urgencyColor, background: a.urgencyBg, padding: "2px 8px", borderRadius: 99, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>
+                  {a.urgency}
+                </span>
+              </div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#003527", marginBottom: 6 }}>{a.title}</h3>
+              <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6, marginBottom: 12 }}>{a.body}</p>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#059669", letterSpacing: "0.5px", cursor: "pointer" }}>{a.cta}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Row 4: Asset Allocation + Account Snapshot */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 16 }}>
+        {/* Asset Allocation */}
+        <div style={card}>
+          <div style={eyebrow}>Asset Allocation</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+            {[
+              { l: "401(k)", v: k401, c: "#064E3B" },
+              { l: "Roth IRA", v: rothIRA, c: "#059669" },
+              { l: "Taxable", v: taxable, c: "#20D4BF" },
+              { l: "Debt", v: -(totalDebt + mortgageBalance), c: "#EF4444" },
+            ].filter(a => a.v !== 0).map(a => {
+              const pct = investable > 0 ? Math.abs(a.v) / investable * 100 : 0;
+              return (
+                <div key={a.l}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 2, background: a.c, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: "#64748B", flex: 1 }}>{a.l}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#003527" }}>{fmt(a.v, true)}</span>
+                  </div>
+                  <div style={{ height: 3, background: "#F1F5F9", borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: a.c, borderRadius: 99 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #F1F5F9" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+              <span style={{ color: "#64748B" }}>Net Worth</span>
+              <span style={{ fontWeight: 800, color: netWorth >= 0 ? "#003527" : "#EF4444" }}>{fmt(netWorth, true)}</span>
+            </div>
+          </div>
         </div>
 
         {/* Insights */}
-        <div className="uf-card">
-          <SectionLabel icon="💡" text="Insights" color="#fbbf24" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              {
-                icon: "📊",
-                title: "Savings Rate",
-                body: savingsRate >= 50 ? `${savingsRate.toFixed(0)}% — you're on an aggressive FIRE track.` : savingsRate >= 25 ? `${savingsRate.toFixed(0)}% is solid. Hitting 50% cuts years off your date.` : `At ${savingsRate.toFixed(0)}%, reducing expenses is your biggest lever.`,
-                color: savingsRate >= 50 ? "#22d3a5" : savingsRate >= 25 ? "#064E3B" : "#ef4444",
-              },
-              {
-                icon: "🏠",
-                title: "Housing Ratio",
-                body: income > 0 && expenses.housing > 0 ? `Housing is ${(((expenses.housing || 0) / income) * 100).toFixed(0)}% of take-home. ${(expenses.housing || 0) / income > 0.3 ? "Above 30% — your biggest cost lever." : "Under 30% — healthy ratio."}` : "Add housing expenses to see your ratio.",
-                color: "#0F172A",
-              },
-              {
-                icon: "🔥",
-                title: "Rule of 25",
-                body: effectiveFireTarget ? `Target: ${fmt(effectiveFireTarget, true)}. Every $100/mo you cut reduces your FIRE number by $30k.` : "Complete onboarding to set your FIRE target.",
-                color: "#0F172A",
-              },
-            ].map(ins => (
-              <div key={ins.title} style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 14px" }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                  <span style={{ fontSize: 14 }}>{ins.icon}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: ins.color }}>{ins.title}</span>
-                </div>
-                <p style={{ fontSize: 12, color: "#64748B", margin: "6px 0 0", lineHeight: 1.5 }}>{ins.body}</p>
-              </div>
-            ))}
+        <div style={card}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#003527" }}>Key Insights</div>
           </div>
+          {[
+            {
+              type: "income" as const,
+              action: "Savings Rate",
+              account: savingsRate >= 50 ? "🔥 FIRE pace — excellent" : savingsRate >= 25 ? "Solid — room to grow" : "Below FIRE pace",
+              amount: `${savingsRate.toFixed(0)}%`,
+              note: "of income saved monthly",
+            },
+            {
+              type: "income" as const,
+              action: "Housing Ratio",
+              account: income > 0 && expenses.housing > 0
+                ? ((expenses.housing / income) > 0.3 ? "Above 30% — biggest lever" : "Under 30% — healthy")
+                : "Add housing to Budget tab",
+              amount: income > 0 && expenses.housing > 0 ? `${((expenses.housing / income) * 100).toFixed(0)}%` : "—",
+              note: "of monthly take-home",
+            },
+            {
+              type: "neutral" as const,
+              action: "Rule of 25",
+              account: effectiveFireTarget ? `Every $100/mo cut = $30k off your target` : "Set target in FIRE tab",
+              amount: effectiveFireTarget ? fmt(effectiveFireTarget, true) : "—",
+              note: "your FIRE number",
+            },
+            {
+              type: progress >= 100 ? "income" as const : "neutral" as const,
+              action: "FIRE Progress",
+              account: progress >= 100 ? "You've reached FIRE! 🎉" : `${(100 - progress).toFixed(0)}% remaining to target`,
+              amount: `${progress.toFixed(0)}%`,
+              note: "of FIRE target invested",
+            },
+          ].map((t, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #F1F5F9" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: t.type === "income" ? "#ECFDF5" : "#F1F5F9" }}>
+                <div style={{ width: 14, height: 14, borderRadius: 3, background: t.type === "income" ? "#059669" : "#94A3B8" }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{t.action}</div>
+                <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.account}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.type === "income" ? "#059669" : "#64748B" }}>{t.amount}</div>
+                <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.note}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -1732,22 +1884,27 @@ export default function Dashboard() {
           </div>
         </div>
         {/* Nav items */}
-        <nav style={{ flex: 1, padding: "12px 10px", overflowY: "auto" }}>
-          {navTabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              display: "flex", alignItems: "center", gap: 10, width: "100%",
-              padding: "10px 12px", borderRadius: 8, marginBottom: 2,
-              background: tab === t.key ? "rgba(209,250,229,0.5)" : "transparent",
-              borderLeft: `3px solid ${tab === t.key ? "#047857" : "transparent"}`,
-              color: tab === t.key ? "#065F46" : "#64748B",
-              fontSize: 14, fontWeight: tab === t.key ? 600 : 500,
-              cursor: "pointer", border: "none", textAlign: "left" as const, transition: "all 0.15s",
-              fontFamily: "'Manrope', sans-serif",
-            }}>
-              <span style={{ fontSize: 13, flexShrink: 0, opacity: 0.8 }}>{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
+        <nav style={{ flex: 1, padding: "12px 16px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
+          {navTabs.map(t => {
+            const active = tab === t.key;
+            return (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{
+                display: "flex", alignItems: "center", gap: 12, width: "100%",
+                padding: "12px 16px", borderRadius: 8,
+                background: active ? "rgba(209,250,229,0.5)" : "transparent",
+                border: active ? "1px solid #047857" : "1px solid transparent",
+                color: active ? "#065F46" : "#64748B",
+                fontSize: 14, fontWeight: 700,
+                cursor: "pointer", textAlign: "left" as const, transition: "all 0.15s",
+                fontFamily: "'Manrope', sans-serif",
+              }}>
+                <div style={{ width: 18, height: 18, borderRadius: 4, background: active ? "#065F46" : "#CBD5E1", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 1, background: active ? "#62FAE3" : "#fff", opacity: active ? 1 : 0.6 }} />
+                </div>
+                {t.label}
+              </button>
+            );
+          })}
         </nav>
         {/* Bottom: save status + user */}
         <div style={{ borderTop: "1px solid #E2E8F0", padding: "14px 16px" }}>
