@@ -124,7 +124,7 @@ function KpiCard({ label, value, sub, color = "#0F172A", glow = false }: {
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "#1a1a2e", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 14px", fontFamily: "DM Mono, monospace", fontSize: 12 }}>
+    <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 14px", fontFamily: "'Plus Jakarta Sans', monospace", fontSize: 12 }}>
       <p style={{ color: "#64748B", marginBottom: 6 }}>Year {label}</p>
       {payload.map((p: any) => (
         <div key={p.name} style={{ color: p.color, marginBottom: 2 }}>{p.name}: {fmt(p.value, true)}</div>
@@ -212,7 +212,7 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
           <span style={{ fontWeight: 600, fontSize: 14 }}>Progress to FIRE</span>
           <span style={{ fontFamily: "DM Mono, monospace", fontSize: 13, color: "#064E3B" }}>{fmt(investable, true)} / {effectiveFireTarget ? fmt(effectiveFireTarget, true) : "Not set"}</span>
         </div>
-        <div style={{ height: 10, background: "#0f0f18", borderRadius: 99, overflow: "hidden" }}>
+        <div style={{ height: 10, background: "#E2E8F0", borderRadius: 99, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #22d3a5, #064E3B)", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748B", marginTop: 7, fontFamily: "DM Mono, monospace" }}>
@@ -339,7 +339,7 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
                 color: "#0F172A",
               },
             ].map(ins => (
-              <div key={ins.title} style={{ background: "#0a0a14", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 14px" }}>
+              <div key={ins.title} style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 14px" }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                   <span style={{ fontSize: 14 }}>{ins.icon}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: ins.color }}>{ins.title}</span>
@@ -447,7 +447,7 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748B", marginBottom: 6, fontFamily: "DM Mono, monospace" }}>
               <span>Savings rate</span><span>{rate.toFixed(1)}% {rate >= 50 ? "🔥 FIRE pace" : rate >= 25 ? "· Good" : "· Needs work"}</span>
             </div>
-            <div style={{ height: 6, background: "#0f0f18", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: 6, background: "#E2E8F0", borderRadius: 99, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.min(100, rate)}%`, background: rate >= 50 ? "#064E3B" : rate >= 25 ? "#22d3a5" : "#ef4444", borderRadius: 99, transition: "width 0.6s" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94A3B8", marginTop: 5 }}>
@@ -630,7 +630,7 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
           <span style={{ fontSize: 13, fontWeight: 600 }}>Investable Assets → FIRE Target</span>
           <span style={{ fontFamily: "DM Mono, monospace", fontSize: 13, color: "#064E3B" }}>{progress.toFixed(1)}%</span>
         </div>
-        <div style={{ height: 8, background: "#0f0f18", borderRadius: 99, overflow: "hidden" }}>
+        <div style={{ height: 8, background: "#E2E8F0", borderRadius: 99, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #22d3a5, #064E3B)", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
         </div>
       </div>
@@ -852,7 +852,7 @@ function CurrencySelect({ value, onChange, allowEmpty }: {
         <span style={{ color: "#64748B", fontSize: 10 }}>▾</span>
       </button>
       {open && (
-        <div style={{ position: "absolute", zIndex: 300, bottom: "calc(100% + 6px)", left: 0, background: "#0f0f18", border: "1px solid #E2E8F0", borderRadius: 12, padding: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5, width: 244 }}>
+        <div style={{ position: "absolute", zIndex: 300, bottom: "calc(100% + 6px)", left: 0, background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5, width: 244 }}>
           {allowEmpty && (
             <button
               type="button"
@@ -1056,7 +1056,7 @@ function AddExpenseForm({ onAdd }: { onAdd: (e: ExpenseRecord) => void }) {
       {/* ── Date row (always visible) ── */}
       <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, color: "#a0a0c0", fontSize: 13, outline: "none", fontFamily: "inherit", cursor: "pointer", padding: "5px 10px", colorScheme: "dark" }} />
+          style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, color: "#64748B", fontSize: 13, outline: "none", fontFamily: "inherit", cursor: "pointer", padding: "5px 10px", colorScheme: "light" }} />
       </div>
 
       {/* ── Status line ── */}
@@ -1239,7 +1239,7 @@ function ExpenseList({ expenses, onDelete, onUpdateTags, onUpdate, displayCurren
                             placeholder="Description"
                             style={{ flex: 1, minWidth: 140, background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 10px", color: "#0F172A", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
                           <input type="date" value={editDraft.date ?? ""} onChange={e => setEditDraft(d => ({ ...d, date: e.target.value }))}
-                            style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 10px", color: "#0F172A", fontSize: 13, outline: "none", fontFamily: "inherit", colorScheme: "dark" }} />
+                            style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 10px", color: "#0F172A", fontSize: 13, outline: "none", fontFamily: "inherit", colorScheme: "light" }} />
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           <CurrencySelect value={editDraft.currency ?? "USD"} onChange={v => setEditDraft(d => ({ ...d, currency: v }))} />
@@ -1445,7 +1445,7 @@ function SettingsTab() {
     window.location.href = "/";
   };
 
-  const cardStyle: React.CSSProperties = { background: "#0f0f18", border: "1px solid #E2E8F0", borderRadius: 16, padding: "24px 28px", marginBottom: 20 };
+  const cardStyle: React.CSSProperties = { background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: "24px 28px", marginBottom: 20 };
   const labelStyle: React.CSSProperties = { fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748B", marginBottom: 6, fontFamily: "DM Mono, monospace" };
 
   return (
@@ -1718,8 +1718,8 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC", color: "#0F172A", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Top nav */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(8,8,14,0.92)", borderBottom: "1px solid #E2E8F0", backdropFilter: "blur(12px)", padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <div style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: -0.5, flexShrink: 0 }}>
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(248,250,252,0.92)", borderBottom: "1px solid #E2E8F0", backdropFilter: "blur(12px)", padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <div style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: -0.5, flexShrink: 0, color: "#0F172A" }}>
           Until<span style={{ color: "#064E3B" }}>Fire</span>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
@@ -1728,9 +1728,9 @@ export default function Dashboard() {
               key={t.key}
               onClick={() => setTab(t.key)}
               style={{
-                background: tab === t.key ? "rgba(249,115,22,0.12)" : "transparent",
+                background: tab === t.key ? "rgba(6,78,59,0.10)" : "transparent",
                 color: tab === t.key ? "#064E3B" : "#64748B",
-                border: tab === t.key ? "1px solid rgba(249,115,22,0.3)" : "1px solid transparent",
+                border: tab === t.key ? "1px solid rgba(6,78,59,0.20)" : "1px solid transparent",
                 borderRadius: 8, padding: "6px 14px", fontSize: 13,
                 fontWeight: tab === t.key ? 600 : 400,
                 cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all 0.15s",
