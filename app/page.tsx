@@ -145,7 +145,7 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
         </button>
         <div className="uf-social-proof">
           <div className="uf-avatars">
-            {["#f97316","#22d3a5","#a78bfa","#fb923c"].map((c, i) => (
+            {["#064E3B","#20D4BF","#475569","#065F46"].map((c, i) => (
               <div key={i} className="uf-avatar" style={{ background: c }} />
             ))}
           </div>
@@ -1536,8 +1536,8 @@ function CurrencyScreen({ onNext, onBack }: { onNext: (currency: string) => void
             key={code}
             onClick={() => setSelected(code)}
             style={{
-              background: selected === code ? "rgba(249,115,22,0.12)" : "var(--bg-card)",
-              border: `1.5px solid ${selected === code ? "#f97316" : "var(--border)"}`,
+              background: selected === code ? "rgba(6,78,59,0.10)" : "var(--bg-card)",
+              border: `1.5px solid ${selected === code ? "#064E3B" : "var(--border)"}`,
               borderRadius: 12,
               padding: "14px 8px",
               display: "flex",
@@ -1549,7 +1549,7 @@ function CurrencyScreen({ onNext, onBack }: { onNext: (currency: string) => void
             }}
           >
             <FlagEmoji emoji={flag} size={32} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: selected === code ? "#f97316" : "var(--text)" }}>{code}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: selected === code ? "#064E3B" : "var(--text)" }}>{code}</span>
             <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{name}</span>
           </button>
         ))}
@@ -2159,38 +2159,38 @@ export default function Home() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-          --bg: #08080e;
-          --bg-card: #13131e;
-          --bg-elevated: #1a1a28;
-          --border: #1c1c2e;
-          --border-light: #2a2a3e;
-          --text: #e8e8f2;
-          --text-muted: #6e6e8e;
-          --text-dim: #3a3a5a;
-          --accent: #f97316;
-          --accent-dim: rgba(249,115,22,0.12);
-          --accent-glow: rgba(249,115,22,0.25);
-          --teal: #22d3a5;
-          --teal-dim: rgba(34,211,165,0.12);
-          --danger: #ef4444;
-          --purple: #a78bfa;
-          --font-display: 'Syne', sans-serif;
-          --font-body: 'DM Sans', sans-serif;
-          --font-mono: 'DM Mono', monospace;
+          --bg: #F8FAFC;
+          --bg-card: #FFFFFF;
+          --bg-elevated: #F1F5F9;
+          --border: #E2E8F0;
+          --border-light: #CBD5E1;
+          --text: #0F172A;
+          --text-muted: #64748B;
+          --text-dim: #94A3B8;
+          --accent: #064E3B;
+          --accent-dim: rgba(6,78,59,0.10);
+          --accent-glow: rgba(6,78,59,0.20);
+          --teal: #20D4BF;
+          --teal-dim: rgba(32,212,191,0.12);
+          --danger: #EF4444;
+          --purple: #475569;
+          --font-display: 'Plus Jakarta Sans', sans-serif;
+          --font-body: 'Plus Jakarta Sans', sans-serif;
+          --font-mono: monospace;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; background-image: radial-gradient(circle, rgba(255,255,255,0.038) 1px, transparent 1px); background-size: 28px 28px; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 28px 28px; }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
 
         /* ── NAV ── */
-        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(8,8,14,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px); }
+        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(248,250,252,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px); }
         .uf-nav-logo { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
         .uf-nav-logo span { color: var(--accent); }
         .uf-nav-dots { display: flex; gap: 6px; align-items: center; }
@@ -2208,9 +2208,9 @@ export default function Home() {
         .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
         .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform, opacity; }
-        .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
-        .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(34,211,165,0.11) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
-        .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
+        .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(6,78,59,0.10) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
+        .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(32,212,191,0.09) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
+        .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(71,85,105,0.07) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
         .uf-screen { width: 100%; max-width: 540px; padding: 40px 24px 24px; position: relative; z-index: 1; }
         .uf-reveal-screen { max-width: 680px; }
         .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
@@ -2239,12 +2239,12 @@ export default function Home() {
         /* ── BUTTONS ── */
         .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: 10px; font-family: var(--font-body); font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
         .uf-btn-primary { background: var(--accent); color: #fff; }
-        .uf-btn-primary:hover:not(:disabled) { background: #ea6b10; transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .uf-btn-primary:hover:not(:disabled) { background: #065F46; transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
         .uf-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
         .uf-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
         .uf-btn-ghost:hover { color: var(--text); background: var(--bg-elevated); }
-        .uf-btn-teal { background: var(--teal); color: #08080e; font-weight: 600; }
-        .uf-btn-teal:hover { background: #1dbf96; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(34,211,165,0.25); }
+        .uf-btn-teal { background: var(--teal); color: #0F172A; font-weight: 600; }
+        .uf-btn-teal:hover { background: #17B9A6; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(32,212,191,0.25); }
         .uf-btn-full { width: 100%; }
         .uf-btn-lg { padding: 18px 36px; font-size: 17px; }
         .uf-nav-row { margin-top: 32px; display: flex; gap: 12px; }
@@ -2265,7 +2265,7 @@ export default function Home() {
         /* ── CHOOSER ── */
         .uf-choice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .uf-choice-card { width: 100%; text-align: left; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 18px; cursor: pointer; transition: transform 0.18s, border-color 0.18s, background 0.18s; }
-        .uf-choice-card:hover, .uf-choice-card.active { border-color: var(--accent); background: rgba(249,115,22,0.06); transform: translateY(-1px); }
+        .uf-choice-card:hover, .uf-choice-card.active { border-color: var(--accent); background: rgba(6,78,59,0.06); transform: translateY(-1px); }
         .uf-choice-card-inline { padding: 16px 18px; }
         .uf-choice-tag { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-family: var(--font-mono); }
         .uf-choice-title { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
@@ -2293,12 +2293,12 @@ export default function Home() {
         .uf-dropdown-flag { font-size: 18px; line-height: 1; flex-shrink: 0; }
         .uf-dropdown-name { font-size: 14px; color: var(--text); }
         .uf-dropdown-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-        .uf-dropdown-custom { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 16px; background: rgba(249,115,22,0.05); border: none; border-top: 1px solid rgba(249,115,22,0.18); cursor: pointer; transition: background 0.15s; text-align: left; }
-        .uf-dropdown-custom:hover { background: rgba(249,115,22,0.12); }
+        .uf-dropdown-custom { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 16px; background: rgba(6,78,59,0.05); border: none; border-top: 1px solid rgba(6,78,59,0.18); cursor: pointer; transition: background 0.15s; text-align: left; }
+        .uf-dropdown-custom:hover { background: rgba(6,78,59,0.10); }
         .uf-dropdown-custom-title { font-size: 14px; color: var(--accent); font-weight: 500; }
 
         /* ── CUSTOM CITY ── */
-        .uf-custom-city { background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.3); border-radius: 12px; padding: 16px; margin-top: 14px; }
+        .uf-custom-city { background: rgba(6,78,59,0.07); border: 1px solid rgba(6,78,59,0.25); border-radius: 12px; padding: 16px; margin-top: 14px; }
         .uf-custom-row { display: flex; gap: 10px; align-items: center; }
 
         /* ── CITY INFO ── */
@@ -2319,7 +2319,7 @@ export default function Home() {
 
         /* ── CARD ── */
         .uf-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 16px 20px; }
-        .uf-card-accent { background: var(--accent-dim); border-color: rgba(249,115,22,0.2); }
+        .uf-card-accent { background: var(--accent-dim); border-color: rgba(6,78,59,0.18); }
         .uf-card-head { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .uf-card-sub { font-size: 13px; color: var(--text-muted); }
         .uf-card-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
@@ -2358,24 +2358,24 @@ export default function Home() {
         .uf-live-label { color: var(--text-dim); }
 
         /* Badge */
-        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 14px; border: 1px solid rgba(249,115,22,0.2); }
+        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: var(--accent-dim); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 14px; border: 1px solid rgba(6,78,59,0.18); }
         .uf-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 
         /* Flame headline span */
-        .uf-accent-flame { background: linear-gradient(92deg, #f97316 0%, #fb923c 30%, #fbbf24 52%, #f97316 68%, #ea580c 85%, #f97316 100%); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline; animation: flameShimmer 4s linear infinite, flamePulse 3s ease-in-out infinite alternate; }
+        .uf-accent-flame { background: linear-gradient(92deg, #064E3B 0%, #20D4BF 30%, #065F46 52%, #064E3B 68%, #20D4BF 85%, #064E3B 100%); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline; animation: flameShimmer 4s linear infinite, flamePulse 3s ease-in-out infinite alternate; }
         @keyframes flameShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 240% 50%; } }
         @keyframes flamePulse {
-          from { filter: drop-shadow(0 0 6px rgba(249,115,22,0.0)); }
-          to   { filter: drop-shadow(0 0 18px rgba(249,115,22,0.6)); }
+          from { filter: drop-shadow(0 0 6px rgba(6,78,59,0.0)); }
+          to   { filter: drop-shadow(0 0 18px rgba(6,78,59,0.5)); }
         }
 
         /* Power CTA — persistent breathing glow */
         .uf-btn-power { animation: ctaBreath 2.8s ease-in-out infinite; }
         @keyframes ctaBreath {
-          0%, 100% { box-shadow: 0 6px 28px rgba(249,115,22,0.22); }
-          50%       { box-shadow: 0 10px 48px rgba(249,115,22,0.52), 0 0 0 5px rgba(249,115,22,0.07); }
+          0%, 100% { box-shadow: 0 6px 28px rgba(6,78,59,0.18); }
+          50%       { box-shadow: 0 10px 48px rgba(6,78,59,0.38), 0 0 0 5px rgba(6,78,59,0.07); }
         }
-        .uf-btn-power:hover { animation: none; box-shadow: 0 8px 40px rgba(249,115,22,0.6), 0 0 0 6px rgba(249,115,22,0.12) !important; }
+        .uf-btn-power:hover { animation: none; box-shadow: 0 8px 40px rgba(6,78,59,0.5), 0 0 0 6px rgba(6,78,59,0.10) !important; }
 
         /* Entrance animations — scoped to mounted so they re-fire on Start over */
         @keyframes heroEnter { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
@@ -2420,10 +2420,10 @@ export default function Home() {
         .uf-number-phase {}
 
         @keyframes fireGlow {
-          0%   { text-shadow: 0 0 0px rgba(249,115,22,0); }
-          40%  { text-shadow: 0 0 60px rgba(249,115,22,0.9), 0 0 120px rgba(249,115,22,0.5); }
-          70%  { text-shadow: 0 0 40px rgba(249,115,22,0.7), 0 0 80px rgba(249,115,22,0.35); }
-          100% { text-shadow: 0 0 28px rgba(249,115,22,0.5), 0 0 60px rgba(249,115,22,0.2); }
+          0%   { text-shadow: 0 0 0px rgba(6,78,59,0); }
+          40%  { text-shadow: 0 0 60px rgba(6,78,59,0.8), 0 0 120px rgba(6,78,59,0.45); }
+          70%  { text-shadow: 0 0 40px rgba(6,78,59,0.6), 0 0 80px rgba(6,78,59,0.3); }
+          100% { text-shadow: 0 0 28px rgba(6,78,59,0.45), 0 0 60px rgba(6,78,59,0.18); }
         }
         @keyframes revealSlam {
           0%   { opacity: 0; transform: scale(0.55); }
@@ -2432,8 +2432,8 @@ export default function Home() {
           100% { transform: scale(1); }
         }
         @keyframes pulseBorder {
-          0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
-          50%      { box-shadow: 0 0 0 8px rgba(249,115,22,0.12); }
+          0%,100% { box-shadow: 0 0 0 0 rgba(6,78,59,0); }
+          50%      { box-shadow: 0 0 0 8px rgba(6,78,59,0.10); }
         }
         .uf-fire-slam { animation: revealSlam 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards, fireGlow 1.6s ease 0.5s forwards; }
 
@@ -2442,7 +2442,7 @@ export default function Home() {
           padding: 40px 24px;
           margin-bottom: 28px;
           border-radius: 20px;
-          background: radial-gradient(ellipse at 50% 50%, rgba(249,115,22,0.08) 0%, transparent 70%);
+          background: radial-gradient(ellipse at 50% 50%, rgba(6,78,59,0.07) 0%, transparent 70%);
           animation: pulseBorder 2.5s ease 0.8s infinite;
           width: 100%;
           overflow: hidden;
@@ -2464,14 +2464,14 @@ export default function Home() {
         .uf-fire-date { font-family: var(--font-mono); font-size: 16px; color: var(--teal); letter-spacing: 0.5px; }
         .uf-fire-city { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
 
-        .uf-cost-card { background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.18); border-radius: 14px; padding: 20px 24px; text-align: center; margin-bottom: 20px; }
+        .uf-cost-card { background: rgba(6,78,59,0.06); border: 1px solid rgba(6,78,59,0.18); border-radius: 14px; padding: 20px 24px; text-align: center; margin-bottom: 20px; }
         .uf-cost-label { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
         .uf-cost-years { font-family: var(--font-display); font-size: 40px; font-weight: 800; color: var(--accent); line-height: 1; }
         .uf-cost-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 
         .uf-delta-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
         .uf-delta-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-        .uf-delta-card.positive { border-color: rgba(34,211,165,0.25); }
+        .uf-delta-card.positive { border-color: rgba(32,212,191,0.25); }
         .uf-delta-card.negative { border-color: rgba(239,68,68,0.2); }
         .uf-delta-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
         .uf-delta-val { font-family: var(--font-mono); font-size: 20px; font-weight: 500; }
@@ -2481,12 +2481,12 @@ export default function Home() {
         .uf-disclaimer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 14px; }
 
         /* ── WAITLIST INLINE ── */
-        .uf-wl-inline { background: var(--bg-card); border: 1px solid rgba(249,115,22,0.2); border-radius: 14px; padding: 18px 20px; margin-top: 12px; }
+        .uf-wl-inline { background: var(--bg-card); border: 1px solid rgba(6,78,59,0.18); border-radius: 14px; padding: 18px 20px; margin-top: 12px; }
         .uf-wl-inline-head { margin-bottom: 12px; }
         .uf-wl-inline-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
         .uf-wl-inline-sub { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
         .uf-wl-inline-form { display: flex; gap: 8px; }
-        .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(34,211,165,0.25); }
+        .uf-wl-done { display: flex; align-items: center; gap: 12px; background: var(--teal-dim); border-color: rgba(32,212,191,0.25); }
 
         /* ── WAITLIST ── */
         .uf-waitlist { max-width: 520px; margin: 0 auto; padding: 48px 24px 64px; position: relative; z-index: 1; }
@@ -2494,8 +2494,8 @@ export default function Home() {
         .uf-waitlist-form { display: flex; gap: 10px; }
 
         /* ── SHARE TRIGGER ── */
-        .uf-share-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 18px auto 0; padding: 10px 22px; border-radius: 10px; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .uf-share-trigger:hover { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.45); transform: translateY(-1px); }
+        .uf-share-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 18px auto 0; padding: 10px 22px; border-radius: 10px; background: rgba(6,78,59,0.08); border: 1px solid rgba(6,78,59,0.22); color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .uf-share-trigger:hover { background: rgba(6,78,59,0.18); border-color: rgba(6,78,59,0.4); transform: translateY(-1px); }
 
         /* ── SHARE MODAL ── */
         .uf-share-overlay { position: fixed; inset: 0; background: rgba(8,8,14,0.88); backdrop-filter: blur(10px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.15s ease; }
@@ -2507,13 +2507,13 @@ export default function Home() {
         .uf-share-heading { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 20px; letter-spacing: -0.3px; }
 
         /* Share preview card */
-        .uf-share-card { background: radial-gradient(ellipse at 50% -10%, rgba(249,115,22,0.18) 0%, transparent 65%), #0c0c16; border: 1px solid rgba(249,115,22,0.2); border-radius: 16px; padding: 26px 24px 20px; margin-bottom: 20px; text-align: center; position: relative; overflow: hidden; }
-        .uf-share-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent); }
+        .uf-share-card { background: radial-gradient(ellipse at 50% -10%, rgba(6,78,59,0.18) 0%, transparent 65%), #0c0c16; border: 1px solid rgba(6,78,59,0.18); border-radius: 16px; padding: 26px 24px 20px; margin-bottom: 20px; text-align: center; position: relative; overflow: hidden; }
+        .uf-share-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(6,78,59,0.45), transparent); }
         .uf-share-card-brand { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 18px; }
         .uf-share-card-logo { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-muted); letter-spacing: -0.3px; }
         .uf-share-card-logo span { color: var(--accent); }
         .uf-share-card-label { font-size: 10px; font-weight: 500; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
-        .uf-share-card-number { font-family: var(--font-mono); font-size: clamp(30px, 7vw, 46px); font-weight: 500; color: var(--accent); text-shadow: 0 0 40px rgba(249,115,22,0.45), 0 0 80px rgba(249,115,22,0.15); margin-bottom: 10px; line-height: 1; }
+        .uf-share-card-number { font-family: var(--font-mono); font-size: clamp(30px, 7vw, 46px); font-weight: 500; color: var(--accent); text-shadow: 0 0 40px rgba(6,78,59,0.4), 0 0 80px rgba(6,78,59,0.12); margin-bottom: 10px; line-height: 1; }
         .uf-share-card-meta { font-family: var(--font-mono); font-size: 12px; color: var(--teal); margin-bottom: 5px; letter-spacing: 0.3px; }
         .uf-share-card-city { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
         .uf-share-card-divider { height: 1px; background: var(--border); margin-bottom: 14px; }
@@ -2569,7 +2569,7 @@ export default function Home() {
 
         /* ── PORTFOLIO SCREEN ── */
         .uf-portfolio-encouragement { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
-        .uf-portfolio-coast-callout { background: rgba(34,211,165,0.08); border: 1px solid rgba(34,211,165,0.25); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+        .uf-portfolio-coast-callout { background: rgba(34,211,165,0.08); border: 1px solid rgba(32,212,191,0.25); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
         .uf-portfolio-coast-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--teal); margin-bottom: 6px; }
         .uf-portfolio-coast-amount { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: var(--teal); margin-bottom: 4px; }
         .uf-portfolio-coast-sub { font-size: 13px; color: var(--text-muted); }

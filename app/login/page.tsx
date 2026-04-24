@@ -7,7 +7,6 @@ export default function LoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // If already logged in, go straight to dashboard
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) router.push('/dashboard')
     })
@@ -30,50 +29,67 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#08080e', fontFamily: "'DM Sans', sans-serif",
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#F8FAFC',
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
     }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
-      `}</style>
+      <div style={{ width: '100%', maxWidth: 400, padding: '0 24px' }}>
 
-      <div style={{
-        width: '100%', maxWidth: 400, padding: '0 24px',
-      }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <div style={{
-            fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800,
-            letterSpacing: '-0.5px', color: '#e8e8f2', marginBottom: 8,
+            fontSize: 28,
+            fontWeight: 700,
+            letterSpacing: '-0.5px',
+            color: '#0F172A',
+            marginBottom: 8,
           }}>
-            Until<span style={{ color: '#f97316' }}>Fire</span>
+            Until<span style={{ color: '#064E3B' }}>Fire</span>
           </div>
-          <div style={{ fontSize: 15, color: '#6e6e8e', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 15, color: '#64748B', lineHeight: 1.6 }}>
             Sign in to track your progress<br />toward financial independence
           </div>
         </div>
 
         {/* Card */}
         <div style={{
-          background: '#13131e', border: '1px solid #1c1c2e',
-          borderRadius: 16, padding: '32px 28px',
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 16,
+          padding: '32px 28px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
         }}>
           <button
             onClick={signInWithGoogle}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: 12, padding: '14px 20px', background: '#1a1a28',
-              border: '1px solid #2a2a3e', borderRadius: 10, cursor: 'pointer',
-              fontSize: 15, fontWeight: 500, color: '#e8e8f2',
-              fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              padding: '14px 20px',
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: 10,
+              cursor: 'pointer',
+              fontSize: 15,
+              fontWeight: 500,
+              color: '#0F172A',
+              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+              transition: 'all 0.18s',
             }}
             onMouseOver={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = '#f97316'
-              ;(e.currentTarget as HTMLButtonElement).style.background = '#1f1f30'
+              const btn = e.currentTarget as HTMLButtonElement
+              btn.style.borderColor = '#064E3B'
+              btn.style.background = '#D1FAE5'
             }}
             onMouseOut={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = '#2a2a3e'
-              ;(e.currentTarget as HTMLButtonElement).style.background = '#1a1a28'
+              const btn = e.currentTarget as HTMLButtonElement
+              btn.style.borderColor = '#E2E8F0'
+              btn.style.background = '#FFFFFF'
             }}
           >
             {/* Google icon */}
@@ -87,8 +103,11 @@ export default function LoginPage() {
           </button>
 
           <div style={{
-            marginTop: 24, textAlign: 'center',
-            fontSize: 12, color: '#3a3a5a', lineHeight: 1.6,
+            marginTop: 24,
+            textAlign: 'center',
+            fontSize: 12,
+            color: '#94A3B8',
+            lineHeight: 1.6,
           }}>
             No credit card required. Free forever for the core calculator.<br />
             By signing in you agree to our Terms &amp; Privacy Policy.
@@ -96,7 +115,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <a href="/" style={{ fontSize: 13, color: '#6e6e8e', textDecoration: 'none' }}>
+          <a href="/" style={{ fontSize: 13, color: '#475569', textDecoration: 'none' }}>
             ← Back to calculator
           </a>
         </div>

@@ -1,42 +1,49 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Surfaces */
+  --uf-bg:             #F8FAFC;
+  --uf-surface:        #FFFFFF;
+  --uf-surface-2:      #F1F5F9;
+  --uf-border:         #E2E8F0;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Text */
+  --uf-text:           #0F172A;
+  --uf-text-muted:     #64748B;
+  --uf-text-subtle:    #94A3B8;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Brand */
+  --uf-primary:        #064E3B;
+  --uf-primary-hover:  #065F46;
+  --uf-primary-tint:   #D1FAE5;
+  --uf-secondary:      #20D4BF;
+  --uf-secondary-tint: #CCFBF1;
+  --uf-tertiary:       #475569;
+
+  /* Status */
+  --uf-error:          #EF4444;
+  --uf-warning:        #F59E0B;
+  --uf-success:        #10B981;
+
+  /* Geometry */
+  --uf-radius:         12px;
+  --uf-radius-sm:      8px;
+  --uf-radius-lg:      16px;
+  --uf-shadow:         0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --uf-shadow-md:      0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--uf-bg);
+  color: var(--uf-text);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Floating action bar animation */
+/* Shared animations */
 @keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 20px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
 }
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out forwards;
-}
+.animate-slide-up { animation: slide-up 0.3s ease-out forwards; }

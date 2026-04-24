@@ -15,16 +15,16 @@ import {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg: "#08080e",
-  card: "#13131e",
-  border: "#1c1c2e",
-  text: "#e8e8f2",
-  muted: "#5e5e7a",
-  accent: "#f97316",
-  teal: "#22d3a5",
-  red: "#ef4444",
-  purple: "#8b5cf6",
-  amber: "#f59e0b",
+  bg: "#F8FAFC",
+  card: "#FFFFFF",
+  border: "#E2E8F0",
+  text: "#0F172A",
+  muted: "#64748B",
+  accent: "#064E3B",
+  teal: "#20D4BF",
+  red: "#EF4444",
+  purple: "#475569",
+  amber: "#F59E0B",
 };
 
 const fmt = (n: number, compact = false) => {
@@ -132,7 +132,7 @@ function Field({
       <label
         style={{
           fontSize: 11,
-          fontFamily: "'DM Mono', monospace",
+          fontFamily: "monospace",
           letterSpacing: "0.08em",
           textTransform: "uppercase" as const,
           color: C.muted,
@@ -149,7 +149,7 @@ function Field({
               top: "50%",
               transform: "translateY(-50%)",
               color: C.muted,
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: "monospace",
               fontSize: 13,
             }}
           >
@@ -164,12 +164,12 @@ function Field({
           onChange={(e) => onChange(Number(e.target.value))}
           style={{
             width: "100%",
-            background: "#0d0d18",
+            background: "#F1F5F9",
             border: `1px solid ${C.border}`,
             borderRadius: 8,
             padding: prefix ? "10px 12px 10px 28px" : "10px 12px",
             color: C.text,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "monospace",
             fontSize: 14,
             outline: "none",
             boxSizing: "border-box" as const,
@@ -209,7 +209,7 @@ function SliderField({
         <label
           style={{
             fontSize: 11,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "monospace",
             letterSpacing: "0.08em",
             textTransform: "uppercase" as const,
             color: C.muted,
@@ -217,7 +217,7 @@ function SliderField({
         >
           {label}
         </label>
-        <span style={{ fontSize: 13, color: C.accent, fontFamily: "'DM Mono', monospace" }}>
+        <span style={{ fontSize: 13, color: C.accent, fontFamily: "monospace" }}>
           {format(value)}
         </span>
       </div>
@@ -262,7 +262,7 @@ function StatCard({
       <span
         style={{
           fontSize: 11,
-          fontFamily: "'DM Mono', monospace",
+          fontFamily: "monospace",
           letterSpacing: "0.08em",
           textTransform: "uppercase" as const,
           color: C.muted,
@@ -273,7 +273,7 @@ function StatCard({
       <span
         style={{
           fontSize: 22,
-          fontFamily: "'Syne', sans-serif",
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontWeight: 700,
           color,
           lineHeight: 1.1,
@@ -291,11 +291,11 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   return (
     <div
       style={{
-        background: "#1a1a2e",
+        background: C.card,
         border: `1px solid ${C.border}`,
         borderRadius: 8,
         padding: "10px 14px",
-        fontFamily: "'DM Mono', monospace",
+        fontFamily: "monospace",
         fontSize: 12,
       }}
     >
@@ -324,7 +324,7 @@ function FAQ({ q, a }: { q: string; a: string }) {
           border: "none",
           color: C.text,
           fontSize: 15,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontWeight: 500,
           cursor: "pointer",
           textAlign: "left" as const,
@@ -342,7 +342,7 @@ function FAQ({ q, a }: { q: string; a: string }) {
             color: C.muted,
             fontSize: 14,
             lineHeight: 1.7,
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
           }}
         >
           {a}
@@ -449,7 +449,7 @@ export default function BaristaFIRECalculatorClient() {
       style={{
         background: C.bg,
         color: C.text,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
         minHeight: "100vh",
         padding: "0 0 80px 0",
       }}
@@ -478,7 +478,7 @@ export default function BaristaFIRECalculatorClient() {
         <Link
           href="/"
           style={{
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 800,
             fontSize: 20,
             color: C.accent,
@@ -522,7 +522,7 @@ export default function BaristaFIRECalculatorClient() {
             padding: "5px 16px",
             fontSize: 12,
             color: C.amber,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "monospace",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
             marginBottom: 20,
@@ -532,7 +532,7 @@ export default function BaristaFIRECalculatorClient() {
         </div>
         <h1
           style={{
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 800,
             fontSize: "clamp(32px, 5vw, 52px)",
             lineHeight: 1.1,
@@ -554,7 +554,7 @@ export default function BaristaFIRECalculatorClient() {
           Part-time work + portfolio withdrawals = your full expenses. Find the{" "}
           <em style={{ color: C.text }}>smaller portfolio</em> that lets you semi-retire now.
         </p>
-        <p style={{ fontSize: 13, color: C.muted, fontFamily: "'DM Mono', monospace" }}>
+        <p style={{ fontSize: 13, color: C.muted, fontFamily: "monospace" }}>
           Barista FIRE target = (Annual Expenses − Part-time Income) ÷ Withdrawal Rate
         </p>
       </div>
@@ -586,7 +586,7 @@ export default function BaristaFIRECalculatorClient() {
               <span style={{ fontSize: 16 }}>☕</span>
               <span
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontWeight: 700,
                   fontSize: 13,
                   color: C.amber,
@@ -616,7 +616,7 @@ export default function BaristaFIRECalculatorClient() {
             <div
               style={{
                 marginTop: 20,
-                background: "#0d0d18",
+                background: "#F1F5F9",
                 borderRadius: 10,
                 padding: "14px 16px",
                 display: "flex",
@@ -666,7 +666,7 @@ export default function BaristaFIRECalculatorClient() {
               <span style={{ fontSize: 16 }}>📈</span>
               <span
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontWeight: 700,
                   fontSize: 13,
                   color: C.teal,
@@ -717,7 +717,7 @@ export default function BaristaFIRECalculatorClient() {
               <span style={{ fontSize: 16 }}>⚙️</span>
               <span
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontWeight: 700,
                   fontSize: 13,
                   color: C.purple,
@@ -769,7 +769,7 @@ export default function BaristaFIRECalculatorClient() {
             <div>
               <div
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontWeight: 700,
                   fontSize: 18,
                   color: hasReached ? C.teal : C.text,
@@ -851,10 +851,10 @@ export default function BaristaFIRECalculatorClient() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 12, color: C.muted, fontFamily: "'DM Mono', monospace" }}>
+              <span style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>
                 CURRENT SAVINGS → BARISTA FIRE TARGET
               </span>
-              <span style={{ fontSize: 12, color: C.accent, fontFamily: "'DM Mono', monospace" }}>
+              <span style={{ fontSize: 12, color: C.accent, fontFamily: "monospace" }}>
                 {Math.min(progress, 100).toFixed(1)}%
               </span>
             </div>
@@ -885,7 +885,7 @@ export default function BaristaFIRECalculatorClient() {
             <div style={{ marginBottom: 20 }}>
               <div
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontWeight: 700,
                   fontSize: 15,
                   marginBottom: 4,
@@ -909,13 +909,13 @@ export default function BaristaFIRECalculatorClient() {
                 <XAxis
                   dataKey="age"
                   tickFormatter={(v) => `Age ${v}`}
-                  tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                  tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                   axisLine={{ stroke: C.border }}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={(v) => fmt(v, true)}
-                  tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                  tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                   axisLine={false}
                   tickLine={false}
                   width={68}
@@ -929,7 +929,7 @@ export default function BaristaFIRECalculatorClient() {
                     value: "Barista FIRE",
                     fill: C.accent,
                     fontSize: 10,
-                    fontFamily: "DM Mono",
+                    fontFamily: "monospace",
                   }}
                 />
                 <ReferenceLine
@@ -940,7 +940,7 @@ export default function BaristaFIRECalculatorClient() {
                     value: "Full FIRE",
                     fill: C.red,
                     fontSize: 10,
-                    fontFamily: "DM Mono",
+                    fontFamily: "monospace",
                   }}
                 />
                 <Area
@@ -966,7 +966,7 @@ export default function BaristaFIRECalculatorClient() {
           >
             <div
               style={{
-                fontFamily: "'Syne', sans-serif",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
                 fontWeight: 700,
                 fontSize: 15,
                 marginBottom: 16,
@@ -1005,7 +1005,7 @@ export default function BaristaFIRECalculatorClient() {
                       justifyContent: "center",
                       fontSize: 12,
                       color: C.amber,
-                      fontFamily: "'DM Mono', monospace",
+                      fontFamily: "monospace",
                       fontWeight: 700,
                       flexShrink: 0,
                     }}
@@ -1027,7 +1027,7 @@ export default function BaristaFIRECalculatorClient() {
       <div style={{ maxWidth: 760, margin: "48px auto 0", padding: "0 24px" }}>
         <h2
           style={{
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 700,
             fontSize: 26,
             marginBottom: 8,
@@ -1068,7 +1068,7 @@ export default function BaristaFIRECalculatorClient() {
       <div style={{ maxWidth: 760, margin: "48px auto 0", padding: "0 24px" }}>
         <h2
           style={{
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 700,
             fontSize: 22,
             marginBottom: 20,

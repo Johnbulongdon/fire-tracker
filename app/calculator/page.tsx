@@ -18,16 +18,16 @@ import {
 
 // ─── Design tokens (matches UntilFire system) ────────────────────────────────
 const C = {
-  bg: "#08080e",
-  card: "#13131e",
-  border: "#1c1c2e",
-  text: "#e8e8f2",
-  muted: "#5e5e7a",
-  accent: "#f97316",
-  teal: "#22d3a5",
-  red: "#ef4444",
-  purple: "#8b5cf6",
-  blue: "#3b82f6",
+  bg: "#F8FAFC",
+  card: "#FFFFFF",
+  border: "#E2E8F0",
+  text: "#0F172A",
+  muted: "#64748B",
+  accent: "#064E3B",
+  teal: "#20D4BF",
+  red: "#EF4444",
+  purple: "#475569",
+  blue: "#3B82F6",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ function Field({ label, value, onChange, prefix = "$", hint }) {
       <label
         style={{
           fontSize: 11,
-          fontFamily: "'DM Mono', monospace",
+          fontFamily: "monospace",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
           color: C.muted,
@@ -146,7 +146,7 @@ function Field({ label, value, onChange, prefix = "$", hint }) {
             top: "50%",
             transform: "translateY(-50%)",
             color: C.muted,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "monospace",
             fontSize: 13,
           }}
         >
@@ -158,12 +158,12 @@ function Field({ label, value, onChange, prefix = "$", hint }) {
           onChange={(e) => onChange(Number(e.target.value))}
           style={{
             width: "100%",
-            background: "#0d0d18",
+            background: "#F1F5F9",
             border: `1px solid ${C.border}`,
             borderRadius: 8,
             padding: "10px 12px 10px 28px",
             color: C.text,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "monospace",
             fontSize: 14,
             outline: "none",
             boxSizing: "border-box",
@@ -190,7 +190,7 @@ function SliderField({ label, value, onChange, min, max, step = 0.001, format })
         <label
           style={{
             fontSize: 11,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "monospace",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
             color: C.muted,
@@ -198,7 +198,7 @@ function SliderField({ label, value, onChange, min, max, step = 0.001, format })
         >
           {label}
         </label>
-        <span style={{ fontSize: 13, color: C.accent, fontFamily: "'DM Mono', monospace" }}>
+        <span style={{ fontSize: 13, color: C.accent, fontFamily: "monospace" }}>
           {format(value)}
         </span>
       </div>
@@ -232,7 +232,7 @@ function StatCard({ label, value, sub, color = C.text, accent = false }) {
       <span
         style={{
           fontSize: 11,
-          fontFamily: "'DM Mono', monospace",
+          fontFamily: "monospace",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
           color: C.muted,
@@ -243,7 +243,7 @@ function StatCard({ label, value, sub, color = C.text, accent = false }) {
       <span
         style={{
           fontSize: 22,
-          fontFamily: "'Syne', sans-serif",
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontWeight: 700,
           color: color,
           lineHeight: 1.1,
@@ -264,11 +264,11 @@ const ChartTooltip = ({ active, payload, label }) => {
   return (
     <div
       style={{
-        background: "#1a1a2e",
+        background: C.card,
         border: `1px solid ${C.border}`,
         borderRadius: 8,
         padding: "10px 14px",
-        fontFamily: "'DM Mono', monospace",
+        fontFamily: "monospace",
         fontSize: 12,
       }}
     >
@@ -293,7 +293,7 @@ function Tab({ label, active, onClick }) {
         borderRadius: 6,
         padding: "6px 14px",
         color: active ? "#fff" : C.muted,
-        fontFamily: "'DM Mono', monospace",
+        fontFamily: "monospace",
         fontSize: 11,
         letterSpacing: "0.06em",
         textTransform: "uppercase",
@@ -313,7 +313,7 @@ function SectionHeader({ icon, title, color = C.accent }) {
       <span style={{ fontSize: 16 }}>{icon}</span>
       <span
         style={{
-          fontFamily: "'Syne', sans-serif",
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontWeight: 700,
           fontSize: 13,
           color,
@@ -408,7 +408,7 @@ export default function EnhancedFIRECalculator() {
       style={{
         background: C.bg,
         color: C.text,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
         minHeight: "100vh",
         padding: "0 0 60px 0",
       }}
@@ -425,7 +425,7 @@ export default function EnhancedFIRECalculator() {
       >
         <span
           style={{
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 800,
             fontSize: 20,
             color: C.accent,
@@ -628,10 +628,10 @@ export default function EnhancedFIRECalculator() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 12, color: C.muted, fontFamily: "'DM Mono', monospace" }}>
+              <span style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>
                 INVESTABLE ASSETS → FIRE TARGET
               </span>
-              <span style={{ fontSize: 12, color: C.accent, fontFamily: "'DM Mono', monospace" }}>
+              <span style={{ fontSize: 12, color: C.accent, fontFamily: "monospace" }}>
                 {fireProgress.toFixed(1)}%
               </span>
             </div>
@@ -675,7 +675,7 @@ export default function EnhancedFIRECalculator() {
             >
               <span
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontWeight: 700,
                   fontSize: 15,
                 }}
@@ -719,13 +719,13 @@ export default function EnhancedFIRECalculator() {
                   <XAxis
                     dataKey="year"
                     tickFormatter={(v) => `Yr ${v}`}
-                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                     axisLine={{ stroke: C.border }}
                     tickLine={false}
                   />
                   <YAxis
                     tickFormatter={(v) => fmt(v, true)}
-                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                     axisLine={false}
                     tickLine={false}
                     width={60}
@@ -740,7 +740,7 @@ export default function EnhancedFIRECalculator() {
                         value: "🔥 FIRE",
                         fill: C.accent,
                         fontSize: 11,
-                        fontFamily: "DM Mono",
+                        fontFamily: "monospace",
                       }}
                     />
                   )}
@@ -787,13 +787,13 @@ export default function EnhancedFIRECalculator() {
                   <XAxis
                     dataKey="year"
                     tickFormatter={(v) => `Yr ${v}`}
-                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                     axisLine={{ stroke: C.border }}
                     tickLine={false}
                   />
                   <YAxis
                     tickFormatter={(v) => fmt(v, true)}
-                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                     axisLine={false}
                     tickLine={false}
                     width={60}
@@ -802,7 +802,7 @@ export default function EnhancedFIRECalculator() {
                   <Legend
                     wrapperStyle={{
                       fontSize: 11,
-                      fontFamily: "DM Mono",
+                      fontFamily: "monospace",
                       color: C.muted,
                       paddingTop: 12,
                     }}
@@ -859,13 +859,13 @@ export default function EnhancedFIRECalculator() {
                   <XAxis
                     dataKey="year"
                     tickFormatter={(v) => `Yr ${v}`}
-                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                     axisLine={{ stroke: C.border }}
                     tickLine={false}
                   />
                   <YAxis
                     tickFormatter={(v) => fmt(v, true)}
-                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "DM Mono" }}
+                    tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }}
                     axisLine={false}
                     tickLine={false}
                     width={60}
@@ -881,7 +881,7 @@ export default function EnhancedFIRECalculator() {
                         value: "🔥 FIRE",
                         fill: C.accent,
                         fontSize: 11,
-                        fontFamily: "DM Mono",
+                        fontFamily: "monospace",
                       }}
                     />
                   )}
@@ -960,7 +960,7 @@ export default function EnhancedFIRECalculator() {
                         style={{
                           padding: "7px 0",
                           textAlign: "right",
-                          fontFamily: "'DM Mono', monospace",
+                          fontFamily: "monospace",
                           fontSize: 13,
                           color: row.color,
                           fontWeight: row.bold ? 700 : 400,
