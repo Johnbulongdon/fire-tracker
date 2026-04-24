@@ -32,46 +32,97 @@ function fmtUSD(n: number) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NAV
+// LOGO + HEADER + STEP BAR (wireframe design system)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Nav({ step, totalSteps, onRestart, onSignIn }: {
-  step: number; totalSteps: number; onRestart: () => void; onSignIn: () => void;
-}) {
+function Logo() {
   return (
-    <nav className="uf-nav">
-      <div className="uf-nav-logo">Until<span>Fire</span></div>
-      <div className="uf-nav-dots">
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <div key={i} className={`uf-nav-dot ${i === step ? "active" : i < step ? "done" : ""}`} />
-        ))}
+    <div className="uf-logo">
+      <div className="uf-logo-icon"><div className="uf-logo-icon-inner" /></div>
+      <div>
+        <div className="uf-logo-text">UntilFIRE</div>
+        <div className="uf-logo-sub">Financial Independence</div>
       </div>
-      {step > 0 && (
-        <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
-      )}
-      {step === 0 && (
-        <button className="uf-nav-signin" onClick={onSignIn}>Sign in →</button>
-      )}
-    </nav>
+    </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WIZARD PROGRESS BAR
-// ─────────────────────────────────────────────────────────────────────────────
-
-function WizardProgress({ step }: { step: number }) {
-  const steps = ["City", "Income", "Savings"];
+function OnboardingHeader({ onExit, isHero, onSignIn }: {
+  onExit: () => void; isHero: boolean; onSignIn?: () => void;
+}) {
   return (
-    <div className="uf-wizard-progress">
-      {steps.map((_, i) => (
-        <div key={i} className="uf-wizard-row">
-          <div className={`uf-wdot ${i < step ? "done" : i === step ? "active" : ""}`} />
-          {i < steps.length - 1 && (
-            <div className={`uf-wline ${i < step ? "done" : i === step ? "active" : ""}`} />
-          )}
-        </div>
-      ))}
+    <div className="uf-header">
+      <Logo />
+      <div className="uf-header-actions">
+        {isHero && onSignIn && (
+          <button className="uf-btn uf-btn-outline" onClick={onSignIn} style={{ padding: "7px 16px", fontSize: 13 }}>
+            Sign in →
+          </button>
+        )}
+        {!isHero && (
+          <button className="uf-header-exit" onClick={onExit}>Save &amp; Exit</button>
+        )}
+        <div className="uf-header-help">?</div>
+      </div>
+    </div>
+  );
+}
+
+const STEP_LABELS: Record<number, string> = {
+  1: "Goal", 2: "City", 3: "Income", 4: "Expenses",
+  5: "FIRE Style", 6: "Age", 7: "Portfolio", 8: "Currency",
+};
+
+function StepBar({ currentStep }: { currentStep: number }) {
+  const steps = [1, 2, 3, 4, 5, 6, 7, 8];
+  return (
+    <div className="uf-step-bar">
+      {steps.map((s, i) => {
+        const state = s < currentStep ? "done" : s === currentStep ? "active" : "pending";
+        return (
+          <div key={s} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+            <div className="uf-step-item">
+              <div className={`uf-step-circle ${state}`}>
+                {state === "done" ? "✓" : s}
+              </div>
+              <span className={`uf-step-label ${state}`}>{STEP_LABELS[s]}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`uf-step-line ${state === "done" ? "done" : ""}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function OnboardingFooter() {
+  return (
+    <footer className="uf-ob-footer">
+      <span className="uf-ob-footer-brand">UNTILFIRE</span>
+      <span className="uf-ob-footer-copy">© 2024 UntilFire. Financial Independence Through Trusted Growth.</span>
+      <div className="uf-ob-footer-links">
+        {["SECURITY", "PRIVACY", "TERMS", "SUPPORT"].map(l => (
+          <span key={l} className="uf-ob-footer-link">{l}</span>
+        ))}
+      </div>
+    </footer>
+  );
+}
+
+function StepProgress({ step, totalSteps, pct }: { step: number; totalSteps: number; pct: number }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--teal)", letterSpacing: "1px", textTransform: "uppercase" }}>
+          STEP {step} OF {totalSteps}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>{pct}% Complete</span>
+      </div>
+      <div style={{ background: "var(--border)", borderRadius: 99, height: 6, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent)", borderRadius: 99, transition: "width 0.4s" }} />
+      </div>
     </div>
   );
 }
@@ -350,7 +401,7 @@ function CityScreen({ onNext, onBack, stepLabel = "Step 2 of 9" }: {
       )}
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button
           className="uf-btn uf-btn-primary"
           style={{ flex: 1 }}
@@ -597,7 +648,7 @@ function IncomeScreen({ stateKey, onNext, onBack, stepLabel = "Step 3 of 9" }: {
       )}
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button
           className="uf-btn uf-btn-primary"
           style={{ flex: 1 }}
@@ -632,7 +683,6 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={2} />
       <p className="uf-step-label">Step 3 of 3</p>
       <div className="uf-eyebrow">Savings</div>
       <h2 className="uf-h2">How much are you <span className="uf-accent">saving?</span></h2>
@@ -690,7 +740,7 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(savings)}>
           Show my FIRE number 🔥
         </button>
@@ -1091,7 +1141,7 @@ function _DeprecatedRevealScreen({ city, income, savings, stateKey, onAdjust }: 
               <button type="button" onClick={handleCompleteOnboarding} className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center", width: "100%" }}>
                 Make this more accurate — it&apos;s free →
               </button>
-              <Link href="/calculator" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              <Link href="/calculator" className="uf-btn uf-btn-outline uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
                 See full wealth projection + charts →
               </Link>
 
@@ -1099,7 +1149,7 @@ function _DeprecatedRevealScreen({ city, income, savings, stateKey, onAdjust }: 
               <WaitlistInline fireTarget={result.fireTarget} retireYear={result.retireYear} />
 
               <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
+                <button className="uf-btn uf-btn-outline" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
                   ← Adjust inputs
                 </button>
               </div>
@@ -1264,7 +1314,7 @@ function PathChoiceScreen({ onStarter, onAdvanced, onBack }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
       </div>
     </div>
   );
@@ -1354,7 +1404,7 @@ function StarterPathScreen({ initialState, onNext, onBack }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(preview)}>
           Continue
         </button>
@@ -1466,7 +1516,7 @@ function AdvancedPathScreen({ initialState, onNext, onBack }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button
           className="uf-btn uf-btn-primary"
           style={{ flex: 1 }}
@@ -1556,7 +1606,7 @@ function CurrencyScreen({ onNext, onBack }: { onNext: (currency: string) => void
       </div>
 
       <div className="uf-nav-row" style={{ marginTop: 28 }}>
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button
           className="uf-btn uf-btn-primary"
           style={{ flex: 1 }}
@@ -1620,7 +1670,7 @@ function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
       </div>
 
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={onComplete}>
           Go to dashboard
         </button>
@@ -1711,7 +1761,7 @@ function GoalScreen({ onNext, onBack }: { onNext: (goal: FireGoal) => void; onBa
       </div>
       {selectedCard && <p className="uf-goal-message">{CONTEXT[selectedCard]}</p>}
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!selectedGoal} onClick={() => selectedGoal && onNext(selectedGoal)}>Continue</button>
       </div>
     </div>
@@ -1787,7 +1837,7 @@ function ExpensesScreen({ monthlyIncome, city, onNext, onBack }: {
         </div>
       )}
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={() => onNext({ housing: h, food: f, transport: t, other: o })}>Continue</button>
       </div>
     </div>
@@ -1834,7 +1884,7 @@ function FireStyleScreen({ monthlyExpenses, onNext, onBack }: {
         })}
       </div>
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!selected} onClick={() => selected && onNext(selected)}>Continue</button>
       </div>
     </div>
@@ -1902,7 +1952,7 @@ function AgeScreen({ monthlyIncome, monthlyExpenses, fireStyle, onNext, onBack }
         </div>
       )}
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
         <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} disabled={!canGo} onClick={() => canGo && onNext(ageNum, targetNum)}>Continue</button>
       </div>
     </div>
@@ -1955,8 +2005,8 @@ function PortfolioScreen({ fireStyle, monthlyExpenses, age, targetAge, onNext, o
         : <div className="uf-portfolio-encouragement">{encouragement}</div>
       }
       <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-ghost" style={{ color: "var(--text-muted)" }} onClick={() => onNext(0)}>Skip</button>
+        <button className="uf-btn uf-btn-outline" onClick={onBack}>Back</button>
+        <button className="uf-btn uf-btn-outline" style={{ color: "var(--text-muted)" }} onClick={() => onNext(0)}>Skip</button>
         <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={() => onNext(portNum)}>Continue</button>
       </div>
     </div>
@@ -2149,8 +2199,6 @@ export default function Home() {
     hero: 0, goal: 1, city: 2, income: 3, expenses: 4,
     "fire-style": 5, age: 6, portfolio: 7, currency: 8, reveal: 9,
   };
-  const totalDots = 10;
-
   const monthlyIncome = Math.round((draft.annualIncome ?? 0) / 12);
   const totalExp = draft.expenses
     ? draft.expenses.housing + draft.expenses.food + draft.expenses.transport + draft.expenses.other
@@ -2159,12 +2207,10 @@ export default function Home() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-          --bg: #F8FAFC;
+          --bg: #F7F9FB;
           --bg-card: #FFFFFF;
           --bg-elevated: #F1F5F9;
           --border: #E2E8F0;
@@ -2176,44 +2222,70 @@ export default function Home() {
           --accent-dim: rgba(6,78,59,0.10);
           --accent-glow: rgba(6,78,59,0.20);
           --teal: #20D4BF;
+          --teal-bright: #62FAE3;
           --teal-dim: rgba(32,212,191,0.12);
           --danger: #EF4444;
           --purple: #475569;
-          --font-display: 'Plus Jakarta Sans', sans-serif;
-          --font-body: 'Plus Jakarta Sans', sans-serif;
-          --font-mono: monospace;
+          --font-display: 'Manrope', sans-serif;
+          --font-body: 'Manrope', sans-serif;
+          --font-mono: 'Inter', monospace;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 28px 28px; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
 
-        /* ── NAV ── */
-        .uf-nav { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(248,250,252,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px); }
-        .uf-nav-logo { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
-        .uf-nav-logo span { color: var(--accent); }
-        .uf-nav-dots { display: flex; gap: 6px; align-items: center; }
-        .uf-nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-light); transition: all 0.3s; }
-        .uf-nav-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
-        .uf-nav-dot.done { background: var(--teal); }
-        .uf-nav-restart { font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
-        .uf-nav-restart:hover { color: var(--text); }
-        .uf-nav-signin { font-size: 13px; font-weight: 500; color: var(--text-muted); background: none; border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
-        .uf-nav-signin:hover { color: var(--text); border-color: var(--text-dim); background: var(--bg-elevated); }
-        .uf-hero-signin { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 14px; cursor: pointer; padding: 8px; transition: color 0.2s; }
-        .uf-hero-signin:hover { color: var(--text); }
+        /* ── HEADER (new wireframe style) ── */
+        .uf-header { position: sticky; top: 0; left: 0; right: 0; height: 64px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 100; }
+        .uf-logo { display: flex; align-items: center; gap: 10px; }
+        .uf-logo-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .uf-logo-icon-inner { width: 14px; height: 14px; border-radius: 3px; background: var(--teal-bright); opacity: 0.9; }
+        .uf-logo-text { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: -0.4px; line-height: 1.1; }
+        .uf-logo-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase; }
+        .uf-header-actions { display: flex; align-items: center; gap: 12px; }
+        .uf-header-exit { font-size: 13px; font-weight: 600; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; }
+        .uf-header-exit:hover { color: var(--text); }
+        .uf-header-help { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted); cursor: pointer; }
 
-        /* ── SCREEN ── */
-        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
+        /* ── STEP BAR ── */
+        .uf-step-bar { background: #fff; border-bottom: 1px solid var(--border); padding: 12px 32px; display: flex; align-items: center; gap: 0; overflow-x: auto; }
+        .uf-step-item { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .uf-step-circle { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; transition: all 0.2s; }
+        .uf-step-circle.done { background: #047857; color: #fff; }
+        .uf-step-circle.active { background: var(--accent); color: #fff; }
+        .uf-step-circle.pending { background: var(--border); color: var(--text-dim); }
+        .uf-step-label { font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .uf-step-label.done { color: #047857; }
+        .uf-step-label.active { color: var(--accent); }
+        .uf-step-label.pending { display: none; }
+        .uf-step-line { flex: 1; height: 1px; background: var(--border); min-width: 16px; margin: 0 2px; transition: background 0.3s; }
+        .uf-step-line.done { background: #34D399; }
+
+        /* ── ONBOARDING LAYOUT ── */
+        .uf-ob-page { min-height: calc(100vh - 64px); background: var(--bg); display: flex; flex-direction: column; }
+        .uf-ob-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px 24px; }
+        .uf-ob-width { width: 100%; max-width: 640px; }
+
+        /* ── LEGACY SCREEN (hero uses this) ── */
+        .uf-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; }
         .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform, opacity; }
         .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(6,78,59,0.10) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
         .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(32,212,191,0.09) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
         .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(71,85,105,0.07) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
-        .uf-screen { width: 100%; max-width: 540px; padding: 40px 24px 24px; position: relative; z-index: 1; }
+        .uf-screen { width: 100%; max-width: 540px; padding: 0 0 24px; position: relative; z-index: 1; }
         .uf-reveal-screen { max-width: 680px; }
         .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
+        .uf-hero-signin { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 14px; cursor: pointer; padding: 8px; transition: color 0.2s; }
+        .uf-hero-signin:hover { color: var(--text); }
+
+        /* ── ONBOARDING FOOTER ── */
+        .uf-ob-footer { background: #fff; border-top: 1px solid var(--border); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .uf-ob-footer-brand { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.8px; text-transform: uppercase; }
+        .uf-ob-footer-copy { font-size: 11px; color: var(--text-dim); }
+        .uf-ob-footer-links { display: flex; gap: 20px; }
+        .uf-ob-footer-link { font-size: 11px; font-weight: 700; color: var(--text-dim); cursor: pointer; letter-spacing: 0.5px; }
 
         /* ── TYPOGRAPHY ── */
         .uf-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
@@ -2223,7 +2295,7 @@ export default function Home() {
         .uf-body { font-size: 16px; line-height: 1.6; color: var(--text-muted); }
         .uf-mono { font-family: var(--font-mono); }
         .uf-hint { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
-        .uf-step-label { font-size: 12px; color: var(--text-muted); margin-bottom: 32px; }
+        .uf-ob-step-label { font-size: 12px; color: var(--text-muted); margin-bottom: 32px; }
 
         /* ── WIZARD PROGRESS ── */
         .uf-wizard-progress { display: flex; align-items: center; margin-bottom: 8px; }
@@ -2237,17 +2309,23 @@ export default function Home() {
         .uf-wline.active { background: var(--accent); }
 
         /* ── BUTTONS ── */
-        .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: 10px; font-family: var(--font-body); font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .uf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-family: var(--font-body); font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.15s; text-decoration: none; }
         .uf-btn-primary { background: var(--accent); color: #fff; }
-        .uf-btn-primary:hover:not(:disabled) { background: #065F46; transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .uf-btn-primary:hover:not(:disabled) { background: #065F46; transform: translateY(-1px); }
         .uf-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-        .uf-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
-        .uf-btn-ghost:hover { color: var(--text); background: var(--bg-elevated); }
-        .uf-btn-teal { background: var(--teal); color: #0F172A; font-weight: 600; }
-        .uf-btn-teal:hover { background: #17B9A6; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(32,212,191,0.25); }
+        .uf-btn-dark { background: #11171D; color: #fff; }
+        .uf-btn-dark:hover:not(:disabled) { opacity: 0.88; }
+        .uf-btn-dark:disabled { opacity: 0.4; cursor: not-allowed; }
+        .uf-btn-outline { background: #fff; color: var(--text-muted); border: 1.5px solid var(--border); }
+        .uf-btn-outline:hover { color: var(--text); border-color: var(--border-light); background: var(--bg-elevated); }
+        .uf-btn-ghost { background: transparent; color: var(--text-muted); border: none; padding: 12px 16px; }
+        .uf-btn-ghost:hover { color: var(--text); }
+        .uf-btn-teal { background: var(--teal-bright); color: #003527; font-weight: 700; }
+        .uf-btn-teal:hover { opacity: 0.88; transform: translateY(-1px); }
         .uf-btn-full { width: 100%; }
-        .uf-btn-lg { padding: 18px 36px; font-size: 17px; }
-        .uf-nav-row { margin-top: 32px; display: flex; gap: 12px; }
+        .uf-btn-lg { padding: 14px 28px; font-size: 15px; }
+        .uf-nav-row { margin-top: 32px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .uf-nav-row-right { display: flex; gap: 10px; align-items: center; }
 
         /* ── INPUTS ── */
         .uf-label { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; display: block; }
@@ -2318,7 +2396,8 @@ export default function Home() {
         .uf-stat-lab { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
         /* ── CARD ── */
-        .uf-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 16px 20px; }
+        .uf-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .uf-card-dark { background: #003527; border: none; }
         .uf-card-accent { background: var(--accent-dim); border-color: rgba(6,78,59,0.18); }
         .uf-card-head { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .uf-card-sub { font-size: 13px; color: var(--text-muted); }
@@ -2581,96 +2660,97 @@ export default function Home() {
         /* ── FOOTER DIVIDER ── */
       `}</style>
 
-      <Nav
-        step={STEP_MAP[screen]}
-        totalSteps={totalDots}
-        onRestart={() => {
-          clearFireUserData();
-          setDraft({});
-          setScreen("hero");
-        }}
+      <OnboardingHeader
+        isHero={screen === "hero"}
+        onExit={() => { clearFireUserData(); setDraft({}); setScreen("hero"); }}
         onSignIn={signIn}
       />
-
-      <div className="uf-page">
-        <div className="uf-page-bg" aria-hidden="true">
-          <div className="uf-atm-orb uf-atm-orb-1" />
-          <div className="uf-atm-orb uf-atm-orb-2" />
-          <div className="uf-atm-orb uf-atm-orb-3" />
+      {screen !== "hero" && screen !== "reveal" && (
+        <StepBar currentStep={STEP_MAP[screen]} />
+      )}
+      <div className="uf-ob-page">
+        <div className="uf-ob-main">
+          {screen !== "hero" && screen !== "reveal" && (
+            <div className="uf-ob-width">
+              <StepProgress
+                step={STEP_MAP[screen]}
+                totalSteps={8}
+                pct={Math.round((STEP_MAP[screen] / 8) * 100)}
+              />
+            </div>
+          )}
+          {screen === "hero" && (
+            <HeroScreen onStart={() => setScreen("goal")} onSignIn={signIn} />
+          )}
+          {screen === "goal" && (
+            <GoalScreen
+              onNext={goal => { merge({ goal }); setScreen("city"); }}
+              onBack={() => setScreen("hero")}
+            />
+          )}
+          {screen === "city" && (
+            <CityScreen
+              stepLabel="Step 2 of 9"
+              onNext={city => { merge({ city }); setScreen("income"); }}
+              onBack={() => setScreen("goal")}
+            />
+          )}
+          {screen === "income" && (
+            <IncomeScreen
+              stepLabel="Step 3 of 9"
+              stateKey={draft.city?.stateKey ?? "tx"}
+              onNext={annualIncome => { merge({ annualIncome }); setScreen("expenses"); }}
+              onBack={() => setScreen("city")}
+            />
+          )}
+          {screen === "expenses" && (
+            <ExpensesScreen
+              monthlyIncome={monthlyIncome}
+              city={draft.city}
+              onNext={expenses => { merge({ expenses }); setScreen("fire-style"); }}
+              onBack={() => setScreen("income")}
+            />
+          )}
+          {screen === "fire-style" && (
+            <FireStyleScreen
+              monthlyExpenses={totalExp}
+              onNext={fireStyle => { merge({ fireStyle }); setScreen("age"); }}
+              onBack={() => setScreen("expenses")}
+            />
+          )}
+          {screen === "age" && (
+            <AgeScreen
+              monthlyIncome={monthlyIncome}
+              monthlyExpenses={totalExp}
+              fireStyle={draft.fireStyle ?? "standard"}
+              onNext={(age, targetAge) => { merge({ age, targetAge }); setScreen("portfolio"); }}
+              onBack={() => setScreen("fire-style")}
+            />
+          )}
+          {screen === "portfolio" && (
+            <PortfolioScreen
+              fireStyle={draft.fireStyle ?? "standard"}
+              monthlyExpenses={totalExp}
+              age={draft.age ?? 30}
+              targetAge={draft.targetAge ?? 55}
+              onNext={portfolio => { merge({ portfolio }); setScreen("currency"); }}
+              onBack={() => setScreen("age")}
+            />
+          )}
+          {screen === "currency" && (
+            <CurrencyScreen
+              onNext={currency => { merge({ currency }); setScreen("reveal"); }}
+              onBack={() => setScreen("portfolio")}
+            />
+          )}
+          {screen === "reveal" && (
+            <RevealScreen
+              draft={draft}
+              onComplete={() => { void completeOnboardingWith(draft.currency ?? "USD"); }}
+            />
+          )}
         </div>
-        {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("goal")} onSignIn={signIn} />
-        )}
-        {screen === "goal" && (
-          <GoalScreen
-            onNext={goal => { merge({ goal }); setScreen("city"); }}
-            onBack={() => setScreen("hero")}
-          />
-        )}
-        {screen === "city" && (
-          <CityScreen
-            stepLabel="Step 2 of 9"
-            onNext={city => { merge({ city }); setScreen("income"); }}
-            onBack={() => setScreen("goal")}
-          />
-        )}
-        {screen === "income" && (
-          <IncomeScreen
-            stepLabel="Step 3 of 9"
-            stateKey={draft.city?.stateKey ?? "tx"}
-            onNext={annualIncome => { merge({ annualIncome }); setScreen("expenses"); }}
-            onBack={() => setScreen("city")}
-          />
-        )}
-        {screen === "expenses" && (
-          <ExpensesScreen
-            monthlyIncome={monthlyIncome}
-            city={draft.city}
-            onNext={expenses => { merge({ expenses }); setScreen("fire-style"); }}
-            onBack={() => setScreen("income")}
-          />
-        )}
-        {screen === "fire-style" && (
-          <FireStyleScreen
-            monthlyExpenses={totalExp}
-            onNext={fireStyle => { merge({ fireStyle }); setScreen("age"); }}
-            onBack={() => setScreen("expenses")}
-          />
-        )}
-        {screen === "age" && (
-          <AgeScreen
-            monthlyIncome={monthlyIncome}
-            monthlyExpenses={totalExp}
-            fireStyle={draft.fireStyle ?? "standard"}
-            onNext={(age, targetAge) => { merge({ age, targetAge }); setScreen("portfolio"); }}
-            onBack={() => setScreen("fire-style")}
-          />
-        )}
-        {screen === "portfolio" && (
-          <PortfolioScreen
-            fireStyle={draft.fireStyle ?? "standard"}
-            monthlyExpenses={totalExp}
-            age={draft.age ?? 30}
-            targetAge={draft.targetAge ?? 55}
-            onNext={portfolio => { merge({ portfolio }); setScreen("currency"); }}
-            onBack={() => setScreen("age")}
-          />
-        )}
-        {screen === "currency" && (
-          <CurrencyScreen
-            onNext={currency => { merge({ currency }); setScreen("reveal"); }}
-            onBack={() => setScreen("portfolio")}
-          />
-        )}
-        {screen === "reveal" && (
-          <RevealScreen
-            draft={draft}
-            onComplete={() => { void completeOnboardingWith(draft.currency ?? "USD"); }}
-          />
-        )}
-
-        <div className="uf-section-sep" aria-hidden="true" />
-        <WaitlistSection />
+        {screen !== "hero" && <OnboardingFooter />}
       </div>
     </>
   );

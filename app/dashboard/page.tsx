@@ -1707,81 +1707,95 @@ export default function Dashboard() {
     return <div style={{ minHeight: "100vh", background: "#F8FAFC" }} />;
   }
 
-  const navTabs: { key: TabKey; label: string }[] = [
-    { key: "dashboard", label: "Overview" },
-    { key: "budget",    label: "Budget" },
-    { key: "fire",      label: "FIRE Calculator" },
-    { key: "expenses",  label: "Expenses" },
-    { key: "settings",  label: "Settings" },
+  const navTabs: { key: TabKey; label: string; icon: string }[] = [
+    { key: "dashboard", label: "Overview",        icon: "▦" },
+    { key: "budget",    label: "Budget",          icon: "◈" },
+    { key: "fire",      label: "FIRE Calculator", icon: "◎" },
+    { key: "expenses",  label: "Expenses",        icon: "≡" },
+    { key: "settings",  label: "Settings",        icon: "⊙" },
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC", color: "#0F172A", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      {/* Top nav */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(248,250,252,0.92)", borderBottom: "1px solid #E2E8F0", backdropFilter: "blur(12px)", padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <div style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: -0.5, flexShrink: 0, color: "#0F172A" }}>
-          Until<span style={{ color: "#064E3B" }}>Fire</span>
+    <div style={{ minHeight: "100vh", display: "flex", background: "#F8FAFC", color: "#0F172A", fontFamily: "'Manrope', sans-serif" }}>
+      {/* Sidebar */}
+      <aside style={{ width: 256, minWidth: 256, background: "#FFFFFF", borderRight: "1px solid #E2E8F0", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", flexShrink: 0, zIndex: 10 }}>
+        {/* Logo */}
+        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #E2E8F0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "#064E3B", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 14, height: 14, borderRadius: 3, background: "#62FAE3", opacity: 0.9 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: "#064E3B", letterSpacing: -0.4, fontFamily: "'Manrope', sans-serif" }}>UntilFIRE</div>
+              <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 500, letterSpacing: 0.3, marginTop: 1 }}>Financial Independence</div>
+            </div>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
+        {/* Nav items */}
+        <nav style={{ flex: 1, padding: "12px 10px", overflowY: "auto" }}>
           {navTabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                background: tab === t.key ? "rgba(6,78,59,0.10)" : "transparent",
-                color: tab === t.key ? "#064E3B" : "#64748B",
-                border: tab === t.key ? "1px solid rgba(6,78,59,0.20)" : "1px solid transparent",
-                borderRadius: 8, padding: "6px 14px", fontSize: 13,
-                fontWeight: tab === t.key ? 600 : 400,
-                cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all 0.15s",
-              }}
-            >{t.label}</button>
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              display: "flex", alignItems: "center", gap: 10, width: "100%",
+              padding: "10px 12px", borderRadius: 8, marginBottom: 2,
+              background: tab === t.key ? "rgba(209,250,229,0.5)" : "transparent",
+              borderLeft: `3px solid ${tab === t.key ? "#047857" : "transparent"}`,
+              color: tab === t.key ? "#065F46" : "#64748B",
+              fontSize: 14, fontWeight: tab === t.key ? 600 : 500,
+              cursor: "pointer", border: "none", textAlign: "left" as const, transition: "all 0.15s",
+              fontFamily: "'Manrope', sans-serif",
+            }}>
+              <span style={{ fontSize: 13, flexShrink: 0, opacity: 0.8 }}>{t.icon}</span>
+              {t.label}
+            </button>
           ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          {saveStatus === "saving" && <span style={{ fontSize: 12, color: "#64748B" }}>Saving…</span>}
-          {saveStatus === "saved"  && <span style={{ fontSize: 12, color: "#22d3a5" }}>Saved ✓</span>}
+        </nav>
+        {/* Bottom: save status + user */}
+        <div style={{ borderTop: "1px solid #E2E8F0", padding: "14px 16px" }}>
+          {saveStatus === "saving" && <div style={{ fontSize: 12, color: "#64748B", marginBottom: 8 }}>Saving…</div>}
+          {saveStatus === "saved"  && <div style={{ fontSize: 12, color: "#059669", marginBottom: 8 }}>Saved ✓</div>}
           <UserNav />
         </div>
-      </nav>
+      </aside>
 
-      {/* Tab content */}
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 24px" }}>
-        {tab === "dashboard" && (
-          <DashTab
-            income={income} expenses={expenses}
-            k401={k401} rothIRA={rothIRA} taxable={taxable}
-            totalDebt={totalDebt} mortgageBalance={mortgageBalance} mortgageMonthly={mortgageMonthly}
-            growthRate={growthRate} withdrawalRate={withdrawalRate}
-            baselineFireTarget={baselineFireTarget} adjustedFireTarget={adjustedFireTarget}
-          />
-        )}
-        {tab === "budget" && (
-          <BudgetTab
-            income={income} setIncome={setIncome}
-            expenses={expenses} setExpenses={setExpenses}
-            actuals={actuals}
-          />
-        )}
-        {tab === "fire" && (
-          <FIRETab
-            income={income} expenses={expenses}
-            fireAge={fireAge} setFireAge={setFireAge}
-            k401={k401} setK401={setK401}
-            rothIRA={rothIRA} setRothIRA={setRothIRA}
-            taxable={taxable} setTaxable={setTaxable}
-            totalDebt={totalDebt} setTotalDebt={setTotalDebt}
-            mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
-            mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
-            growthRate={growthRate} setGrowthRate={setGrowthRate}
-            withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
-            baselineFireTarget={baselineFireTarget}
-            adjustedFireTarget={adjustedFireTarget} setAdjustedFireTarget={setAdjustedFireTarget}
-          />
-        )}
-        {tab === "expenses" && <ExpensesTab />}
-        {tab === "settings" && <SettingsTab />}
-      </div>
+      {/* Main content */}
+      <main style={{ flex: 1, overflowY: "auto", background: "#F8FAFC" }}>
+        <div style={{ maxWidth: 1024, margin: "0 auto", padding: "32px 32px" }}>
+          {tab === "dashboard" && (
+            <DashTab
+              income={income} expenses={expenses}
+              k401={k401} rothIRA={rothIRA} taxable={taxable}
+              totalDebt={totalDebt} mortgageBalance={mortgageBalance} mortgageMonthly={mortgageMonthly}
+              growthRate={growthRate} withdrawalRate={withdrawalRate}
+              baselineFireTarget={baselineFireTarget} adjustedFireTarget={adjustedFireTarget}
+            />
+          )}
+          {tab === "budget" && (
+            <BudgetTab
+              income={income} setIncome={setIncome}
+              expenses={expenses} setExpenses={setExpenses}
+              actuals={actuals}
+            />
+          )}
+          {tab === "fire" && (
+            <FIRETab
+              income={income} expenses={expenses}
+              fireAge={fireAge} setFireAge={setFireAge}
+              k401={k401} setK401={setK401}
+              rothIRA={rothIRA} setRothIRA={setRothIRA}
+              taxable={taxable} setTaxable={setTaxable}
+              totalDebt={totalDebt} setTotalDebt={setTotalDebt}
+              mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
+              mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
+              growthRate={growthRate} setGrowthRate={setGrowthRate}
+              withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
+              baselineFireTarget={baselineFireTarget}
+              adjustedFireTarget={adjustedFireTarget} setAdjustedFireTarget={setAdjustedFireTarget}
+            />
+          )}
+          {tab === "expenses" && <ExpensesTab />}
+          {tab === "settings" && <SettingsTab />}
+        </div>
+      </main>
     </div>
   );
 }

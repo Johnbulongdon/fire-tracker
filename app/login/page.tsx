@@ -28,58 +28,35 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#F8FAFC',
-      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-    }}>
-      <div style={{ width: '100%', maxWidth: 400, padding: '0 24px' }}>
-
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{
-            fontSize: 28,
-            fontWeight: 700,
-            letterSpacing: '-0.5px',
-            color: '#0F172A',
-            marginBottom: 8,
-          }}>
-            Until<span style={{ color: '#064E3B' }}>Fire</span>
+    <div style={{ minHeight: '100vh', display: 'flex', fontFamily: "'Manrope', sans-serif" }}>
+      {/* Left — form panel */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', padding: '48px 40px' }}>
+        <div style={{ width: '100%', maxWidth: 360 }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#064E3B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 14, height: 14, borderRadius: 3, background: '#62FAE3', opacity: 0.9 }} />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#064E3B', letterSpacing: -0.4 }}>UntilFIRE</div>
           </div>
-          <div style={{ fontSize: 15, color: '#64748B', lineHeight: 1.6 }}>
-            Sign in to track your progress<br />toward financial independence
-          </div>
-        </div>
 
-        {/* Card */}
-        <div style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          borderRadius: 16,
-          padding: '32px 28px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
-        }}>
+          {/* Heading */}
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, marginBottom: 8 }}>
+            Welcome back
+          </h1>
+          <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.6, marginBottom: 36 }}>
+            Sign in to continue tracking your path to financial independence.
+          </p>
+
+          {/* Google button */}
           <button
             onClick={signInWithGoogle}
             style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 12,
-              padding: '14px 20px',
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: 10,
-              cursor: 'pointer',
-              fontSize: 15,
-              fontWeight: 500,
-              color: '#0F172A',
-              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-              transition: 'all 0.18s',
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 12, padding: '14px 20px',
+              background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 10,
+              cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#0F172A',
+              fontFamily: "'Manrope', sans-serif", transition: 'all 0.18s',
             }}
             onMouseOver={e => {
               const btn = e.currentTarget as HTMLButtonElement
@@ -92,7 +69,6 @@ export default function LoginPage() {
               btn.style.background = '#FFFFFF'
             }}
           >
-            {/* Google icon */}
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -102,22 +78,52 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
-          <div style={{
-            marginTop: 24,
-            textAlign: 'center',
-            fontSize: 12,
-            color: '#94A3B8',
-            lineHeight: 1.6,
-          }}>
+          <p style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: '#94A3B8', lineHeight: 1.7 }}>
             No credit card required. Free forever for the core calculator.<br />
             By signing in you agree to our Terms &amp; Privacy Policy.
+          </p>
+
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <a href="/" style={{ fontSize: 13, color: '#475569', textDecoration: 'none' }}>
+              ← Back to calculator
+            </a>
           </div>
         </div>
+      </div>
 
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <a href="/" style={{ fontSize: 13, color: '#475569', textDecoration: 'none' }}>
-            ← Back to calculator
-          </a>
+      {/* Right — dark testimonial panel */}
+      <div style={{ flex: 1, background: '#003527', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '48px 56px', position: 'relative', overflow: 'hidden' }}>
+        {/* Subtle bg glow */}
+        <div style={{ position: 'absolute', top: -80, right: -80, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(98,250,227,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#62FAE3', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 20 }}>
+            FIRE Community
+          </div>
+          <blockquote style={{ fontSize: 22, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.4, letterSpacing: -0.3, marginBottom: 32 }}>
+            &ldquo;UntilFIRE showed me I could retire 6 years earlier than I thought — just by optimizing my city and savings rate.&rdquo;
+          </blockquote>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 56 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#065F46', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#62FAE3' }}>M</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#E2E8F0' }}>Marcus T.</div>
+              <div style={{ fontSize: 13, color: '#6EE7B7' }}>FIRE target: 44 — Software Engineer</div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            {[
+              { val: '$847K', label: 'avg FIRE number tracked' },
+              { val: '6.3 yrs', label: 'avg time saved vs. going alone' },
+              { val: '2,400+', label: 'FIRE seekers this month' },
+              { val: '60 sec', label: 'to your first FIRE number' },
+            ].map(s => (
+              <div key={s.label}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#62FAE3', letterSpacing: -0.5, marginBottom: 4 }}>{s.val}</div>
+                <div style={{ fontSize: 13, color: '#6EE7B7', lineHeight: 1.4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
