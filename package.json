@@ -1,6 +1,6 @@
 {
   "name": "fire-tracker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -25,6 +25,7 @@
     "react-resizable-panels": "^4.4.1",
     "recharts": "^3.8.0",
     "resend": "^6.9.3",
+    "stripe": "^22.0.1",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

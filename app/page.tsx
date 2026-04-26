@@ -7,19 +7,6 @@ import { supabase } from "@/lib/supabase";
 import {
   CITIES, City, calcTakeHome, calcFIRE, STATE_TAX,
 } from "@/lib/fire-data";
-import {
-  clearFireUserData,
-  hasCompletedOnboarding,
-  loadFireUserData,
-  registerFireUserStateInspector,
-  resolveFireIncomeAmount,
-  saveLocalInputs,
-  saveFireUserData,
-  validateFireUserState,
-  type FireGoal,
-  type FireIncomeRange,
-  type FireUserState,
-} from "@/lib/local-inputs";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -773,15 +760,16 @@ function WaitlistInline({ fireTarget, retireYear }: { fireTarget: number; retire
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ShareModal({
-  fireTarget, retireYear, age, cityName, onClose,
+  retireYear, years, cityName, onClose,
 }: {
-  fireTarget: number; retireYear: number; age: number; cityName: string;
+  retireYear: number; years: number; cityName: string;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
-  const shareText = `My FIRE number is ${fmtUSD(fireTarget)}. I could retire in ${retireYear} at age ${age}, living in ${cityName}. Calculate yours free:`;
-  const shareUrl = "https://untilfire.com";
+  const shareUrl = `https://untilfire.com/share?city=${encodeURIComponent(cityName)}&year=${retireYear}&years=${years}`;
+  const shareText = `Ran my FIRE numbers on untilfire.com — it shows when you could retire based on where you live. Free, no login, takes 60 seconds. Mine came back ${cityName} by ${retireYear}. Worth a look.`;
+  const redditTitle = `Found a free FIRE calculator that factors in your city — here's what it said for ${cityName}`;
 
   function copyToClipboard() {
     navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
@@ -796,7 +784,7 @@ function ShareModal({
     const urls = {
       x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(`My FIRE number is ${fmtUSD(fireTarget)} — retire in ${retireYear} at age ${age} in ${cityName}`)}`,
+      reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(redditTitle)}`,
     };
     window.open(urls[platform], "_blank", "noopener,noreferrer,width=620,height=520");
   }
@@ -809,20 +797,19 @@ function ShareModal({
       <div className="uf-share-modal">
         <button className="uf-share-close" onClick={onClose} aria-label="Close">✕</button>
 
-        <div className="uf-share-heading">Share your FIRE number</div>
+        <div className="uf-share-heading">Share this discovery</div>
 
         {/* Preview card */}
         <div className="uf-share-card">
           <div className="uf-share-card-brand">
             <span className="uf-share-card-logo">until<span>fire</span></span>
-            <span style={{ fontSize: 13 }}>🔥</span>
           </div>
-          <div className="uf-share-card-label">My FIRE Number</div>
-          <div className="uf-share-card-number">{fmtUSD(fireTarget)}</div>
-          <div className="uf-share-card-meta">Retire in {retireYear} · Age {age}</div>
-          <div className="uf-share-card-city">{cityName}</div>
+          <div className="uf-share-card-label" style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: 11 }}>Retire in</div>
+          <div className="uf-share-card-number" style={{ fontSize: 28 }}>{cityName}</div>
+          <div className="uf-share-card-meta" style={{ fontSize: 22, color: '#f97316', fontWeight: 800 }}>by {retireYear}</div>
+          <div className="uf-share-card-city" style={{ color: '#9090a8' }}>{years} years away · free calculator</div>
           <div className="uf-share-card-divider" />
-          <div className="uf-share-card-url">untilfire.com</div>
+          <div className="uf-share-card-url">What does your city look like? → untilfire.com</div>
         </div>
 
         {/* Platform buttons */}
@@ -893,54 +880,8 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
   city: CityState; income: number; savings: number; stateKey: string;
   onAdjust: () => void;
 }) {
-  const router = useRouter();
   const result = calcFIRE(savings, city.col);
   const { takeHome } = calcTakeHome(income, stateKey);
-
-  async function handleCompleteOnboarding() {
-    const fireUserData: FireUserState = {
-      mode: "advanced",
-      income: Math.round(takeHome / 12),
-      expenses: Math.round(city.col / 12),
-      savings: Math.round(savings),
-      fireNumber: Math.round(result.fireTarget),
-      hasCompletedOnboarding: true,
-    };
-
-    await saveFireUserData(fireUserData);
-    console.log("[UntilFire] onboarding save success", fireUserData);
-    router.push("/dashboard");
-  }
-
-  // Persist wizard inputs to localStorage so dashboard can hydrate them after login
-  useEffect(() => {
-    try {
-      const monthlyExpenses = Math.round(city.col / 12);
-      saveLocalInputs({
-        income: takeHome / 12, // monthly take-home
-        expenses: {
-          housing: 0, food: 0, transport: 0,
-          subscriptions: 0, healthcare: 0,
-          entertainment: 0, other: monthlyExpenses,
-        },
-        fireAge: result.age,
-        k401: 0, rothIRA: 0, taxable: 0,
-        totalDebt: 0, mortgageBalance: 0, mortgageMonthly: 0,
-        growthRate: 0.07, withdrawalRate: 0.04,
-        baselineFireTarget: result.fireTarget,
-        savings,
-        city: {
-          name: city.name,
-          col: city.col,
-          stateKey,
-          isCustom: city.isCustom,
-        },
-      });
-    } catch {
-      // localStorage unavailable — continue silently
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Phase 1: calculating steps
   const [calcPhase, setCalcPhase] = useState(true);
@@ -1004,9 +945,8 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
     <div className="uf-screen uf-reveal-screen">
       {showShare && (
         <ShareModal
-          fireTarget={result.fireTarget}
           retireYear={result.retireYear}
-          age={result.age}
+          years={result.years}
           cityName={city.name}
           onClose={() => setShowShare(false)}
         />
@@ -1037,6 +977,9 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
             <div className="uf-fire-eyebrow">Your estimated FIRE number</div>
             <div ref={numRef} className="uf-fire-num">
               {fmtUSD(counted)}
+            </div>
+            <div style={{ fontSize: 13, color: "#5e5e7a", textAlign: "center", marginBottom: 8, fontFamily: "'DM Sans', sans-serif" }}>
+              Based on the 4% rule — save this amount and live off investment returns, without running out of money.
             </div>
             <div className="uf-fire-date-row">
               <div className="uf-fire-date-line" />
@@ -1086,15 +1029,24 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               </div>
 
               {/* PRIMARY CTA */}
-              <button type="button" onClick={handleCompleteOnboarding} className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg" style={{ marginBottom: 10, display: "flex", justifyContent: "center", width: "100%" }}>
-                Make this more accurate — it&apos;s free →
-              </button>
+              <Link
+                href="/dashboard"
+                className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg"
+                style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}
+                onClick={() => {
+                  try {
+                    localStorage.setItem("uf_calc_prefill", JSON.stringify({
+                      income,
+                      monthlySavings: savings,
+                    }));
+                  } catch {}
+                }}
+              >
+                Track your progress to {fmtUSD(result.fireTarget)} — free →
+              </Link>
               <Link href="/calculator" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
                 See full wealth projection + charts →
               </Link>
-
-              {/* SECONDARY CTA — waitlist */}
-              <WaitlistInline fireTarget={result.fireTarget} retireYear={result.retireYear} />
 
               <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
@@ -1166,412 +1118,28 @@ function WaitlistSection() {
   );
 }
 
-const STARTER_INCOME_BANDS: FireIncomeRange[] = [
-  { id: "under-50k", label: "Under $50k", monthlyIncome: 3000 },
-  { id: "50k-100k", label: "$50k – $100k", monthlyIncome: 5500 },
-  { id: "100k-150k", label: "$100k – $150k", monthlyIncome: 8500 },
-  { id: "150k-plus", label: "$150k+", monthlyIncome: 12500 },
-];
-
-const STARTER_GOALS: { value: FireGoal; label: string; hint: string }[] = [
-  { value: "retire-early", label: "Retire early", hint: "Aggressive estimate with a stronger savings rate." },
-  { value: "financial-freedom", label: "Financial freedom", hint: "Balanced estimate for flexibility and optional work." },
-  { value: "exploring", label: "Just exploring", hint: "Conservative estimate while you learn the basics." },
-];
-
-function estimateStarterState(age: number, incomeBand: FireIncomeRange, goal: FireGoal): FireUserState {
-  const savingsRate = goal === "retire-early" ? 0.28 : goal === "financial-freedom" ? 0.2 : 0.12;
-  const savings = Math.round(incomeBand.monthlyIncome * savingsRate);
-  const expenses = Math.max(1200, Math.round(incomeBand.monthlyIncome - savings));
-  return {
-    mode: "starter",
-    age,
-    income: incomeBand,
-    expenses,
-    savings,
-    fireNumber: expenses * 12 * 25,
-    hasCompletedOnboarding: false,
-    goal,
-  };
-}
-
-function estimateAdvancedState(age: number, income: number, expenses: number, savings: number, portfolio: number): FireUserState {
-  const normalizedIncome = Math.max(0, Math.round(income));
-  const normalizedExpenses = Math.max(0, Math.round(expenses));
-  const normalizedSavings = Math.max(0, Math.round(savings));
-
-  return {
-    mode: "advanced",
-    age,
-    income: normalizedIncome,
-    expenses: normalizedExpenses,
-    savings: normalizedSavings,
-    fireNumber: normalizedExpenses * 12 * 25,
-    hasCompletedOnboarding: false,
-    portfolio: portfolio > 0 ? Math.round(portfolio) : undefined,
-  };
-}
-
-function estimateFireTimeline(state: FireUserState) {
-  const target = Math.max(0, state.fireNumber);
-  const monthlySavings = Math.max(0, state.savings);
-  const startingBalance = Math.max(27400, state.portfolio ?? 27400);
-  let balance = startingBalance;
-  let years = 0;
-
-  while (balance < target && years < 65) {
-    balance = balance * 1.07 + monthlySavings * 12;
-    years += 1;
-  }
-
-  const currentYear = new Date().getFullYear();
-  return {
-    years,
-    retireYear: currentYear + years,
-    retireAge: (state.age ?? 26) + years,
-    monthlyIncome: resolveFireIncomeAmount(state.income),
-    monthlyExpenses: Math.max(0, state.expenses ?? 0),
-  };
-}
-
-function PathChoiceScreen({ onStarter, onAdvanced, onBack }: {
-  onStarter: () => void;
-  onAdvanced: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <div className="uf-screen">
-      <p className="uf-step-label">Step 1 of 3</p>
-      <div className="uf-eyebrow">Choose your path</div>
-      <h2 className="uf-h2">Are you new to FIRE or already optimizing?</h2>
-      <p className="uf-body" style={{ marginBottom: 28 }}>
-        We&apos;ll keep the first estimate lightweight for starters and unlock a fuller model for people already tuning the numbers.
-      </p>
-
-      <div className="uf-choice-grid">
-        <button type="button" className="uf-choice-card" onClick={onStarter}>
-          <div className="uf-choice-tag">Starter</div>
-          <div className="uf-choice-title">I&apos;m new to FIRE</div>
-          <div className="uf-choice-body">Age, income band, and goal. Fast estimate in under a minute.</div>
-        </button>
-        <button type="button" className="uf-choice-card" onClick={onAdvanced}>
-          <div className="uf-choice-tag">Advanced</div>
-          <div className="uf-choice-title">I&apos;m already optimizing</div>
-          <div className="uf-choice-body">Exact income, expenses, savings, and optional portfolio for a fuller FIRE target.</div>
-        </button>
-      </div>
-
-      <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-      </div>
-    </div>
-  );
-}
-
-function StarterPathScreen({ initialState, onNext, onBack }: {
-  initialState: FireUserState | null;
-  onNext: (state: FireUserState) => void;
-  onBack: () => void;
-}) {
-  const initialBand = initialState?.mode === "starter" && typeof initialState.income !== "number"
-    ? initialState.income.id
-    : STARTER_INCOME_BANDS[1].id;
-  const [age, setAge] = useState(initialState?.age ?? 26);
-  const [incomeBandId, setIncomeBandId] = useState(initialBand);
-  const [goal, setGoal] = useState<FireGoal>(initialState?.goal ?? "financial-freedom");
-
-  const selectedBand = STARTER_INCOME_BANDS.find((band) => band.id === incomeBandId) ?? STARTER_INCOME_BANDS[1];
-  const preview = estimateStarterState(age, selectedBand, goal);
-
-  return (
-    <div className="uf-screen">
-      <p className="uf-step-label">Step 2 of 3</p>
-      <div className="uf-eyebrow">Starter estimate</div>
-      <h2 className="uf-h2">Let&apos;s keep this simple.</h2>
-      <p className="uf-body" style={{ marginBottom: 28 }}>
-        You don&apos;t need perfect numbers yet. We&apos;ll use a solid baseline and tighten it up in the dashboard later.
-      </p>
-
-      <label className="uf-label">Current age</label>
-      <div className="uf-prefixed-input" style={{ marginBottom: 18 }}>
-        <input
-          type="number"
-          className="uf-input uf-input-mono"
-          min={18}
-          max={80}
-          value={age}
-          onChange={e => setAge(Math.max(18, parseInt(e.target.value) || 18))}
-        />
-      </div>
-
-      <label className="uf-label">Income band</label>
-      <div className="uf-radio-grid" style={{ marginBottom: 18 }}>
-        {STARTER_INCOME_BANDS.map((band) => (
-          <button
-            key={band.id}
-            type="button"
-            className={`uf-choice-chip ${incomeBandId === band.id ? "active" : ""}`}
-            onClick={() => setIncomeBandId(band.id)}
-          >
-            {band.label}
-          </button>
-        ))}
-      </div>
-
-      <label className="uf-label">What brings you here?</label>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {STARTER_GOALS.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            className={`uf-choice-card uf-choice-card-inline ${goal === item.value ? "active" : ""}`}
-            onClick={() => setGoal(item.value)}
-          >
-            <div className="uf-choice-title" style={{ fontSize: 17 }}>{item.label}</div>
-            <div className="uf-choice-body">{item.hint}</div>
-          </button>
-        ))}
-      </div>
-
-      <div className="uf-card uf-card-accent" style={{ marginTop: 20 }}>
-        <div className="uf-card-head">Starter preview</div>
-        <div className="uf-stat-row" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginTop: 0 }}>
-          <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(resolveFireIncomeAmount(preview.income))}/mo</div>
-            <div className="uf-stat-lab">Income midpoint</div>
-          </div>
-          <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(preview.savings)}/mo</div>
-            <div className="uf-stat-lab">Estimated savings</div>
-          </div>
-          <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(preview.fireNumber)}</div>
-            <div className="uf-stat-lab">FIRE target</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(preview)}>
-          Continue
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AdvancedPathScreen({ initialState, onNext, onBack }: {
-  initialState: FireUserState | null;
-  onNext: (state: FireUserState) => void;
-  onBack: () => void;
-}) {
-  const initialIncome = initialState && typeof initialState.income === "number" ? initialState.income : 7500;
-  const [age, setAge] = useState(initialState?.age ?? 30);
-  const [income, setIncome] = useState(initialIncome);
-  const [expenses, setExpenses] = useState(initialState?.expenses ?? 4000);
-  const [savings, setSavings] = useState(initialState?.savings ?? 1500);
-  const [portfolio, setPortfolio] = useState(initialState?.portfolio ?? 0);
-
-  const preview = estimateAdvancedState(age, income, expenses, savings, portfolio);
-  const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
-
-  return (
-    <div className="uf-screen">
-      <p className="uf-step-label">Step 2 of 3</p>
-      <div className="uf-eyebrow">Advanced setup</div>
-      <h2 className="uf-h2">Use the numbers you already know.</h2>
-      <p className="uf-body" style={{ marginBottom: 28 }}>
-        This path keeps the onboarding tight, but it respects the fact that you&apos;re already optimizing your plan.
-      </p>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div>
-          <label className="uf-label">Current age</label>
-          <div className="uf-prefixed-input">
-            <input type="number" className="uf-input uf-input-mono" min={18} max={80} value={age} onChange={e => setAge(Math.max(18, parseInt(e.target.value) || 18))} />
-          </div>
-        </div>
-
-        <div>
-          <label className="uf-label">Monthly income</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={income} min={0} onChange={e => setIncome(Math.max(0, parseInt(e.target.value) || 0))} />
-            </div>
-            <span className="uf-unit">/month</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="uf-label">Monthly expenses</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={expenses} min={0} onChange={e => setExpenses(Math.max(0, parseInt(e.target.value) || 0))} />
-            </div>
-            <span className="uf-unit">/month</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="uf-label">Monthly savings</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={savings} min={0} onChange={e => setSavings(Math.max(0, parseInt(e.target.value) || 0))} />
-            </div>
-            <span className="uf-unit">/month</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="uf-label">Portfolio balance (optional)</label>
-          <div className="uf-big-input-wrap">
-            <div className="uf-prefixed-input">
-              <span className="uf-input-prefix uf-big-prefix">$</span>
-              <input type="number" className="uf-input uf-input-mono uf-input-big uf-input-with-prefix" value={portfolio || ""} min={0} onChange={e => setPortfolio(Math.max(0, parseInt(e.target.value) || 0))} placeholder="0" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="uf-card uf-card-accent" style={{ marginTop: 20 }}>
-        <div className="uf-card-head">Advanced preview</div>
-        <div className="uf-stat-row" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginTop: 0 }}>
-          <div className="uf-stat-box">
-            <div className="uf-stat-val">{savingsRate}%</div>
-            <div className="uf-stat-lab">Savings rate</div>
-          </div>
-          <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(preview.fireNumber)}</div>
-            <div className="uf-stat-lab">FIRE target</div>
-          </div>
-          <div className="uf-stat-box">
-            <div className="uf-stat-val">{fmtUSD(portfolio)}</div>
-            <div className="uf-stat-lab">Starting portfolio</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(preview)}>
-          Continue
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function OnboardingSummaryScreen({ fireState, onBack, onComplete }: {
-  fireState: FireUserState;
-  onBack: () => void;
-  onComplete: () => void;
-}) {
-  const timeline = estimateFireTimeline(fireState);
-  const monthlyIncome = timeline.monthlyIncome;
-  const monthlyExpenses = timeline.monthlyExpenses;
-
-  return (
-    <div className="uf-screen uf-reveal-screen">
-      <p className="uf-step-label">Step 3 of 3</p>
-      <div className="uf-eyebrow">{fireState.mode === "starter" ? "Starter result" : "Advanced result"}</div>
-      <div className="uf-fire-hero" style={{ marginTop: 10 }}>
-        <div className="uf-fire-eyebrow">Your baseline FIRE number</div>
-        <div className="uf-fire-num">{fmtUSD(fireState.fireNumber)}</div>
-        <div className="uf-fire-date-row">
-          <div className="uf-fire-date-line" />
-          <div className="uf-fire-date">
-            {timeline.years >= 65 ? "Long runway" : `About ${timeline.years} years to go`}
-          </div>
-          <div className="uf-fire-date-line" />
-        </div>
-        <div className="uf-fire-city">
-          {timeline.years >= 65 ? "We need more savings or lower expenses to tighten this estimate." : `Around age ${timeline.retireAge} in ${timeline.retireYear}`}
-        </div>
-      </div>
-
-      <div className="uf-stat-row" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-        <div className="uf-stat-box">
-          <div className="uf-stat-val">{fmtUSD(monthlyIncome)}/mo</div>
-          <div className="uf-stat-lab">{typeof fireState.income === "number" ? "Income" : "Income band midpoint"}</div>
-        </div>
-        <div className="uf-stat-box">
-          <div className="uf-stat-val">{fmtUSD(monthlyExpenses)}/mo</div>
-          <div className="uf-stat-lab">Expenses</div>
-        </div>
-        <div className="uf-stat-box">
-          <div className="uf-stat-val">{fmtUSD(fireState.savings)}/mo</div>
-          <div className="uf-stat-lab">Savings</div>
-        </div>
-      </div>
-
-      <div className="uf-card" style={{ marginTop: 20 }}>
-        <div className="uf-card-head">What happens next</div>
-        <div className="uf-body" style={{ fontSize: 15 }}>
-          This saves your onboarding baseline so the dashboard can render a stable FIRE target and graph immediately. You can still refine budget categories and override the target later without losing the onboarding state.
-        </div>
-      </div>
-
-      <div className="uf-nav-row">
-        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-teal" style={{ flex: 1 }} onClick={onComplete}>
-          Go to dashboard
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Screen = "hero" | "path" | "starter" | "advanced" | "summary";
+type Screen = "hero" | "city" | "income" | "savings" | "reveal";
 
 export default function Home() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("hero");
-  const [fireState, setFireState] = useState<FireUserState | null>(null);
 
-  useEffect(() => {
-    registerFireUserStateInspector();
-  }, []);
-
-  useEffect(() => {
-    const savedState = loadFireUserData();
-    if (!savedState) return;
-    const validation = validateFireUserState(savedState);
-    if (!validation.valid) {
-      console.warn("[UntilFire] Onboarding draft validation warnings", validation.errors);
-    }
-
-    if (savedState.hasCompletedOnboarding) {
-      setFireState(savedState);
-      return;
-    }
-
-    setFireState(savedState);
-    setScreen(savedState.mode === "starter" ? "starter" : "advanced");
-  }, []);
-
-  useEffect(() => {
-    if (!fireState || fireState.hasCompletedOnboarding) return;
-    // Priority: in-memory draft first, localStorage draft second.
-    void saveFireUserData(fireState);
-  }, [fireState]);
+  // Wizard state
+  const [cityState, setCityState]   = useState<CityState | null>(null);
+  const [income, setIncome]         = useState(90000);
+  const [savings, setSavings]       = useState(1500);
 
   // Auth redirect — keep existing behaviour
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const fireUserData = loadFireUserData();
-      if (session && hasCompletedOnboarding(fireUserData)) router.push("/dashboard");
+      if (session) router.push("/dashboard");
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const fireUserData = loadFireUserData();
-      if (event === "SIGNED_IN" && session && hasCompletedOnboarding(fireUserData)) router.push("/dashboard");
+      if (event === "SIGNED_IN" && session) router.push("/dashboard");
     });
     return () => subscription.unsubscribe();
   }, [router]);
@@ -1583,24 +1151,8 @@ export default function Home() {
     });
   }
 
-  async function completeOnboarding() {
-    if (!fireState) return;
-    const completedState: FireUserState = {
-      ...fireState,
-      hasCompletedOnboarding: true,
-    };
-    const validation = validateFireUserState(completedState);
-    if (!validation.valid) {
-      console.warn("[UntilFire] Refusing onboarding completion for invalid FireUserState", validation.errors);
-      return;
-    }
-    await saveFireUserData(completedState);
-    setFireState(completedState);
-    router.push("/dashboard");
-  }
-
-  const STEP_MAP: Record<Screen, number> = { hero: 0, path: 1, starter: 2, advanced: 2, summary: 3 };
-  const totalDots = 4;
+  const STEP_MAP: Record<Screen, number> = { hero: 0, city: 1, income: 2, savings: 3, reveal: 4 };
+  const totalDots = 5;
 
   return (
     <>
@@ -1702,23 +1254,9 @@ export default function Home() {
         .uf-input-mono { font-family: var(--font-mono); font-size: 18px; font-weight: 500; }
         .uf-input-big { padding: 12px 14px; }
         .uf-big-input-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-        .uf-prefixed-input { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
-        .uf-input-with-prefix { padding-left: 38px !important; }
-        .uf-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 15px; pointer-events: none; z-index: 1; }
+        .uf-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 15px; pointer-events: none; }
         .uf-big-prefix { font-size: 18px; font-weight: 500; }
         .uf-unit { font-size: 14px; color: var(--text-muted); white-space: nowrap; }
-
-        /* ── CHOOSER ── */
-        .uf-choice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        .uf-choice-card { width: 100%; text-align: left; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 18px; cursor: pointer; transition: transform 0.18s, border-color 0.18s, background 0.18s; }
-        .uf-choice-card:hover, .uf-choice-card.active { border-color: var(--accent); background: rgba(249,115,22,0.06); transform: translateY(-1px); }
-        .uf-choice-card-inline { padding: 16px 18px; }
-        .uf-choice-tag { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-family: var(--font-mono); }
-        .uf-choice-title { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-        .uf-choice-body { color: var(--text-muted); font-size: 14px; line-height: 1.55; }
-        .uf-radio-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-        .uf-choice-chip { border: 1px solid var(--border-light); background: transparent; color: var(--text-muted); border-radius: 999px; padding: 10px 14px; font-size: 13px; cursor: pointer; transition: all 0.18s; }
-        .uf-choice-chip.active, .uf-choice-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
         /* ── MODE PILLS ── */
         .uf-mode-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
@@ -1983,11 +1521,7 @@ export default function Home() {
       <Nav
         step={STEP_MAP[screen]}
         totalSteps={totalDots}
-        onRestart={() => {
-          clearFireUserData();
-          setFireState(null);
-          setScreen("hero");
-        }}
+        onRestart={() => setScreen("hero")}
         onSignIn={signIn}
       />
 
@@ -1998,34 +1532,36 @@ export default function Home() {
           <div className="uf-atm-orb uf-atm-orb-3" />
         </div>
         {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("path")} onSignIn={signIn} />
+          <HeroScreen onStart={() => setScreen("city")} onSignIn={signIn} />
         )}
-        {screen === "path" && (
-          <PathChoiceScreen
-            onStarter={() => setScreen("starter")}
-            onAdvanced={() => setScreen("advanced")}
+        {screen === "city" && (
+          <CityScreen
+            onNext={c => { setCityState(c); setScreen("income"); }}
             onBack={() => setScreen("hero")}
           />
         )}
-        {screen === "starter" && (
-          <StarterPathScreen
-            initialState={fireState}
-            onNext={(nextState) => { setFireState(nextState); setScreen("summary"); }}
-            onBack={() => setScreen("path")}
+        {screen === "income" && (
+          <IncomeScreen
+            stateKey={cityState?.stateKey ?? "tx"}
+            onNext={inc => { setIncome(inc); setScreen("savings"); }}
+            onBack={() => setScreen("city")}
           />
         )}
-        {screen === "advanced" && (
-          <AdvancedPathScreen
-            initialState={fireState}
-            onNext={(nextState) => { setFireState(nextState); setScreen("summary"); }}
-            onBack={() => setScreen("path")}
+        {screen === "savings" && (
+          <SavingsScreen
+            income={income}
+            stateKey={cityState?.stateKey ?? "tx"}
+            onNext={sav => { setSavings(sav); setScreen("reveal"); }}
+            onBack={() => setScreen("income")}
           />
         )}
-        {screen === "summary" && fireState && (
-          <OnboardingSummaryScreen
-            fireState={fireState}
-            onBack={() => setScreen(fireState.mode === "starter" ? "starter" : "advanced")}
-            onComplete={completeOnboarding}
+        {screen === "reveal" && cityState && (
+          <RevealScreen
+            city={cityState}
+            income={income}
+            savings={savings}
+            stateKey={cityState.stateKey}
+            onAdjust={() => setScreen("savings")}
           />
         )}
 

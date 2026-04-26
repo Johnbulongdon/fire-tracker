@@ -1,0 +1,128 @@
+import { ImageResponse } from 'next/og'
+
+export const runtime = 'edge'
+export const alt = 'UntilFire — Find Your FIRE Number & Retire Early'
+export const size = { width: 1200, height: 630 }
+export const contentType = 'image/png'
+
+export default async function Image() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          background: '#08080e',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'sans-serif',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Background glow */}
+        <div
+          style={{
+            position: 'absolute',
+            width: 600,
+            height: 600,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            display: 'flex',
+          }}
+        />
+
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 32 }}>
+          <span style={{ color: '#e8e8f2', fontSize: 36, fontWeight: 800, letterSpacing: '-2px' }}>
+            Until
+          </span>
+          <span style={{ color: '#f97316', fontSize: 36, fontWeight: 800, letterSpacing: '-2px' }}>
+            Fire
+          </span>
+        </div>
+
+        {/* Headline */}
+        <div
+          style={{
+            fontSize: 64,
+            fontWeight: 800,
+            color: '#e8e8f2',
+            textAlign: 'center',
+            lineHeight: 1.1,
+            letterSpacing: '-2px',
+            maxWidth: 900,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <span>Find out exactly</span>
+          <span style={{ color: '#f97316' }}>when you can retire</span>
+        </div>
+
+        {/* Subheading */}
+        <div
+          style={{
+            marginTop: 24,
+            fontSize: 24,
+            color: '#9090a8',
+            textAlign: 'center',
+            maxWidth: 680,
+            display: 'flex',
+          }}
+        >
+          Free FIRE calculator — adjusted for your city, income & spending. Takes 60 seconds.
+        </div>
+
+        {/* Stats row */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 48,
+            marginTop: 48,
+          }}
+        >
+          {[
+            { value: '263', label: 'cities covered' },
+            { value: '60s', label: 'to your FIRE date' },
+            { value: 'Free', label: 'no login required' },
+          ].map(({ value, label }) => (
+            <div
+              key={label}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span style={{ fontSize: 32, fontWeight: 700, color: '#22d3a5' }}>{value}</span>
+              <span style={{ fontSize: 16, color: '#5e5e7a' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Domain */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 32,
+            right: 48,
+            fontSize: 18,
+            color: '#2a2a3e',
+            display: 'flex',
+          }}
+        >
+          untilfire.com
+        </div>
+      </div>
+    ),
+    { ...size }
+  )
+}

@@ -1,30 +1,30 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import Script from 'next/script'
 import { AuthProvider } from '../lib/auth-context'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
 
-const inter = Inter({ subsets: ['latin'] })
-
 export const metadata: Metadata = {
-  title: 'Free FIRE Calculator — Find Your Financial Independence Number | UntilFire',
+  title: 'UntilFire — Find Your FIRE Number & Retire Early',
   description:
-    'Free FIRE calculator. Find your exact FIRE number, see when you can retire early, and discover how city-adjusted cost of living changes your date by years. Takes 60 seconds.',
+    'Calculate exactly when you can retire. Enter your city, income, and spending — get your FIRE number and retirement date in 60 seconds. Free, no login required.',
   keywords:
-    'FIRE calculator, coast fire calculator, barista fire calculator, financial independence calculator, retire early calculator, FIRE number, savings rate calculator',
+    'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator, how much to retire, 4% rule calculator',
+  alternates: {
+    canonical: 'https://untilfire.com',
+  },
   openGraph: {
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    title: 'UntilFire — Find Your FIRE Number & Retire Early',
+    description: 'Your city. Your income. Your exact retirement date. Takes 60 seconds.',
     url: 'https://untilfire.com',
     siteName: 'UntilFire',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'UntilFire — Find Your FIRE Number',
-    description: 'Calculate exactly when you can retire. Takes 60 seconds.',
+    title: 'UntilFire — Find Your FIRE Number & Retire Early',
+    description: 'Your city. Your income. Your exact retirement date. Takes 60 seconds.',
   },
   metadataBase: new URL('https://untilfire.com'),
 }
@@ -49,42 +49,25 @@ export default function RootLayout({
       </head>
 
       <body
-        className={`${inter.className} antialiased`}
+        className="antialiased"
         suppressHydrationWarning
       >
-        {/* Structured Data: SoftwareApplication + WebSite */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               '@context': 'https://schema.org',
-              '@graph': [
-                {
-                  '@type': 'SoftwareApplication',
-                  name: 'UntilFire FIRE Calculator',
-                  applicationCategory: 'FinanceApplication',
-                  operatingSystem: 'Web',
-                  url: 'https://untilfire.com',
-                  description:
-                    'Free FIRE calculator. Find your financial independence number, track progress, and see how small changes move your retirement date by years.',
-                  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-                  provider: {
-                    '@type': 'Organization',
-                    name: 'UntilFire',
-                    url: 'https://untilfire.com',
-                  },
-                },
-                {
-                  '@type': 'WebSite',
-                  name: 'UntilFire',
-                  url: 'https://untilfire.com',
-                  potentialAction: {
-                    '@type': 'SearchAction',
-                    target: 'https://untilfire.com/learn/{search_term_string}',
-                    'query-input': 'required name=search_term_string',
-                  },
-                },
-              ],
+              '@type': 'WebApplication',
+              name: 'UntilFire',
+              url: 'https://untilfire.com',
+              description: 'Free FIRE calculator — find your financial independence number adjusted for your city, income, and spending.',
+              applicationCategory: 'FinanceApplication',
+              operatingSystem: 'Any',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD',
+              },
             }),
           }}
         />
