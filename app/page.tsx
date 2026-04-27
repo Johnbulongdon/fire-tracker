@@ -90,7 +90,7 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
   }, []);
 
   return (
-    <div className={`uf-screen uf-hero${mounted ? " uf-hero--mounted" : ""}`}>
+    <div className={`uf-hero${mounted ? " uf-hero--mounted" : ""}`}>
       {/* Two-column grid */}
       <div className="uf-hero-inner">
         {/* Left — copy */}
@@ -1307,13 +1307,13 @@ export default function Home() {
         .uf-hero-signin:hover { color: rgba(255,255,255,0.8); }
 
         /* ── SCREEN ── */
-        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; background: var(--bg); }
+        .uf-page { padding-top: 56px; min-height: 100vh; display: flex; flex-direction: column; align-items: stretch; position: relative; background: var(--bg); }
         .uf-page-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .uf-atm-orb { position: absolute; border-radius: 50%; filter: blur(120px); will-change: transform, opacity; }
         .uf-atm-orb-1 { width: 600px; height: 600px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(6,78,59,0.07) 0%, transparent 70%); animation: orbDrift1 14s ease-in-out infinite alternate; }
         .uf-atm-orb-2 { width: 450px; height: 450px; top: 40vh; left: -120px; background: radial-gradient(circle, rgba(32,212,191,0.07) 0%, transparent 70%); animation: orbDrift2 18s ease-in-out 2s infinite alternate; }
         .uf-atm-orb-3 { width: 360px; height: 360px; top: 20vh; right: -100px; background: radial-gradient(circle, rgba(6,78,59,0.05) 0%, transparent 70%); animation: orbDrift3 22s ease-in-out 4s infinite alternate; }
-        .uf-screen { width: 100%; max-width: 540px; padding: 40px 24px 24px; position: relative; z-index: 1; }
+        .uf-screen { width: 100%; max-width: 540px; margin: 0 auto; padding: 40px 24px 24px; position: relative; z-index: 1; }
         .uf-reveal-screen { max-width: 680px; }
         .uf-section-sep { width: 240px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--border-light), transparent); position: relative; z-index: 1; }
 
@@ -1426,8 +1426,8 @@ export default function Home() {
 
         /* ── HERO SCREEN ── */
         .uf-hero {
-          width: 100vw;
-          margin-left: calc(50% - 50vw);
+          width: 100%;
+          max-width: none;
           padding: 0;
           position: relative;
           background: #003527;
