@@ -46,12 +46,12 @@ function Nav({ step, totalSteps, onRestart, onSignIn }: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function WizardProgress({ step }: { step: number }) {
-  const steps = ["City", "Income", "Savings"];
+  const steps = ["Goals", "City", "Income", "Finances"];
   return (
     <div className="uf-wizard-progress">
-      {steps.map((_, i) => (
+      {steps.map((label, i) => (
         <div key={i} className="uf-wizard-row">
-          <div className={`uf-wdot ${i < step ? "done" : i === step ? "active" : ""}`} />
+          <div className={`uf-wdot ${i < step ? "done" : i === step ? "active" : ""}`} title={label} />
           {i < steps.length - 1 && (
             <div className={`uf-wline ${i < step ? "done" : i === step ? "active" : ""}`} />
           )}
@@ -62,18 +62,15 @@ function WizardProgress({ step }: { step: number }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SCREEN 0 — HERO
+// SCREEN 0 — HERO (two-column desktop layout)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const HERO_TOKENS = [
-  { text: "$847,250",   x: "7%",  y: "16%", delay: 0 },
-  { text: "26 yrs",    x: "80%", y: "24%", delay: 2.4 },
-  { text: "4% rule",   x: "11%", y: "56%", delay: 1.1 },
-  { text: "$2,100/mo", x: "72%", y: "66%", delay: 3.6 },
-  { text: "7% growth", x: "16%", y: "36%", delay: 0.7 },
-  { text: "FIRE 2041", x: "75%", y: "42%", delay: 2.0 },
-  { text: "Age 48",    x: "5%",  y: "76%", delay: 4.0 },
-  { text: "25× rule",  x: "62%", y: "82%", delay: 1.5 },
+const PREVIEW_BARS = [28, 38, 33, 48, 42, 62, 57, 72, 66, 80, 76, 95];
+const HERO_STATS = [
+  { v: "$5.8B", l: "Assets Tracked" },
+  { v: "38K",   l: "Active Users" },
+  { v: "94%",   l: "On Track" },
+  { v: "7.2yr", l: "Avg. FIRE Timeline" },
 ];
 
 function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
@@ -94,62 +91,168 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
 
   return (
     <div className={`uf-screen uf-hero${mounted ? " uf-hero--mounted" : ""}`}>
-      <div className="uf-hero-bg" aria-hidden="true">
-        {HERO_TOKENS.map((t, i) => (
-          <div
-            key={i}
-            className="uf-hero-token"
-            style={{ left: t.x, top: t.y, animationDelay: `${t.delay}s` }}
-          >
-            {t.text}
+      {/* Two-column grid */}
+      <div className="uf-hero-inner">
+        {/* Left — copy */}
+        <div className="uf-hero-content">
+          <div className="uf-live-counter">
+            <span className="uf-live-count">{calcCount.toLocaleString()}</span>
+            <span className="uf-live-label">&nbsp;FIRE numbers calculated today</span>
+          </div>
+          <div className="uf-badge">
+            <span className="uf-badge-dot" /> Free — no credit card required
+          </div>
+          <h1 className="uf-h1">
+            Financial Independence<br />
+            <span className="uf-accent-flame">Through Trusted Growth.</span>
+          </h1>
+          <p className="uf-body">
+            Know exactly when you can retire — adjusted for your city, your income,
+            and the 4% rule. Takes 60 seconds. No login required.
+          </p>
+          <div className="uf-hero-ctas">
+            <button className="uf-btn uf-btn-teal uf-btn-lg uf-btn-power" onClick={onStart}>
+              Calculate my FIRE number →
+            </button>
+            <button
+              className="uf-btn uf-btn-ghost-dark"
+              onClick={onSignIn}
+            >
+              Log in →
+            </button>
+          </div>
+          <div className="uf-social-proof">
+            <div className="uf-avatars">
+              {["#047857","#20D4BF","#065F46","#34D399"].map((c, i) => (
+                <div key={i} className="uf-avatar" style={{ background: c }} />
+              ))}
+            </div>
+            <span className="uf-proof-text">
+              Joined by <strong>38,000+</strong> investors on their FIRE journey
+            </span>
+          </div>
+        </div>
+
+        {/* Right — dashboard preview card */}
+        <div className="uf-hero-preview">
+          <div className="uf-preview-card">
+            {/* Header row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#62FAE3", letterSpacing: "1px", textTransform: "uppercase", marginBottom: 4 }}>Current Net Worth</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px", display: "flex", alignItems: "center", gap: 8 }}>
+                  $842,150
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#34D399", background: "rgba(52,211,153,0.15)", padding: "2px 8px", borderRadius: 99 }}>↑ 12.4%</span>
+                </div>
+              </div>
+              <div style={{ background: "#064E3B", borderRadius: 8, padding: "8px 14px", textAlign: "center", flexShrink: 0 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#62FAE3", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>FIRE Date</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#fff" }}>Oct 2031</div>
+              </div>
+            </div>
+            {/* Mini bar chart */}
+            <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 64, marginBottom: 16 }}>
+              {PREVIEW_BARS.map((h, i) => (
+                <div key={i} style={{ flex: 1, height: `${h}%`, background: i === PREVIEW_BARS.length - 1 ? "#62FAE3" : "rgba(98,250,227,0.22)", borderRadius: "2px 2px 0 0", transition: "height 0.3s" }} />
+              ))}
+            </div>
+            {/* 3 stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              {[{ l: "Savings Rate", v: "42.5%" }, { l: "Portfolio", v: "$714K" }, { l: "Target", v: "$1.5M" }].map(s => (
+                <div key={s.l} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 6, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontWeight: 600, marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.4px" }}>{s.l}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+            {/* Progress bar */}
+            <div style={{ marginTop: 16, padding: "12px 14px", background: "rgba(255,255,255,0.04)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Progress to FIRE</span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#62FAE3" }}>47.6%</span>
+              </div>
+              <div style={{ height: 4, background: "rgba(255,255,255,0.1)", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: "47.6%", background: "linear-gradient(90deg, #059669, #62FAE3)", borderRadius: 99 }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 12, fontSize: 11, color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+            Sample dashboard — your numbers will differ
+          </div>
+        </div>
+      </div>
+
+      {/* Stats strip */}
+      <div className="uf-hero-strip">
+        {HERO_STATS.map(s => (
+          <div key={s.l} className="uf-hero-strip-item">
+            <div className="uf-hero-strip-val">{s.v}</div>
+            <div className="uf-hero-strip-lab">{s.l}</div>
           </div>
         ))}
-      </div>
-      <div className="uf-hero-content">
-        <div className="uf-live-counter">
-          <span className="uf-live-count">{calcCount.toLocaleString()}</span>
-          <span className="uf-live-label">&nbsp;FIRE numbers calculated today</span>
-        </div>
-        <div className="uf-badge">
-          <span className="uf-badge-dot" /> Free — no login required
-        </div>
-        <h1 className="uf-h1">
-          Your spending is<br />
-          <span className="uf-accent-flame">costing you years</span><br />
-          of freedom.
-        </h1>
-        <p className="uf-body" style={{ maxWidth: 420, margin: "0 auto 24px" }}>
-          Find out exactly when you can retire — adjusted for your city, your income,
-          and what you actually spend. Takes 60 seconds.
-        </p>
-        <button className="uf-btn uf-btn-primary uf-btn-lg uf-btn-full uf-btn-power" onClick={onStart}>
-          Calculate my FIRE number →
-        </button>
-        <button className="uf-hero-signin" onClick={onSignIn}>
-          Already have an account? Sign in →
-        </button>
-        <div className="uf-social-proof">
-          <div className="uf-avatars">
-            {["#047857","#20D4BF","#065F46","#34D399"].map((c, i) => (
-              <div key={i} className="uf-avatar" style={{ background: c }} />
-            ))}
-          </div>
-          <span className="uf-proof-text">
-            Joined by <strong>2,400+</strong> FIRE seekers this month
-          </span>
-        </div>
-        <div className="uf-stats-grid">
-          <div className="uf-stat-hero"><span className="uf-accent">$5.8B</span><div>market growing 10.3% CAGR</div></div>
-          <div className="uf-stat-hero"><span style={{ color: "var(--teal)" }}>2.2M</span><div>r/financialindependence members</div></div>
-          <div className="uf-stat-hero"><span style={{ color: "var(--purple)" }}>25%</span><div>Gen Z targeting retirement under 55</div></div>
-        </div>
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SCREEN 1 — CITY
+// SCREEN 1 — GOALS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FIRE_GOALS = [
+  { id: "early",   emoji: "🚀", title: "Early Retirement",      desc: "Exit the workforce fully — the classic FIRE path." },
+  { id: "coast",   emoji: "🌊", title: "Coast FIRE",             desc: "Work part-time or passion projects while investments compound." },
+  { id: "gen",     emoji: "🌳", title: "Generational Wealth",    desc: "Build a lasting financial legacy for your family." },
+  { id: "nomad",   emoji: "🌍", title: "Nomadic Lifestyle",      desc: "Travel freely with a portfolio that funds the journey." },
+];
+
+function GoalsScreen({ onNext, onBack }: { onNext: (goal: string) => void; onBack: () => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
+
+  return (
+    <div className="uf-screen">
+      <WizardProgress step={0} />
+      <p className="uf-step-label">Step 1 of 4</p>
+      <div className="uf-eyebrow">Your path</div>
+      <h2 className="uf-h2">What&apos;s your <span className="uf-accent">FIRE goal?</span></h2>
+      <p className="uf-body" style={{ marginBottom: 28 }}>
+        Choose the lifestyle you&apos;re working toward. This shapes your projections.
+      </p>
+
+      <div className="uf-goals-grid">
+        {FIRE_GOALS.map(g => (
+          <button
+            key={g.id}
+            className={`uf-goal-card ${selected === g.id ? "active" : ""}`}
+            onClick={() => setSelected(g.id)}
+          >
+            <div className="uf-goal-top">
+              <span className="uf-goal-emoji">{g.emoji}</span>
+              <div className={`uf-goal-radio ${selected === g.id ? "checked" : ""}`} />
+            </div>
+            <div className="uf-goal-title">{g.title}</div>
+            <div className="uf-goal-desc">{g.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="uf-nav-row">
+        <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
+        <button
+          className="uf-btn uf-btn-primary"
+          style={{ flex: 1 }}
+          disabled={!selected}
+          onClick={() => selected && onNext(selected)}
+        >
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREEN 2 — CITY
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CityState {
@@ -212,8 +315,8 @@ function CityScreen({ onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={0} />
-      <p className="uf-step-label">Step 1 of 3</p>
+      <WizardProgress step={1} />
+      <p className="uf-step-label">Step 2 of 4</p>
       <div className="uf-eyebrow">Location</div>
       <h2 className="uf-h2">Where do you want<br />to <span className="uf-accent">retire?</span></h2>
       <p className="uf-body" style={{ marginBottom: 32 }}>
@@ -430,8 +533,8 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={1} />
-      <p className="uf-step-label">Step 2 of 3</p>
+      <WizardProgress step={2} />
+      <p className="uf-step-label">Step 3 of 4</p>
       <div className="uf-eyebrow">Income</div>
       <h2 className="uf-h2">What do you <span className="uf-accent">earn?</span></h2>
       <p className="uf-body" style={{ marginBottom: 24 }}>
@@ -617,9 +720,9 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
 
   return (
     <div className="uf-screen">
-      <WizardProgress step={2} />
-      <p className="uf-step-label">Step 3 of 3</p>
-      <div className="uf-eyebrow">Savings</div>
+      <WizardProgress step={3} />
+      <p className="uf-step-label">Step 4 of 4</p>
+      <div className="uf-eyebrow">Finances</div>
       <h2 className="uf-h2">How much are you <span className="uf-accent">saving?</span></h2>
       <p className="uf-body" style={{ marginBottom: 32 }}>
         Don&apos;t worry about being exact — we&apos;ll help you track real numbers after setup.
@@ -1122,13 +1225,14 @@ function WaitlistSection() {
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Screen = "hero" | "city" | "income" | "savings" | "reveal";
+type Screen = "hero" | "goals" | "city" | "income" | "savings" | "reveal";
 
 export default function Home() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("hero");
 
   // Wizard state
+  const [fireGoal, setFireGoal]     = useState<string>("early");
   const [cityState, setCityState]   = useState<CityState | null>(null);
   const [income, setIncome]         = useState(90000);
   const [savings, setSavings]       = useState(1500);
@@ -1151,8 +1255,8 @@ export default function Home() {
     });
   }
 
-  const STEP_MAP: Record<Screen, number> = { hero: 0, city: 1, income: 2, savings: 3, reveal: 4 };
-  const totalDots = 5;
+  const STEP_MAP: Record<Screen, number> = { hero: 0, goals: 1, city: 2, income: 3, savings: 4, reveal: 5 };
+  const totalDots = 6;
 
   return (
     <>
@@ -1322,47 +1426,52 @@ export default function Home() {
 
         /* ── HERO SCREEN ── */
         .uf-hero {
-          text-align: center;
           width: 100vw;
           margin-left: calc(50% - 50vw);
-          padding: 60px 24px 72px;
+          padding: 0;
           position: relative;
           background: #003527;
           display: flex;
           flex-direction: column;
           align-items: center;
         }
-        .uf-hero-content { position: relative; z-index: 1; max-width: 580px; width: 100%; }
-        .uf-hero .uf-h1 { color: #FFFFFF; letter-spacing: -1.2px; }
-        .uf-hero .uf-body { color: rgba(255,255,255,0.65); }
 
-        /* Hero local bg */
-        .uf-hero-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-
-        /* Floating data tokens */
-        .uf-hero-token { position: absolute; font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,0.15); opacity: 0; animation: tokenFloat 7s ease-in-out infinite; pointer-events: none; white-space: nowrap; letter-spacing: 0.5px; }
-        @keyframes tokenFloat {
-          0%   { opacity: 0;    transform: translateY(6px); }
-          12%  { opacity: 1;    transform: translateY(0); }
-          75%  { opacity: 1;    transform: translateY(-5px); }
-          100% { opacity: 0;    transform: translateY(-10px); }
+        /* Two-column inner grid */
+        .uf-hero-inner {
+          position: relative;
+          z-index: 1;
+          max-width: 1240px;
+          width: 100%;
+          margin: 0 auto;
+          padding: 80px 48px 72px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 64px;
+          align-items: center;
         }
 
+        .uf-hero-content { display: flex; flex-direction: column; gap: 0; }
+        .uf-hero .uf-h1 { color: #FFFFFF; letter-spacing: -1.2px; text-align: left; margin-bottom: 16px; }
+        .uf-hero .uf-body { color: rgba(255,255,255,0.65); text-align: left; margin-bottom: 28px; }
+
+        /* Hero CTA row */
+        .uf-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+        .uf-btn-ghost-dark { background: transparent; color: rgba(255,255,255,0.65); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 14px 24px; font-family: var(--font-body); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .uf-btn-ghost-dark:hover { color: #fff; border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+
         /* Live counter */
-        .uf-live-counter { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 10px; justify-content: center; }
+        .uf-live-counter { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; margin-bottom: 12px; }
         .uf-live-count { color: var(--teal-bright); font-weight: 700; }
         .uf-live-label { color: rgba(255,255,255,0.35); }
 
         /* Badge */
-        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; background: rgba(98,250,227,0.12); color: var(--teal-bright); border-radius: 99px; font-size: 11px; font-weight: 700; margin-bottom: 20px; border: 1px solid rgba(98,250,227,0.3); letter-spacing: 0.8px; text-transform: uppercase; }
+        .uf-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; background: rgba(98,250,227,0.12); color: var(--teal-bright); border-radius: 99px; font-size: 11px; font-weight: 700; margin-bottom: 20px; border: 1px solid rgba(98,250,227,0.3); letter-spacing: 0.8px; text-transform: uppercase; align-self: flex-start; }
         .uf-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal-bright); flex-shrink: 0; }
 
         /* Teal headline span */
         .uf-accent-flame { color: var(--teal-bright); display: inline; }
 
-        /* Power CTA — teal on dark bg */
-        .uf-hero .uf-btn-primary { background: var(--teal-bright); color: #003527; }
-        .uf-hero .uf-btn-primary:hover { background: #4df5d6; box-shadow: 0 8px 32px rgba(98,250,227,0.35); }
+        /* Power CTA */
         .uf-btn-power { animation: ctaBreath 2.8s ease-in-out infinite; }
         @keyframes ctaBreath {
           0%, 100% { box-shadow: 0 6px 28px rgba(98,250,227,0.18); }
@@ -1370,35 +1479,55 @@ export default function Home() {
         }
         .uf-btn-power:hover { animation: none; box-shadow: 0 8px 40px rgba(98,250,227,0.5), 0 0 0 6px rgba(98,250,227,0.12) !important; }
 
+        /* Dashboard preview card */
+        .uf-hero-preview { position: relative; z-index: 1; }
+        .uf-preview-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 24px; backdrop-filter: blur(4px); }
+
+        /* Stats strip below hero */
+        .uf-hero-strip { width: 100%; background: #064E3B; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-around; padding: 20px 48px; }
+        .uf-hero-strip-item { text-align: center; }
+        .uf-hero-strip-val { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.4px; }
+        .uf-hero-strip-lab { font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
+
         /* Entrance animations */
         @keyframes heroEnter { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes statEntry { from { opacity: 0; transform: scale(0.7) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .uf-hero--mounted .uf-live-counter { animation: heroEnter 0.5s cubic-bezier(0.22,1,0.36,1) 0s both; }
         .uf-hero--mounted .uf-badge        { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.08s both; }
         .uf-hero--mounted .uf-h1           { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.20s both; }
         .uf-hero--mounted .uf-body         { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.32s both; }
-        .uf-hero--mounted .uf-btn-primary  { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.44s both, ctaBreath 2.8s ease-in-out 1.2s infinite; }
-        .uf-hero--mounted .uf-hero-signin  { animation: heroEnter 0.50s cubic-bezier(0.22,1,0.36,1) 0.52s both; }
-        .uf-hero--mounted .uf-social-proof { animation: heroEnter 0.55s cubic-bezier(0.22,1,0.36,1) 0.60s both; }
-        .uf-hero--mounted .uf-stats-grid   { animation: heroEnter 0.60s cubic-bezier(0.22,1,0.36,1) 0.72s both; }
-        .uf-hero--mounted .uf-stat-hero:nth-child(1) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.78s both; }
-        .uf-hero--mounted .uf-stat-hero:nth-child(2) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.88s both; }
-        .uf-hero--mounted .uf-stat-hero:nth-child(3) span { animation: statEntry 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.98s both; }
+        .uf-hero--mounted .uf-hero-ctas    { animation: heroEnter 0.65s cubic-bezier(0.22,1,0.36,1) 0.44s both; }
+        .uf-hero--mounted .uf-social-proof { animation: heroEnter 0.55s cubic-bezier(0.22,1,0.36,1) 0.52s both; }
+        .uf-hero--mounted .uf-hero-preview { animation: heroEnter 0.70s cubic-bezier(0.22,1,0.36,1) 0.28s both; }
+        .uf-hero--mounted .uf-hero-strip   { animation: heroEnter 0.50s cubic-bezier(0.22,1,0.36,1) 0.60s both; }
 
         /* Social proof */
-        .uf-social-proof { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+        .uf-social-proof { display: flex; align-items: center; gap: 12px; }
         .uf-avatars { display: flex; }
         .uf-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); margin-left: -6px; }
         .uf-avatar:first-child { margin-left: 0; }
         .uf-proof-text { font-size: 13px; color: rgba(255,255,255,0.5); }
         .uf-proof-text strong { color: rgba(255,255,255,0.8); }
 
-        /* Stats grid */
-        .uf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
-        .uf-stat-hero { text-align: center; font-size: 12px; color: rgba(255,255,255,0.45); position: relative; transition: transform 0.2s ease; cursor: default; }
-        .uf-stat-hero:hover { transform: translateY(-2px); }
-        .uf-stat-hero:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 10%; height: 80%; width: 1px; background: rgba(255,255,255,0.1); }
-        .uf-stat-hero span { display: block; font-family: var(--font-display); font-size: 28px; font-weight: 800; margin-bottom: 4px; color: #fff; }
+        /* ── GOALS GRID ── */
+        .uf-goals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .uf-goal-card { background: #fff; border: 1.5px solid var(--border); border-radius: 12px; padding: 18px; cursor: pointer; text-align: left; transition: all 0.15s; font-family: var(--font-body); }
+        .uf-goal-card:hover { border-color: var(--accent); background: #ECFDF5; }
+        .uf-goal-card.active { border-color: var(--accent); background: #ECFDF5; }
+        .uf-goal-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .uf-goal-emoji { font-size: 24px; line-height: 1; }
+        .uf-goal-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; transition: all 0.15s; }
+        .uf-goal-card.active .uf-goal-radio { border-width: 5px; border-color: var(--accent); }
+        .uf-goal-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .uf-goal-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+        /* Mobile responsive for hero */
+        @media(max-width: 900px) {
+          .uf-hero-inner { grid-template-columns: 1fr; padding: 48px 24px 48px; gap: 32px; }
+          .uf-hero-preview { display: none; }
+          .uf-hero .uf-h1 { font-size: 36px; }
+          .uf-hero-strip { padding: 16px 24px; flex-wrap: wrap; gap: 16px; }
+          .uf-goals-grid { grid-template-columns: 1fr; }
+        }
 
         /* ── REVEAL ── */
         .uf-calc-phase { text-align: center; padding: 60px 0; }
@@ -1540,12 +1669,18 @@ export default function Home() {
           <div className="uf-atm-orb uf-atm-orb-3" />
         </div>
         {screen === "hero" && (
-          <HeroScreen onStart={() => setScreen("city")} onSignIn={signIn} />
+          <HeroScreen onStart={() => setScreen("goals")} onSignIn={signIn} />
+        )}
+        {screen === "goals" && (
+          <GoalsScreen
+            onNext={g => { setFireGoal(g); setScreen("city"); }}
+            onBack={() => setScreen("hero")}
+          />
         )}
         {screen === "city" && (
           <CityScreen
             onNext={c => { setCityState(c); setScreen("income"); }}
-            onBack={() => setScreen("hero")}
+            onBack={() => setScreen("goals")}
           />
         )}
         {screen === "income" && (
