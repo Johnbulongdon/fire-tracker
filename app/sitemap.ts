@@ -1,61 +1,33 @@
 import { MetadataRoute } from 'next'
 
-const LEARN_PAGES = [
-  'fire-number',
-  'fire-in-hong-kong',
-  'fire-in-bali',
-  'fire-in-lisbon',
-  'fire-in-tokyo',
-  'fire-in-singapore',
-  'fire-in-san-francisco',
-  'fire-in-new-york',
-  'fire-in-london',
-  'fire-in-chiang-mai',
-  'fire-in-austin',
-  'fire-in-barcelona',
-  'what-is-coast-fire',
-  'how-to-calculate-your-fire-number',
-]
+const BASE = 'https://untilfire.com'
+const TODAY = '2026-04-27'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const learnPages: MetadataRoute.Sitemap = LEARN_PAGES.map((slug) => ({
-    url: `https://untilfire.com/learn/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly' as const,
-    priority: 0.7,
-  }))
-
   return [
     {
-      url: 'https://untilfire.com',
-      lastModified: new Date(),
+      url: BASE,
+      lastModified: TODAY,
+      changeFrequency: 'daily',
+      priority: 1.0,
+    },
+    {
+      url: `${BASE}/coast-fire-calculator`,
+      lastModified: TODAY,
       changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: 'https://untilfire.com/coast-fire-calculator',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
-      url: 'https://untilfire.com/barista-fire-calculator',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
-      url: 'https://untilfire.com/calculator',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
-      url: 'https://untilfire.com/login',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
+      url: `${BASE}/barista-fire-calculator`,
+      lastModified: TODAY,
+      changeFrequency: 'weekly',
+      priority: 0.8,
     },
-    ...learnPages,
+    {
+      url: `${BASE}/calculator`,
+      lastModified: TODAY,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
   ]
 }
