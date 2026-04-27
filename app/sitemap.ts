@@ -1,25 +1,9 @@
 import { MetadataRoute } from 'next'
-
-const LEARN_PAGES = [
-  'fire-number',
-  'fire-in-hong-kong',
-  'fire-in-bali',
-  'fire-in-lisbon',
-  'fire-in-tokyo',
-  'fire-in-singapore',
-  'fire-in-san-francisco',
-  'fire-in-new-york',
-  'fire-in-london',
-  'fire-in-chiang-mai',
-  'fire-in-austin',
-  'fire-in-barcelona',
-  'what-is-coast-fire',
-  'how-to-calculate-your-fire-number',
-]
+import { LEARN_ARTICLES } from '@/lib/learn'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const learnPages: MetadataRoute.Sitemap = LEARN_PAGES.map((slug) => ({
-    url: `https://untilfire.com/learn/${slug}`,
+  const learnPages: MetadataRoute.Sitemap = LEARN_ARTICLES.map((article) => ({
+    url: `https://untilfire.com/learn/${article.slug}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: 0.7,
@@ -55,6 +39,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.3,
+    },
+    {
+      url: 'https://untilfire.com/learn',
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.85,
     },
     ...learnPages,
   ]
