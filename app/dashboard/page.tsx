@@ -12,7 +12,10 @@ import { monteCarloFIRE } from "@/lib/monte-carlo";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
-type TabKey = "dashboard" | "calculators" | "budget";
+type TabKey =
+  | "portfolio-overview" | "portfolio-assets" | "portfolio-liabilities"
+  | "plan-goals"         | "plan-simulations" | "plan-calculators"
+  | "insights-spending"  | "insights-overview" | "insights-trends";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -710,18 +713,314 @@ function BudgetTab({ income, setIncome, expenses, setExpenses, actuals }: {
   );
 }
 
-// ─── FIRE Calculator Tab ──────────────────────────────────────────────────────
-function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate }: {
-  income: number; expenses: Expenses;
-  fireAge: number; setFireAge: (v: number) => void;
+// ─── User Nav ─────────────────────────────────────────────────────────────────
+function UserNav() {
+  const [email, setEmail] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setEmail(user?.email ?? null));
+  }, []);
+  const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = "/"; };
+
+  if (!email) return (
+    <Link href="/login" style={{ background: "#064E3B", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <span style={{ color: "#64748B", fontSize: 13 }}>{email}</span>
+      <button onClick={handleSignOut} style={{ background: "transparent", color: "#064E3B", border: "1px solid #064E3B", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Sign Out</button>
+    </div>
+  );
+}
+
+// ─── Portfolio Overview Tab ───────────────────────────────────────────────────
+function PortfolioOverviewTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate }: {
+  income: number; expenses: Expenses; k401: number; rothIRA: number;
+  taxable: number; totalDebt: number; mortgageBalance: number;
+  mortgageMonthly: number; growthRate: number; withdrawalRate: number;
+}) {
+  const monthlyExpenses = Object.entries(expenses)
+    .filter(([k]) => !k.startsWith("_"))
+    .reduce((s, [, v]) => s + (v || 0), 0);
+
+  const { fireYear, fireTarget } = useMemo(() => calcProjection({
+    annualIncome: income * 12, monthlyExpenses,
+    k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly,
+    growthRate, withdrawalRate,
+  }), [income, monthlyExpenses, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
+
+  const investable = k401 + rothIRA + taxable;
+  const netWorth   = investable - totalDebt - mortgageBalance;
+  const progress   = fireTarget > 0 ? Math.min(100, (investable / fireTarget) * 100) : 0;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Net worth hero */}
+      <div className="uf-card" style={{ padding: "28px 32px", background: "#003527", borderColor: "transparent" }}>
+        <div style={{ fontSize: 10, fontFamily: "Manrope, sans-serif", letterSpacing: "1px", textTransform: "uppercase", color: "#62FAE3", marginBottom: 10, fontWeight: 700 }}>Net Worth</div>
+        <div style={{ fontSize: "clamp(36px, 6vw, 56px)", fontWeight: 800, color: netWorth >= 0 ? "#FFFFFF" : "#FCA5A5", fontFamily: "Manrope, sans-serif", letterSpacing: "-2px", lineHeight: 1 }}>
+          {fmt(netWorth)}
+        </div>
+        <div style={{ marginTop: 8, fontSize: 14, color: "rgba(255,255,255,0.55)" }}>
+          {fmt(investable, true)} investable assets · {fmt(totalDebt + mortgageBalance, true)} total debt
+        </div>
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+            <span>{fmt(investable, true)} saved</span>
+            <span style={{ color: "#62FAE3", fontWeight: 700 }}>{progress.toFixed(1)}% to FIRE</span>
+            <span>{fmt(fireTarget, true)} target</span>
+          </div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.15)", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${progress}%`, background: "#62FAE3", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
+          </div>
+        </div>
+      </div>
+
+      {/* KPI row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+        {[
+          { label: "Investable Assets",  val: fmt(investable, true),   color: "#059669",  sub: "All accounts" },
+          { label: "Net Worth",          val: fmt(netWorth, true),      color: netWorth >= 0 ? "#059669" : "#DC2626", sub: "Assets − debt" },
+          { label: "Total Debt",         val: fmt(totalDebt + mortgageBalance, true), color: "#DC2626", sub: "Consumer + mortgage" },
+          { label: "FIRE Progress",      val: `${progress.toFixed(0)}%`, color: progress >= 75 ? "#059669" : "#20D4BF", sub: fireYear ? `${fireYear} yrs to FIRE` : "—" },
+        ].map(k => (
+          <KpiCard key={k.label} label={k.label} value={k.val} sub={k.sub} color={k.color} />
+        ))}
+      </div>
+
+      {/* Account breakdown table */}
+      <div className="uf-card">
+        <SectionLabel icon="🏦" text="Account Snapshot" color="#064E3B" />
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <tbody>
+            {[
+              { label: "401(k)",            val: k401,              color: "#059669" },
+              { label: "Roth IRA",          val: rothIRA,           color: "#20D4BF" },
+              { label: "Taxable Brokerage", val: taxable,           color: "#047857" },
+              null,
+              { label: "Consumer Debt",     val: -totalDebt,        color: "#DC2626" },
+              { label: "Mortgage Balance",  val: -mortgageBalance,  color: "#DC2626" },
+              null,
+              { label: "Net Worth",         val: netWorth, bold: true, color: netWorth >= 0 ? "#059669" : "#DC2626" },
+            ].map((row, i) => {
+              if (!row) return <tr key={`d${i}`}><td colSpan={2} style={{ borderTop: "1px solid #E2E8F0", padding: "4px 0" }} /></tr>;
+              return (
+                <tr key={row.label}>
+                  <td style={{ padding: "8px 0", fontSize: 14, color: row.bold ? "#19181E" : "#64748B", fontWeight: row.bold ? 600 : 400 }}>{row.label}</td>
+                  <td style={{ padding: "8px 0", textAlign: "right", fontFamily: "Inter, sans-serif", fontSize: 14, color: row.color, fontWeight: row.bold ? 700 : 400 }}>
+                    {row.val >= 0 ? fmt(row.val) : `−${fmt(Math.abs(row.val))}`}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Assets Tab ───────────────────────────────────────────────────────────────
+function AssetsTab({ k401, setK401, rothIRA, setRothIRA, taxable, setTaxable, growthRate, setGrowthRate, withdrawalRate, setWithdrawalRate }: {
   k401: number; setK401: (v: number) => void;
   rothIRA: number; setRothIRA: (v: number) => void;
   taxable: number; setTaxable: (v: number) => void;
+  growthRate: number; setGrowthRate: (v: number) => void;
+  withdrawalRate: number; setWithdrawalRate: (v: number) => void;
+}) {
+  const total = k401 + rothIRA + taxable;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="uf-card">
+          <SectionLabel icon="📈" text="Investment Accounts" color="#059669" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <FieldRow label="401(k) Balance">
+              <NumberInput value={k401} onChange={setK401} placeholder="0" />
+            </FieldRow>
+            <FieldRow label="Roth IRA Balance">
+              <NumberInput value={rothIRA} onChange={setRothIRA} placeholder="0" />
+            </FieldRow>
+            <FieldRow label="Taxable Brokerage">
+              <NumberInput value={taxable} onChange={setTaxable} placeholder="0" />
+            </FieldRow>
+          </div>
+        </div>
+
+        <div className="uf-card">
+          <SectionLabel icon="⚙️" text="Assumptions" color="#64748B" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, color: "#64748B", fontFamily: "Inter, sans-serif", textTransform: "uppercase", letterSpacing: "0.08em" }}>Annual Return</span>
+                <span style={{ fontSize: 13, color: "#064E3B", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>{(growthRate * 100).toFixed(1)}%</span>
+              </div>
+              <input type="range" min={0.03} max={0.12} step={0.001} value={growthRate}
+                onChange={e => setGrowthRate(Number(e.target.value))}
+                style={{ width: "100%", cursor: "pointer" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94A3B8", marginTop: 4 }}>
+                <span>3%</span><span>7% typical</span><span>12%</span>
+              </div>
+            </div>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, color: "#64748B", fontFamily: "Inter, sans-serif", textTransform: "uppercase", letterSpacing: "0.08em" }}>Withdrawal Rate</span>
+                <span style={{ fontSize: 13, color: "#064E3B", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>{(withdrawalRate * 100).toFixed(1)}%</span>
+              </div>
+              <input type="range" min={0.03} max={0.06} step={0.001} value={withdrawalRate}
+                onChange={e => setWithdrawalRate(Number(e.target.value))}
+                style={{ width: "100%", cursor: "pointer" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94A3B8", marginTop: 4 }}>
+                <span>3%</span><span>4% rule</span><span>6%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {total > 0 && (
+        <div className="uf-card" style={{ background: "rgba(5,150,105,0.04)", border: "1px solid rgba(5,150,105,0.2)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+            {[
+              { label: "401(k)", val: fmt(k401), pct: total > 0 ? (k401 / total * 100).toFixed(0) : "0", color: "#059669" },
+              { label: "Roth IRA", val: fmt(rothIRA), pct: total > 0 ? (rothIRA / total * 100).toFixed(0) : "0", color: "#20D4BF" },
+              { label: "Taxable", val: fmt(taxable), pct: total > 0 ? (taxable / total * 100).toFixed(0) : "0", color: "#047857" },
+            ].map(a => (
+              <div key={a.label}>
+                <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{a.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: a.color, fontFamily: "Inter, sans-serif" }}>{a.val}</div>
+                <div style={{ fontSize: 11, color: "#94A3B8" }}>{a.pct}% of portfolio</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Liabilities Tab ──────────────────────────────────────────────────────────
+function LiabilitiesTab({ totalDebt, setTotalDebt, mortgageBalance, setMortgageBalance, mortgageMonthly, setMortgageMonthly }: {
   totalDebt: number; setTotalDebt: (v: number) => void;
   mortgageBalance: number; setMortgageBalance: (v: number) => void;
   mortgageMonthly: number; setMortgageMonthly: (v: number) => void;
-  growthRate: number; setGrowthRate: (v: number) => void;
-  withdrawalRate: number; setWithdrawalRate: (v: number) => void;
+}) {
+  const totalLiabilities = totalDebt + mortgageBalance;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="uf-card">
+          <SectionLabel icon="💳" text="Consumer Debt" color="#DC2626" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <FieldRow label="Non-Mortgage Debt" hint="Credit cards, auto loans, student loans">
+              <NumberInput value={totalDebt} onChange={setTotalDebt} placeholder="0" />
+            </FieldRow>
+          </div>
+        </div>
+
+        <div className="uf-card">
+          <SectionLabel icon="🏠" text="Mortgage" color="#DC2626" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <FieldRow label="Mortgage Balance">
+              <NumberInput value={mortgageBalance} onChange={setMortgageBalance} placeholder="0" />
+            </FieldRow>
+            <FieldRow label="Monthly Payment">
+              <NumberInput value={mortgageMonthly} onChange={setMortgageMonthly} placeholder="0" />
+            </FieldRow>
+          </div>
+        </div>
+      </div>
+
+      {totalLiabilities > 0 && (
+        <div className="uf-card" style={{ background: "rgba(220,38,38,0.04)", border: "1px solid rgba(220,38,38,0.2)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+            {[
+              { label: "Consumer Debt",  val: fmt(totalDebt),           color: "#DC2626" },
+              { label: "Mortgage",       val: fmt(mortgageBalance),      color: "#DC2626" },
+              { label: "Total Liabilities", val: fmt(totalLiabilities), color: "#19181E" },
+            ].map(l => (
+              <div key={l.label}>
+                <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{l.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: l.color, fontFamily: "Inter, sans-serif" }}>{l.val}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Goals Tab ────────────────────────────────────────────────────────────────
+const FIRE_GOAL_OPTIONS = [
+  { id: "early-retirement", label: "Early Retirement",    icon: "🏖️", desc: "Stop working entirely and live off your portfolio" },
+  { id: "coast-fire",       label: "Coast FIRE",          icon: "🚀", desc: "Save enough now, let compound growth carry you" },
+  { id: "barista-fire",     label: "Barista FIRE",        icon: "☕", desc: "Part-time income covers expenses, portfolio grows" },
+  { id: "fat-fire",         label: "Fat FIRE",            icon: "💎", desc: "Full retirement with a luxury lifestyle buffer" },
+];
+
+function GoalsTab({ fireAge, setFireAge }: { fireAge: number; setFireAge: (v: number) => void }) {
+  const [goalId, setGoalId] = useState("early-retirement");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div className="uf-card">
+        <SectionLabel icon="🎯" text="FIRE Goal Type" color="#064E3B" />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {FIRE_GOAL_OPTIONS.map(g => (
+            <button
+              key={g.id}
+              onClick={() => setGoalId(g.id)}
+              style={{
+                background: goalId === g.id ? "rgba(6,78,59,0.06)" : "#F8FAFC",
+                border: `2px solid ${goalId === g.id ? "#047857" : "#E2E8F0"}`,
+                borderRadius: 12, padding: "16px 18px", cursor: "pointer",
+                textAlign: "left", transition: "all 0.15s",
+              }}
+            >
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{g.icon}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: goalId === g.id ? "#064E3B" : "#19181E", fontFamily: "Manrope, sans-serif" }}>{g.label}</div>
+              <div style={{ fontSize: 12, color: "#64748B", marginTop: 4, lineHeight: 1.5 }}>{g.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="uf-card">
+        <SectionLabel icon="🎂" text="Current Age" color="#064E3B" />
+        <div style={{ maxWidth: 280 }}>
+          <FieldRow label="Your current age" hint="Used to calculate your FIRE date">
+            <NumberInput value={fireAge} onChange={setFireAge} placeholder="30" prefix="🎂" />
+          </FieldRow>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Simulations Tab ──────────────────────────────────────────────────────────
+function SimulationsTab({ income, expenses, k401, rothIRA, taxable, growthRate, withdrawalRate }: {
+  income: number; expenses: Expenses; k401: number; rothIRA: number;
+  taxable: number; growthRate: number; withdrawalRate: number;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div>
+        <h2 style={{ fontFamily: "Manrope, sans-serif", fontSize: 20, fontWeight: 700, color: "#19181E", margin: "0 0 4px" }}>Monte Carlo Simulation</h2>
+        <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>10,000 randomised market scenarios to estimate your probability of reaching FIRE.</p>
+      </div>
+      <MonteCarloCard
+        income={income} expenses={expenses}
+        k401={k401} rothIRA={rothIRA} taxable={taxable}
+        growthRate={growthRate} withdrawalRate={withdrawalRate}
+      />
+    </div>
+  );
+}
+
+// ─── Trends Tab ───────────────────────────────────────────────────────────────
+function TrendsTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate }: {
+  income: number; expenses: Expenses; k401: number; rothIRA: number;
+  taxable: number; totalDebt: number; mortgageBalance: number;
+  mortgageMonthly: number; growthRate: number; withdrawalRate: number;
 }) {
   const [chartTab, setChartTab] = useState<"growth" | "accounts" | "networth">("growth");
 
@@ -729,20 +1028,15 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
     .filter(([k]) => !k.startsWith("_"))
     .reduce((s, [, v]) => s + (v || 0), 0);
 
-  const { data, fireYear, fireTarget, annualSavings } = useMemo(() => calcProjection({
+  const { data, fireYear } = useMemo(() => calcProjection({
     annualIncome: income * 12, monthlyExpenses,
     k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly,
     growthRate, withdrawalRate,
   }), [income, monthlyExpenses, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
 
-  const investable  = k401 + rothIRA + taxable;
-  const netWorth    = investable - totalDebt - mortgageBalance;
-  const savingsRate = income > 0 ? (annualSavings / 12 / income) * 100 : 0;
-  const progress    = fireTarget > 0 ? Math.min(100, (investable / fireTarget) * 100) : 0;
-  const retireAge   = fireAge + (fireYear ?? 0);
-  const chartData   = data.slice(0, Math.min(data.length, (fireYear ?? 30) + 7));
+  const chartData = data.slice(0, Math.min(data.length, (fireYear ?? 30) + 7));
 
-  function TabBtn({ id, label }: { id: "growth" | "accounts" | "networth"; label: string }) {
+  function ChartTabBtn({ id, label }: { id: "growth" | "accounts" | "networth"; label: string }) {
     return (
       <button onClick={() => setChartTab(id)} style={{
         background: chartTab === id ? "#064E3B" : "transparent",
@@ -758,134 +1052,25 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-      {/* Input panels */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-
-        {/* Income & Spending */}
-        <div className="uf-card">
-          <SectionLabel icon="💰" text="Income & Spending" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <FieldRow label="Monthly Income (take-home)" hint="Auto-filled from Budget tab">
-              <NumberInput value={income} onChange={() => {}} placeholder="5000" />
-            </FieldRow>
-            <FieldRow label="Monthly Expenses" hint="Auto-filled from Budget tab">
-              <NumberInput value={monthlyExpenses} onChange={() => {}} placeholder="3000" />
-            </FieldRow>
-            <FieldRow label="Current Age">
-              <NumberInput value={fireAge} onChange={setFireAge} placeholder="30" prefix="🎂" />
-            </FieldRow>
-          </div>
-        </div>
-
-        {/* Investment Accounts */}
-        <div className="uf-card">
-          <SectionLabel icon="📈" text="Investment Accounts" color="#059669" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <FieldRow label="401(k) Balance">
-              <NumberInput value={k401} onChange={setK401} placeholder="0" />
-            </FieldRow>
-            <FieldRow label="Roth IRA Balance">
-              <NumberInput value={rothIRA} onChange={setRothIRA} placeholder="0" />
-            </FieldRow>
-            <FieldRow label="Taxable Brokerage">
-              <NumberInput value={taxable} onChange={setTaxable} placeholder="0" />
-            </FieldRow>
-          </div>
-        </div>
-
-        {/* Debt + Assumptions */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="uf-card">
-            <SectionLabel icon="🔻" text="Debt" color="#DC2626" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <FieldRow label="Non-Mortgage Debt" hint="Credit cards, loans, auto">
-                <NumberInput value={totalDebt} onChange={setTotalDebt} placeholder="0" />
-              </FieldRow>
-              <FieldRow label="Mortgage Balance">
-                <NumberInput value={mortgageBalance} onChange={setMortgageBalance} placeholder="0" />
-              </FieldRow>
-              <FieldRow label="Monthly Mortgage Payment">
-                <NumberInput value={mortgageMonthly} onChange={setMortgageMonthly} placeholder="0" />
-              </FieldRow>
-            </div>
-          </div>
-
-          <div className="uf-card">
-            <SectionLabel icon="⚙️" text="Assumptions" color="#64748B" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: "#64748B", fontFamily: "Inter, sans-serif", textTransform: "uppercase", letterSpacing: "0.08em" }}>Annual Return</span>
-                  <span style={{ fontSize: 12, color: "#064E3B", fontFamily: "Inter, sans-serif" }}>{(growthRate * 100).toFixed(1)}%</span>
-                </div>
-                <input type="range" min={0.03} max={0.12} step={0.001} value={growthRate}
-                  onChange={e => setGrowthRate(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#064E3B", cursor: "pointer" }} />
-              </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: "#64748B", fontFamily: "Inter, sans-serif", textTransform: "uppercase", letterSpacing: "0.08em" }}>Withdrawal Rate</span>
-                  <span style={{ fontSize: 12, color: "#064E3B", fontFamily: "Inter, sans-serif" }}>{(withdrawalRate * 100).toFixed(1)}%</span>
-                </div>
-                <input type="range" min={0.03} max={0.06} step={0.001} value={withdrawalRate}
-                  onChange={e => setWithdrawalRate(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#064E3B", cursor: "pointer" }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
-        {[
-          { label: "FIRE Date",     val: fireYear ? `${fireYear} yrs` : "50+ yrs",      color: "#059669", sub: fireYear ? `Age ${retireAge}` : "" },
-          { label: "FIRE Target",   val: fmt(fireTarget, true),                          color: "#19181E", sub: `${(withdrawalRate*100).toFixed(0)}% rule` },
-          { label: "Net Worth",     val: fmt(netWorth, true),                            color: netWorth >= 0 ? "#059669" : "#DC2626", sub: "Assets – debt" },
-          { label: "Investable",    val: fmt(investable, true),                          color: "#059669", sub: "All accounts" },
-          { label: "Annual Savings",val: fmt(annualSavings),                             color: annualSavings > 0 ? "#19181E" : "#DC2626", sub: `${savingsRate.toFixed(0)}% rate` },
-          { label: "Progress",      val: `${progress.toFixed(0)}%`,                      color: progress >= 75 ? "#059669" : progress >= 40 ? "#20D4BF" : "#19181E", sub: "To FIRE" },
-        ].map(k => (
-          <div key={k.label} className="uf-card" style={{ padding: "14px 16px" }}>
-            <div style={{ fontSize: 10, color: "#64748B", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "Inter, sans-serif", marginBottom: 6 }}>{k.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: "Inter, sans-serif" }}>{k.val}</div>
-            {k.sub && <div style={{ fontSize: 11, color: "#64748B", marginTop: 3 }}>{k.sub}</div>}
-          </div>
-        ))}
-      </div>
-
-      {/* Progress bar */}
-      <div className="uf-card" style={{ padding: "16px 22px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Investable Assets → FIRE Target</span>
-          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#059669" }}>{progress.toFixed(1)}%</span>
-        </div>
-        <div style={{ height: 8, background: "#E2E8F0", borderRadius: 99, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #059669, #20D4BF)", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
-        </div>
-      </div>
-
-      {/* Charts */}
       <div className="uf-card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontFamily: "Manrope, sans-serif", fontWeight: 700, fontSize: 15 }}>Wealth Projection</span>
           <div style={{ display: "flex", gap: 6 }}>
-            <TabBtn id="growth" label="Growth" />
-            <TabBtn id="accounts" label="Accounts" />
-            <TabBtn id="networth" label="Net Worth" />
+            <ChartTabBtn id="growth" label="Growth" />
+            <ChartTabBtn id="accounts" label="Accounts" />
+            <ChartTabBtn id="networth" label="Net Worth" />
           </div>
         </div>
 
         {chartTab === "growth" && (
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
-                <linearGradient id="gI2" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="gI3" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#059669" stopOpacity={0.3} />
                   <stop offset="100%" stopColor="#059669" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="gT2" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="gT3" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#064E3B" stopOpacity={0.12} />
                   <stop offset="100%" stopColor="#064E3B" stopOpacity={0} />
                 </linearGradient>
@@ -895,17 +1080,17 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
               <YAxis tickFormatter={v => fmt(v, true)} tick={{ fill: "#64748B", fontSize: 10, fontFamily: "Inter" }} axisLine={false} tickLine={false} width={58} />
               <Tooltip content={<ChartTooltip />} />
               {fireYear && <ReferenceLine x={fireYear} stroke="#064E3B" strokeDasharray="4 3" label={{ value: "🔥 FIRE", fill: "#064E3B", fontSize: 10, fontFamily: "Inter" }} />}
-              <Area type="monotone" dataKey="FIRE Target" stroke="#064E3B" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gT2)" dot={false} />
-              <Area type="monotone" dataKey="Investable" stroke="#059669" strokeWidth={2.5} fill="url(#gI2)" dot={false} />
+              <Area type="monotone" dataKey="FIRE Target" stroke="#064E3B" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gT3)" dot={false} />
+              <Area type="monotone" dataKey="Investable" stroke="#059669" strokeWidth={2.5} fill="url(#gI3)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         )}
 
         {chartTab === "accounts" && (
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
-                {[["g401c","#059669"],["gRothc","#20D4BF"],["gTaxc","#047857"]].map(([id, c]) => (
+                {[["g401d","#059669"],["gRothd","#20D4BF"],["gTaxd","#047857"]].map(([id, c]) => (
                   <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={c} stopOpacity={0.45} />
                     <stop offset="100%" stopColor={c} stopOpacity={0.04} />
@@ -918,15 +1103,15 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
               <Tooltip content={<ChartTooltip />} />
               <Legend wrapperStyle={{ fontSize: 11, fontFamily: "Inter", color: "#64748B", paddingTop: 10 }} />
               {fireYear && <ReferenceLine x={fireYear} stroke="#064E3B" strokeDasharray="4 3" />}
-              <Area type="monotone" dataKey="401(k)" stroke="#059669" strokeWidth={2} fill="url(#g401c)" dot={false} stackId="a" />
-              <Area type="monotone" dataKey="Roth IRA" stroke="#20D4BF" strokeWidth={2} fill="url(#gRothc)" dot={false} stackId="a" />
-              <Area type="monotone" dataKey="Taxable" stroke="#047857" strokeWidth={2} fill="url(#gTaxc)" dot={false} stackId="a" />
+              <Area type="monotone" dataKey="401(k)" stroke="#059669" strokeWidth={2} fill="url(#g401d)" dot={false} stackId="a" />
+              <Area type="monotone" dataKey="Roth IRA" stroke="#20D4BF" strokeWidth={2} fill="url(#gRothd)" dot={false} stackId="a" />
+              <Area type="monotone" dataKey="Taxable" stroke="#047857" strokeWidth={2} fill="url(#gTaxd)" dot={false} stackId="a" />
             </AreaChart>
           </ResponsiveContainer>
         )}
 
         {chartTab === "networth" && (
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} tick={{ fill: "#64748B", fontSize: 10, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
@@ -950,34 +1135,48 @@ function FIRETab({ income, expenses, fireAge, setFireAge, k401, setK401, rothIRA
   );
 }
 
-// ─── User Nav ─────────────────────────────────────────────────────────────────
-function UserNav() {
-  const [email, setEmail] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setEmail(user?.email ?? null));
-  }, []);
-  const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = "/"; };
-
-  if (!email) return (
-    <Link href="/login" style={{ background: "#064E3B", color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Sign In</Link>
-  );
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <span style={{ color: "#64748B", fontSize: 13 }}>{email}</span>
-      <button onClick={handleSignOut} style={{ background: "transparent", color: "#064E3B", border: "1px solid #064E3B", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Sign Out</button>
-    </div>
-  );
-}
+// ─── Sidebar groups definition ────────────────────────────────────────────────
+const SIDEBAR_GROUPS: { label: string; items: { key: TabKey; label: string; icon: string }[] }[] = [
+  {
+    label: "Portfolio",
+    items: [
+      { key: "portfolio-overview",     label: "Overview",    icon: "◉" },
+      { key: "portfolio-assets",       label: "Assets",      icon: "◈" },
+      { key: "portfolio-liabilities",  label: "Liabilities", icon: "◎" },
+    ],
+  },
+  {
+    label: "Plan",
+    items: [
+      { key: "plan-goals",       label: "Goals",       icon: "◐" },
+      { key: "plan-simulations", label: "Simulations", icon: "⟳" },
+      { key: "plan-calculators", label: "Calculators", icon: "◑" },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      { key: "insights-spending",  label: "Spending",  icon: "◆" },
+      { key: "insights-overview",  label: "Overview",  icon: "≡" },
+      { key: "insights-trends",    label: "Trends",    icon: "∿" },
+    ],
+  },
+];
 
 // ─── Root ────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [tab, setTab] = useState<TabKey>("dashboard");
+  const [tab, setTab] = useState<TabKey>("insights-overview");
 
-  // Read initial tab from URL query string (e.g. ?tab=budget)
+  // Read initial tab from URL query string (e.g. ?tab=insights-spending)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab") as TabKey | null;
-    if (t && ["dashboard", "calculators", "budget"].includes(t)) setTab(t);
+    const valid: TabKey[] = [
+      "portfolio-overview", "portfolio-assets", "portfolio-liabilities",
+      "plan-goals", "plan-simulations", "plan-calculators",
+      "insights-spending", "insights-overview", "insights-trends",
+    ];
+    if (t && valid.includes(t)) setTab(t);
   }, []);
 
   // Budget state
@@ -1070,12 +1269,6 @@ export default function Dashboard() {
     }, 1000);
   }, [income, expenses, fireAge, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate]);
 
-  const navTabs: { key: TabKey; label: string }[] = [
-    { key: "dashboard",   label: "Overview" },
-    { key: "calculators", label: "Calculator Hub" },
-    { key: "budget",      label: "Budget & Transactions" },
-  ];
-
   return (
     <>
       <style>{`
@@ -1092,57 +1285,131 @@ export default function Dashboard() {
         .uf-card-glow { box-shadow: 0 0 0 1px rgba(6,78,59,0.3), 0 0 24px rgba(6,78,59,0.08); border-color: rgba(6,78,59,0.35) !important; }
         .uf-tag { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
-        .uf-nav { position: sticky; top: 0; z-index: 100; height: 60px; background: rgba(247,249,251,0.97); backdrop-filter: blur(16px); border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; gap: 20px; }
-        .uf-logo { font-family: 'Manrope', sans-serif; font-size: 20px; font-weight: 800; color: #064E3B; text-decoration: none; letter-spacing: -0.04em; flex-shrink: 0; }
-        .uf-logo span { color: #20D4BF; }
+        .uf-shell { display: flex; min-height: 100vh; }
+        .uf-sidebar { width: 248px; min-height: 100vh; position: sticky; top: 0; height: 100vh; overflow-y: auto; background: #F8FAFC; border-right: 1px solid #E2E8F0; display: flex; flex-direction: column; flex-shrink: 0; }
+        .uf-main { flex: 1; overflow-y: auto; min-width: 0; }
+        .uf-content { max-width: 1060px; margin: 0 auto; padding: 32px 36px 60px; }
 
-        .uf-tabs { display: flex; gap: 3px; background: #E2E8F0; border-radius: 10px; padding: 4px; }
-        .uf-tab { background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 7px 18px; font-size: 13px; font-weight: 500; color: #64748B; cursor: pointer; transition: all 0.2s; font-family: 'Manrope', sans-serif; white-space: nowrap; }
-        .uf-tab:hover { color: #475569; }
-        .uf-tab.active { background: #ffffff; border-color: #E2E8F0; color: #19181E; font-weight: 600; }
+        .uf-sidebar-logo { padding: 22px 20px 14px; font-family: 'Manrope', sans-serif; font-size: 18px; font-weight: 800; color: #064E3B; letter-spacing: -0.04em; text-decoration: none; display: block; border-bottom: 1px solid #E2E8F0; }
+        .uf-sidebar-logo span { color: #20D4BF; }
+        .uf-sidebar-group { padding: 18px 10px 4px; }
+        .uf-sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #94A3B8; padding: 0 10px 6px; }
+        .uf-sidebar-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; margin-bottom: 2px; background: transparent; width: 100%; text-align: left; font-family: 'Manrope', sans-serif; }
+        .uf-sidebar-item:hover { background: rgba(209,250,229,0.3); color: #1E3A2F; }
+        .uf-sidebar-item.active { background: rgba(209,250,229,0.5); border-color: #047857; color: #065F46; font-weight: 600; }
+        .uf-sidebar-item.active .uf-sidebar-icon { color: #059669; }
+        .uf-sidebar-icon { font-size: 13px; width: 16px; text-align: center; color: #94A3B8; flex-shrink: 0; }
+        .uf-sidebar-bottom { margin-top: auto; padding: 14px 16px; border-top: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 8px; }
 
-        .uf-content { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
         select option { background: #ffffff; }
 
         @media(max-width: 900px) {
-          .uf-nav { padding: 0 16px; }
-          .uf-content { padding: 20px 16px 48px; }
-          .uf-tab { padding: 6px 12px; font-size: 12px; }
+          .uf-sidebar { width: 196px; }
+          .uf-content { padding: 20px 20px 48px; }
+        }
+        @media(max-width: 640px) {
+          .uf-shell { flex-direction: column; }
+          .uf-sidebar { width: 100%; min-height: unset; height: auto; position: static; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid #E2E8F0; }
+          .uf-sidebar-group { display: flex; flex-direction: row; padding: 8px 8px 8px; gap: 4px; }
+          .uf-sidebar-group-label { display: none; }
+          .uf-content { padding: 16px 14px 48px; }
         }
       `}</style>
 
-      <nav className="uf-nav">
-        <Link href="/" className="uf-logo">Until<span>Fire</span></Link>
-        <div className="uf-tabs">
-          {navTabs.map(t => (
-            <button key={t.key} className={`uf-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          {saveStatus === "saving" && <span style={{ color: "#64748B", fontSize: 12, fontFamily: "Inter, sans-serif" }}>Saving…</span>}
-          {saveStatus === "saved"  && <span style={{ color: "#059669", fontSize: 12, fontFamily: "Inter, sans-serif" }}>✓ Saved</span>}
-          <UserNav />
-        </div>
-      </nav>
+      <div className="uf-shell">
+        {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+        <aside className="uf-sidebar">
+          <Link href="/" className="uf-sidebar-logo">Until<span>Fire</span></Link>
 
-      <div className="uf-content">
-        {tab === "dashboard" && (
-          <DashTab
-            income={income} expenses={expenses}
-            k401={k401} rothIRA={rothIRA} taxable={taxable}
-            totalDebt={totalDebt} mortgageBalance={mortgageBalance}
-            mortgageMonthly={mortgageMonthly} growthRate={growthRate}
-            withdrawalRate={withdrawalRate}
-          />
-        )}
-        {tab === "calculators" && <CalculatorsTab />}
-        {tab === "budget" && (
-          <>
-            <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
-            <div style={{ borderTop: "1px solid #e8e8f0", margin: "32px 0" }} />
-            <TransactionsTab />
-          </>
-        )}
+          {SIDEBAR_GROUPS.map(group => (
+            <div key={group.label} className="uf-sidebar-group">
+              <div className="uf-sidebar-group-label">{group.label}</div>
+              {group.items.map(item => (
+                <button
+                  key={item.key}
+                  className={`uf-sidebar-item ${tab === item.key ? "active" : ""}`}
+                  onClick={() => setTab(item.key)}
+                >
+                  <span className="uf-sidebar-icon">{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ))}
+
+          <div className="uf-sidebar-bottom">
+            {saveStatus === "saving" && <span style={{ color: "#64748B", fontSize: 12, fontFamily: "Inter, sans-serif" }}>Saving…</span>}
+            {saveStatus === "saved"  && <span style={{ color: "#059669", fontSize: 12, fontFamily: "Inter, sans-serif" }}>✓ Saved</span>}
+            <UserNav />
+          </div>
+        </aside>
+
+        {/* ── Main content ─────────────────────────────────────────────────── */}
+        <main className="uf-main">
+          <div className="uf-content">
+            {tab === "portfolio-overview" && (
+              <PortfolioOverviewTab
+                income={income} expenses={expenses}
+                k401={k401} rothIRA={rothIRA} taxable={taxable}
+                totalDebt={totalDebt} mortgageBalance={mortgageBalance}
+                mortgageMonthly={mortgageMonthly} growthRate={growthRate}
+                withdrawalRate={withdrawalRate}
+              />
+            )}
+            {tab === "portfolio-assets" && (
+              <AssetsTab
+                k401={k401} setK401={setK401}
+                rothIRA={rothIRA} setRothIRA={setRothIRA}
+                taxable={taxable} setTaxable={setTaxable}
+                growthRate={growthRate} setGrowthRate={setGrowthRate}
+                withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
+              />
+            )}
+            {tab === "portfolio-liabilities" && (
+              <LiabilitiesTab
+                totalDebt={totalDebt} setTotalDebt={setTotalDebt}
+                mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
+                mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
+              />
+            )}
+            {tab === "plan-goals" && (
+              <GoalsTab fireAge={fireAge} setFireAge={setFireAge} />
+            )}
+            {tab === "plan-simulations" && (
+              <SimulationsTab
+                income={income} expenses={expenses}
+                k401={k401} rothIRA={rothIRA} taxable={taxable}
+                growthRate={growthRate} withdrawalRate={withdrawalRate}
+              />
+            )}
+            {tab === "plan-calculators" && <CalculatorsTab />}
+            {tab === "insights-spending" && (
+              <>
+                <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
+                <div style={{ borderTop: "1px solid #E2E8F0", margin: "32px 0" }} />
+                <TransactionsTab />
+              </>
+            )}
+            {tab === "insights-overview" && (
+              <DashTab
+                income={income} expenses={expenses}
+                k401={k401} rothIRA={rothIRA} taxable={taxable}
+                totalDebt={totalDebt} mortgageBalance={mortgageBalance}
+                mortgageMonthly={mortgageMonthly} growthRate={growthRate}
+                withdrawalRate={withdrawalRate}
+              />
+            )}
+            {tab === "insights-trends" && (
+              <TrendsTab
+                income={income} expenses={expenses}
+                k401={k401} rothIRA={rothIRA} taxable={taxable}
+                totalDebt={totalDebt} mortgageBalance={mortgageBalance}
+                mortgageMonthly={mortgageMonthly} growthRate={growthRate}
+                withdrawalRate={withdrawalRate}
+              />
+            )}
+          </div>
+        </main>
       </div>
     </>
   );
