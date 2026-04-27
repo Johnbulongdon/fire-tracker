@@ -50,8 +50,8 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "radial-gradient(circle at top, rgba(249,115,22,0.10), transparent 32%), #08080e",
-    color: "#e8e8f2",
+      "radial-gradient(circle at top, rgba(22,163,74,0.08), transparent 30%), #f8fafc",
+    color: "#111827",
   } as const,
   container: {
     maxWidth: "840px",
@@ -68,27 +68,27 @@ const styles = {
   brand: {
     fontSize: "24px",
     fontWeight: 800,
-    color: "#e8e8f2",
+    color: "#111827",
     textDecoration: "none",
     letterSpacing: "-0.04em",
   } as const,
   brandAccent: {
-    color: "#f97316",
+    color: "#16a34a",
   } as const,
   navLink: {
-    color: "#9090a8",
+    color: "#64748b",
     textDecoration: "none",
     fontSize: "14px",
-    border: "1px solid #1c1c2e",
+    border: "1px solid #dbe4dd",
     borderRadius: "999px",
     padding: "10px 16px",
-    background: "#0d0d16",
+    background: "#ffffff",
   } as const,
   metaRow: {
     display: "flex",
     gap: "12px",
     flexWrap: "wrap" as const,
-    color: "#81819a",
+    color: "#64748b",
     fontSize: "12px",
     letterSpacing: "0.08em",
     textTransform: "uppercase" as const,
@@ -103,7 +103,7 @@ const styles = {
   intro: {
     fontSize: "19px",
     lineHeight: 1.7,
-    color: "#b9b9ca",
+    color: "#475569",
     marginTop: "20px",
   } as const,
   article: {
@@ -113,10 +113,11 @@ const styles = {
     gap: "28px",
   },
   section: {
-    background: "#12121d",
-    border: "1px solid #1c1c2e",
+    background: "#ffffff",
+    border: "1px solid #dbe4dd",
     borderRadius: "18px",
     padding: "26px 24px",
+    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.06)",
   } as const,
   heading: {
     margin: "0 0 14px",
@@ -125,13 +126,13 @@ const styles = {
     letterSpacing: "-0.04em",
   } as const,
   paragraph: {
-    color: "#b0b0c2",
+    color: "#475569",
     fontSize: "17px",
     lineHeight: 1.8,
     margin: "0 0 14px",
   } as const,
   list: {
-    color: "#b0b0c2",
+    color: "#475569",
     paddingLeft: "20px",
     margin: "8px 0 0",
     lineHeight: 1.8,
