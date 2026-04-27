@@ -5,7 +5,13 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard', '/transactions'],
+      disallow: [
+        '/dashboard',
+        '/transactions',
+        '/expenses',
+        '/debug',
+        '/auth/',
+      ],
     },
     sitemap: 'https://untilfire.com/sitemap.xml',
   }
