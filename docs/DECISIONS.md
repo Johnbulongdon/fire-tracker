@@ -138,3 +138,21 @@ Last updated: March 2026
 - Vercel Analytics already integrated
 
 **Trade-off**: Vercel Hobby plan doesn't support collaboration from non-owner GitHub committers. Solution: all commits must use the `Johnbulongdon` GitHub identity (`126181192+Johnbulongdon@users.noreply.github.com`).
+
+---
+
+### [2026-04] `origin/main` is the canonical implementation baseline
+**Decision**: For future work, the latest pushed GitHub version on `origin/main` is the default baseline. Local unpushed workspace changes are not baseline by default.
+
+**Rationale**:
+- The product is edited from multiple machines, so local workspace state on one machine is not a reliable source of truth
+- Vercel auto-deploys from GitHub, which means pushed remote state is the most consistent cross-machine implementation reference
+- Using local history as the baseline caused design regressions by reviving an older dark/orange branch that did not match the intended pushed state
+
+**Trade-off**: A local machine may contain newer exploratory work that is intentionally not yet pushed. In those cases, the user must explicitly state that local work should override the remote baseline.
+
+**Operational rule**:
+- fetch `origin/main` before starting
+- compare local workspace drift against `origin/main`
+- reason from `origin/main` unless the user explicitly names another base
+- treat deployment/build IDs such as `6Tb7dySgE` as deployment references unless verified as git revisions

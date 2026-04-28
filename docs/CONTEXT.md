@@ -116,6 +116,15 @@ It is free to use with no login required for the core calculator. A paid tier ($
 
 ---
 
+## Repo Workflow Rule
+
+- **Canonical baseline:** latest pushed GitHub `origin/main`
+- **Local unpushed changes:** preserve them, but do not treat them as baseline by default
+- **Live Vercel:** verification target for UI work, not the primary implementation baseline unless explicitly requested
+- **Deployment/build IDs:** treat identifiers such as `6Tb7dySgE` as deployment references unless confirmed to be git revisions
+
+---
+
 ## Links to Other Docs
 
 - [PRD.md](./PRD.md) — full product requirements
