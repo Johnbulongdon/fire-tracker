@@ -34,63 +34,72 @@ export default async function SharePage({ searchParams }: Props) {
   const yearsNum = parseInt(years, 10) || 0
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#08080e',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'sans-serif',
-        padding: '40px 24px',
-        color: '#e8e8f2',
-      }}
-    >
+    <main style={{
+      minHeight: '100vh',
+      background: '#F7F9FB',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: "'Manrope', sans-serif",
+      padding: '40px 24px',
+      color: '#19181E',
+    }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500&display=swap');`}</style>
+
       <div style={{ maxWidth: 520, width: '100%', textAlign: 'center' }}>
         {/* Logo */}
-        <div style={{ marginBottom: 48, fontSize: 20, fontWeight: 800, letterSpacing: '-1px' }}>
-          <span style={{ color: '#e8e8f2' }}>Until</span>
-          <span style={{ color: '#f97316' }}>Fire</span>
+        <div style={{ marginBottom: 56, fontSize: 20, fontWeight: 800, letterSpacing: '-0.04em', color: '#064E3B' }}>
+          Until<span style={{ color: '#20D4BF' }}>Fire</span>
         </div>
 
-        {/* City label */}
-        <p style={{ fontSize: 14, color: '#9090a8', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>
-          Retire in
-        </p>
-        <h1 style={{ fontSize: 48, fontWeight: 800, margin: '0 0 4px', color: '#e8e8f2' }}>
-          {safeCity}
-        </h1>
-        <p style={{ fontSize: 64, fontWeight: 800, color: '#f97316', margin: '0 0 12px', letterSpacing: '-2px' }}>
-          by {year}
-        </p>
-        <p style={{ fontSize: 18, color: '#9090a8', margin: '0 0 48px' }}>
-          {yearsNum > 0 ? `${yearsNum} years away` : ''} · based on a typical income
-        </p>
+        {/* Card */}
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #E2E8F0',
+          borderRadius: 20,
+          padding: '40px 32px 36px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06)',
+          marginBottom: 32,
+        }}>
+          <p style={{ fontSize: 13, color: '#64748B', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 6px', fontFamily: "'Inter', sans-serif" }}>
+            Retire in
+          </p>
+          <h1 style={{ fontSize: 40, fontWeight: 800, margin: '0 0 4px', color: '#064E3B', letterSpacing: '-0.02em' }}>
+            {safeCity}
+          </h1>
+          <p style={{ fontSize: 56, fontWeight: 800, color: '#059669', margin: '0 0 10px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+            by {year}
+          </p>
+          {yearsNum > 0 && (
+            <p style={{ fontSize: 16, color: '#64748B', margin: '0 0 0', fontFamily: "'Inter', sans-serif" }}>
+              {yearsNum} years away · based on a typical income
+            </p>
+          )}
+        </div>
 
         {/* Divider */}
-        <div style={{ height: 1, background: '#1e1e2e', marginBottom: 40 }} />
-
-        {/* CTA */}
-        <p style={{ fontSize: 18, color: '#9090a8', marginBottom: 24 }}>
+        <p style={{ fontSize: 16, color: '#64748B', marginBottom: 20 }}>
           What does your city look like?
         </p>
+
         <Link
           href="/"
           style={{
             display: 'inline-block',
-            background: '#f97316',
-            color: '#fff',
+            background: '#059669',
+            color: '#ffffff',
             fontWeight: 700,
-            fontSize: 18,
+            fontSize: 16,
             padding: '14px 36px',
-            borderRadius: 8,
+            borderRadius: 10,
             textDecoration: 'none',
+            letterSpacing: '-0.01em',
           }}
         >
           Calculate yours — free →
         </Link>
-        <p style={{ fontSize: 13, color: '#5e5e7a', marginTop: 16 }}>
+        <p style={{ fontSize: 13, color: '#94A3B8', marginTop: 14, fontFamily: "'Inter', sans-serif" }}>
           No login required. Takes 60 seconds.
         </p>
       </div>

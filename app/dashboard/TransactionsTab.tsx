@@ -164,7 +164,7 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
     <div className="uf-card" style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ fontWeight: 700, fontSize: 16 }}>➕ Add Transaction</div>
-        <div style={{ display: "flex", background: "#e8e8f0", borderRadius: 8, padding: 3, gap: 2 }}>
+        <div style={{ display: "flex", background: "#E2E8F0", borderRadius: 8, padding: 3, gap: 2 }}>
           {(["expense", "income"] as const).map((t) => (
             <button
               key={t}
@@ -173,14 +173,14 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
                 background:
                   transactionType === t
                     ? t === "income"
-                      ? "rgba(34,211,165,0.15)"
-                      : "rgba(239,68,68,0.12)"
+                      ? "rgba(5,150,105,0.12)"
+                      : "rgba(239,68,68,0.10)"
                     : "transparent",
                 border:
                   transactionType === t
-                    ? `1px solid ${t === "income" ? "rgba(34,211,165,0.3)" : "rgba(239,68,68,0.25)"}`
+                    ? `1px solid ${t === "income" ? "rgba(5,150,105,0.3)" : "rgba(239,68,68,0.25)"}`
                     : "1px solid transparent",
-                color: transactionType === t ? (t === "income" ? "#22d3a5" : "#ef4444") : "#9090a8",
+                color: transactionType === t ? (t === "income" ? "#059669" : "#ef4444") : "#94A3B8",
                 borderRadius: 6,
                 padding: "5px 14px",
                 fontSize: 13,
@@ -197,30 +197,30 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div>
-          <div style={{ color: "#9090a8", fontSize: 12, marginBottom: 6 }}>Date</div>
+          <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 6 }}>Date</div>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            style={{ width: "100%", background: "#f9f9fb", border: "1px solid #e8e8f0", borderRadius: 8, padding: "8px 12px", color: "#1a1a2e", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+            style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", color: "#19181E", fontSize: 14, outline: "none", fontFamily: "inherit" }}
           />
         </div>
         <div>
-          <div style={{ color: "#9090a8", fontSize: 12, marginBottom: 6 }}>Amount</div>
+          <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 6 }}>Amount</div>
           <input
             type="number"
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            style={{ width: "100%", background: "#f9f9fb", border: "1px solid #e8e8f0", borderRadius: 8, padding: "8px 12px", color: "#1a1a2e", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }}
+            style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", color: "#19181E", fontSize: 14, outline: "none", fontFamily: "'Inter', sans-serif" }}
           />
         </div>
         <div>
-          <div style={{ color: "#9090a8", fontSize: 12, marginBottom: 6 }}>Currency</div>
+          <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 6 }}>Currency</div>
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            style={{ width: "100%", background: "#f9f9fb", border: "1px solid #e8e8f0", borderRadius: 8, padding: "8px 12px", color: "#1a1a2e", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+            style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", color: "#19181E", fontSize: 14, outline: "none", fontFamily: "inherit" }}
           >
             {CURRENCIES.map((c) => (
               <option key={c} value={c}>
@@ -232,10 +232,10 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
       </div>
 
       <div style={{ marginBottom: 12 }}>
-        <div style={{ color: "#9090a8", fontSize: 12, marginBottom: 6 }}>
+        <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 6 }}>
           Description
-          {categorizing && <span style={{ color: "#f97316", marginLeft: 8, fontSize: 11 }}>✨ AI categorizing...</span>}
-          {aiUsed && !categorizing && <span style={{ color: "#22d3a5", marginLeft: 8, fontSize: 11 }}>✨ AI categorized</span>}
+          {categorizing && <span style={{ color: "#059669", marginLeft: 8, fontSize: 11 }}>✨ AI categorizing...</span>}
+          {aiUsed && !categorizing && <span style={{ color: "#059669", marginLeft: 8, fontSize: 11 }}>✨ AI categorized</span>}
         </div>
         <input
           type="text"
@@ -243,17 +243,17 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
           value={description}
           onChange={(e) => { setDescription(e.target.value); setAiUsed(false); setCategory(""); }}
           onBlur={handleDescriptionBlur}
-          style={{ width: "100%", background: "#f9f9fb", border: "1px solid #e8e8f0", borderRadius: 8, padding: "10px 12px", color: "#1a1a2e", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+          style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 12px", color: "#19181E", fontSize: 14, outline: "none", fontFamily: "inherit" }}
         />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
         <div>
-          <div style={{ color: "#9090a8", fontSize: 12, marginBottom: 6 }}>Category</div>
+          <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 6 }}>Category</div>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            style={{ width: "100%", background: "#f9f9fb", border: `1px solid ${catInfo ? catInfo.color + "66" : "#e8e8f0"}`, borderRadius: 8, padding: "8px 12px", color: catInfo ? catInfo.color : "#1a1a2e", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+            style={{ width: "100%", background: "#F8FAFC", border: `1px solid ${catInfo ? catInfo.color + "66" : "#E2E8F0"}`, borderRadius: 8, padding: "8px 12px", color: catInfo ? catInfo.color : "#19181E", fontSize: 14, outline: "none", fontFamily: "inherit" }}
           >
             <option value="">Select category...</option>
             {categories.map((c) => (
@@ -264,13 +264,13 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
           </select>
         </div>
         <div>
-          <div style={{ color: "#9090a8", fontSize: 12, marginBottom: 6 }}>Tags</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minHeight: 38, alignItems: "center", background: "#f9f9fb", border: "1px solid #e8e8f0", borderRadius: 8, padding: "6px 12px" }}>
+          <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 6 }}>Tags</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minHeight: 38, alignItems: "center", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "6px 12px" }}>
             {tags.length === 0 ? (
-              <span style={{ color: "#9090a8", fontSize: 13 }}>AI will suggest tags</span>
+              <span style={{ color: "#94A3B8", fontSize: 13 }}>AI will suggest tags</span>
             ) : (
               tags.map((t) => (
-                <span key={t} style={{ background: "rgba(249,115,22,0.15)", color: "#f97316", borderRadius: 4, padding: "2px 8px", fontSize: 12 }}>
+                <span key={t} style={{ background: "rgba(5,150,105,0.12)", color: "#059669", borderRadius: 4, padding: "2px 8px", fontSize: 12 }}>
                   #{t}
                 </span>
               ))
@@ -281,7 +281,7 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {!isIncome ? (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#9090a8" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: isWorkRelated ? "#6366f1" : "#94A3B8" }}>
             <input type="checkbox" checked={isWorkRelated} onChange={(e) => setIsWorkRelated(e.target.checked)} style={{ accentColor: "#6366f1" }} />
             💼 Work expense
           </label>
@@ -291,7 +291,7 @@ function AddTransactionForm({ onAdd }: { onAdd: (t: Transaction) => void }) {
         <button
           onClick={handleSubmit}
           disabled={saving || !amount || !description}
-          style={{ background: isIncome ? "#22d3a5" : "#f97316", color: isIncome ? "#0a2010" : "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Syne', sans-serif", opacity: saving || !amount || !description ? 0.5 : 1 }}
+          style={{ background: isIncome ? "#059669" : "#ef4444", color: "#fff", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Manrope', sans-serif", opacity: saving || !amount || !description ? 0.5 : 1 }}
         >
           {saving ? "Saving..." : "Add transaction →"}
         </button>
@@ -318,7 +318,7 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
       <div className="uf-card" style={{ textAlign: "center", padding: "48px 24px" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
         <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>No transactions yet</div>
-        <div style={{ color: "#9090a8", fontSize: 14 }}>Add your first transaction above — AI will categorize it automatically</div>
+        <div style={{ color: "#94A3B8", fontSize: 14 }}>Add your first transaction above — AI will categorize it automatically</div>
       </div>
     );
   }
@@ -338,10 +338,10 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{monthLabel}</div>
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                {income > 0 && <span style={{ fontFamily: "'DM Mono', monospace", color: "#22d3a5", fontSize: 13, fontWeight: 600 }}>+{fmt(income)}</span>}
-                {spent > 0 && <span style={{ fontFamily: "'DM Mono', monospace", color: "#ef4444", fontSize: 13, fontWeight: 600 }}>−{fmt(spent)}</span>}
+                {income > 0 && <span style={{ fontFamily: "'Inter', sans-serif", color: "#059669", fontSize: 13, fontWeight: 600 }}>+{fmt(income)}</span>}
+                {spent > 0 && <span style={{ fontFamily: "'Inter', sans-serif", color: "#ef4444", fontSize: 13, fontWeight: 600 }}>−{fmt(spent)}</span>}
                 {income > 0 && spent > 0 && (
-                  <span style={{ fontFamily: "'DM Mono', monospace", color: net >= 0 ? "#22d3a5" : "#ef4444", fontSize: 13, fontWeight: 700, borderLeft: "1px solid #e8e8f0", paddingLeft: 14 }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", color: net >= 0 ? "#059669" : "#ef4444", fontSize: 13, fontWeight: 700, borderLeft: "1px solid #E2E8F0", paddingLeft: 14 }}>
                     Net {net >= 0 ? "+" : "−"}{fmt(Math.abs(net))}
                   </span>
                 )}
@@ -364,18 +364,18 @@ function TransactionList({ transactions, onDelete }: { transactions: Transaction
                           <span style={{ color: cat?.color || "#6b6b85", fontSize: 11, fontWeight: 600 }}>{cat?.label || txn.category}</span>
                           {txn.is_work_related && <span style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>💼 work</span>}
                           {txn.tags?.map((t) => (
-                            <span key={t} style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>
+                            <span key={t} style={{ background: "rgba(5,150,105,0.1)", color: "#059669", borderRadius: 4, padding: "1px 6px", fontSize: 11 }}>
                               #{t}
                             </span>
                           ))}
-                          <span style={{ color: "#9090a8", fontSize: 11 }}>{new Date(txn.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                          <span style={{ color: "#94A3B8", fontSize: 11 }}>{new Date(txn.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                         </div>
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: 15, color: isIncome ? "#22d3a5" : "#1a1a2e" }}>
+                        <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: isIncome ? "#059669" : "#19181E" }}>
                           {isIncome ? "+" : ""}{fmt(txn.amount, txn.currency)}
                         </div>
-                        <button onClick={() => onDelete(txn.id)} style={{ background: "none", border: "none", color: "#9090a8", fontSize: 11, cursor: "pointer", marginTop: 4 }}>
+                        <button onClick={() => onDelete(txn.id)} style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 11, cursor: "pointer", marginTop: 4 }}>
                           delete
                         </button>
                       </div>
@@ -429,14 +429,14 @@ function MonthlySummary({
         <div style={{ display: "flex", gap: 4 }}>
           <button
             onClick={onPrevMonth}
-            style={{ background: "#e8e8f0", border: "none", color: "#1a1a2e", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
+            style={{ background: "#E2E8F0", border: "none", color: "#19181E", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
           >
             ←
           </button>
           <button
             onClick={onNextMonth}
             disabled={isCurrentMonth}
-            style={{ background: "#e8e8f0", border: "none", color: isCurrentMonth ? "#b8b8cc" : "#1a1a2e", borderRadius: 6, padding: "4px 12px", cursor: isCurrentMonth ? "default" : "pointer", fontSize: 16, lineHeight: 1 }}
+            style={{ background: "#E2E8F0", border: "none", color: isCurrentMonth ? "#b8b8cc" : "#19181E", borderRadius: 6, padding: "4px 12px", cursor: isCurrentMonth ? "default" : "pointer", fontSize: 16, lineHeight: 1 }}
           >
             →
           </button>
@@ -444,28 +444,28 @@ function MonthlySummary({
       </div>
 
       {monthTxns.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "32px 0", color: "#9090a8", fontSize: 14 }}>No transactions for this month</div>
+        <div style={{ textAlign: "center", padding: "32px 0", color: "#94A3B8", fontSize: 14 }}>No transactions for this month</div>
       ) : (
         <>
           <div style={{ display: "grid", gridTemplateColumns: workTotal > 0 ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-            <div style={{ background: "#f9f9fb", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#9090a8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Income</div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#22d3a5" }}>{fmt(incomeTotal)}</div>
+            <div style={{ background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#94A3B8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Income</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700, color: "#059669" }}>{fmt(incomeTotal)}</div>
             </div>
-            <div style={{ background: "#f9f9fb", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#9090a8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Spent</div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmt(expenseTotal)}</div>
+            <div style={{ background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#94A3B8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Spent</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700, color: "#ef4444" }}>{fmt(expenseTotal)}</div>
             </div>
-            <div style={{ background: net >= 0 ? "rgba(34,211,165,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${net >= 0 ? "rgba(34,211,165,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ color: "#9090a8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net</div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: net >= 0 ? "#22d3a5" : "#ef4444" }}>
+            <div style={{ background: net >= 0 ? "rgba(5,150,105,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${net >= 0 ? "rgba(5,150,105,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ color: "#94A3B8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Net</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700, color: net >= 0 ? "#059669" : "#ef4444" }}>
                 {net >= 0 ? "+" : "−"}{fmt(Math.abs(net))}
               </div>
             </div>
             {workTotal > 0 && (
               <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "14px 16px" }}>
                 <div style={{ color: "#6366f1", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💼 Work</div>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 700, color: "#6366f1" }}>{fmt(workTotal)}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700, color: "#6366f1" }}>{fmt(workTotal)}</div>
               </div>
             )}
           </div>
@@ -481,8 +481,8 @@ function MonthlySummary({
                       ))}
                     </Pie>
                     <ChartTooltip
-                      formatter={(v: number) => [fmt(v), ""]}
-                      contentStyle={{ background: "#ffffff", border: "1px solid #e8e8f0", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
+                      formatter={(v) => [fmt(Number(v)), ""]}
+                      contentStyle={{ background: "#ffffff", border: "1px solid #E2E8F0", borderRadius: 8, fontFamily: "Inter, sans-serif", fontSize: 12 }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -496,16 +496,16 @@ function MonthlySummary({
                     <div key={cat.key}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
                         <span style={{ color: "#6b6b85" }}>{cat.label}</span>
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 600, color: over ? "#ef4444" : cat.color }}>
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: over ? "#ef4444" : cat.color }}>
                           {fmt(cat.total)}
                           {budget > 0 ? (
-                            <span style={{ color: "#9090a8", fontWeight: 400 }}> / {fmt(budget)}</span>
+                            <span style={{ color: "#94A3B8", fontWeight: 400 }}> / {fmt(budget)}</span>
                           ) : (
-                            <span style={{ color: "#9090a8", fontWeight: 400 }}> ({((cat.total / expenseTotal) * 100).toFixed(0)}%)</span>
+                            <span style={{ color: "#94A3B8", fontWeight: 400 }}> ({((cat.total / expenseTotal) * 100).toFixed(0)}%)</span>
                           )}
                         </span>
                       </div>
-                      <div style={{ height: 4, background: "#e8e8f0", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: 4, background: "#E2E8F0", borderRadius: 4, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${barPct}%`, background: over ? "#ef4444" : cat.color, borderRadius: 4, transition: "width 0.4s" }} />
                       </div>
                       {over && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>over by {fmt(cat.total - budget)}</div>}
@@ -577,7 +577,7 @@ export default function TransactionsTab() {
   };
 
   if (loading) {
-    return <div style={{ textAlign: "center", padding: "60px 0", color: "#9090a8" }}>Loading transactions...</div>;
+    return <div style={{ textAlign: "center", padding: "60px 0", color: "#94A3B8" }}>Loading transactions...</div>;
   }
 
   return (
