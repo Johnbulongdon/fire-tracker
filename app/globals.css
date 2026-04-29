@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
 :root {
   --background: #F7F9FB;
@@ -43,6 +43,233 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-primary);
+}
+
+a {
+  color: inherit;
+}
+
+.uf-app-frame {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(209, 250, 229, 0.6), transparent 28%),
+    linear-gradient(180deg, #f7fbf8 0%, #eef6f1 100%);
+  color: var(--color-gray-900);
+}
+
+.uf-app-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.uf-surface {
+  background: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+}
+
+.uf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(4, 120, 87, 0.18);
+  background: rgba(236, 253, 245, 0.92);
+  color: var(--color-primary-700);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.uf-primary-button,
+.uf-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.uf-primary-button {
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500));
+  color: #ffffff;
+  box-shadow: 0 14px 28px rgba(5, 150, 105, 0.22);
+}
+
+.uf-primary-button:hover,
+.uf-secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+.uf-secondary-button {
+  border: 1px solid var(--color-gray-200);
+  background: #ffffff;
+  color: var(--color-primary-700);
+}
+
+.uf-hub-page,
+.uf-article-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f6fbf7 0%, #edf6f0 100%);
+}
+
+.uf-hub-shell,
+.uf-article-shell {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 48px 24px 72px;
+}
+
+.uf-hub-hero,
+.uf-article-shell {
+  background: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 24px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
+}
+
+.uf-hub-hero {
+  padding: 40px;
+  margin-bottom: 24px;
+}
+
+.uf-hub-hero h1,
+.uf-article-shell h1 {
+  margin: 14px 0 14px;
+  font-size: clamp(2.1rem, 4vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.uf-hub-hero p,
+.uf-article-dek,
+.uf-hub-card p,
+.uf-article-body p {
+  color: var(--color-gray-500);
+  line-height: 1.75;
+}
+
+.uf-hub-topline,
+.uf-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-primary-700);
+}
+
+.uf-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.uf-hub-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.uf-hub-button-primary {
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500));
+  color: #ffffff;
+}
+
+.uf-hub-button-secondary {
+  background: #ffffff;
+  color: var(--color-primary-700);
+  border: 1px solid var(--color-gray-200);
+}
+
+.uf-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.uf-hub-card {
+  background: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+}
+
+.uf-hub-card h2 {
+  margin: 12px 0 10px;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+}
+
+.uf-hub-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-gray-500);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.uf-hub-link,
+.uf-article-back {
+  display: inline-flex;
+  margin-top: 18px;
+  color: var(--color-primary-700);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.uf-article-shell {
+  padding: 40px;
+}
+
+.uf-article-dek {
+  margin: 14px 0 24px;
+  font-size: 1.05rem;
+}
+
+.uf-article-body {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .uf-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .uf-app-shell,
+  .uf-hub-shell,
+  .uf-article-shell {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .uf-hub-hero,
+  .uf-article-shell {
+    padding: 28px 22px;
+  }
 }
 
 /* Floating action bar animation */

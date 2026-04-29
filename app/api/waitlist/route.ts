@@ -1,12 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { getOptionalSupabaseEnv, getSupabaseEnvErrorMessage } from '@/lib/env'
 
 export async function POST(req: Request) {
+  const env = getOptionalSupabaseEnv()
+
+  if (!env) {
+    return NextResponse.json({ error: getSupabaseEnvErrorMessage() }, { status: 503 })
+  }
+
+  const supabase = createClient(env.url, env.anonKey)
   const { email } = await req.json()
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 

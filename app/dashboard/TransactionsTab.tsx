@@ -481,7 +481,7 @@ function MonthlySummary({
                       ))}
                     </Pie>
                     <ChartTooltip
-                      formatter={(v: number) => [fmt(v), ""]}
+                      formatter={(v) => [fmt(Number(v ?? 0)), ""]}
                       contentStyle={{ background: "#ffffff", border: "1px solid #e8e8f0", borderRadius: 8, fontFamily: "DM Mono, monospace", fontSize: 12 }}
                     />
                   </PieChart>

@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import CompoundInterestCalculator from './CompoundInterestCalculator'
 
 export const metadata: Metadata = {
-  title: 'Compound Interest Calculator — Investment Growth Projector | UntilFire',
+  title: 'Compound Interest Calculator -Investment Growth Projector | UntilFire',
   description:
     'Free compound interest calculator. Enter your starting balance, monthly contributions, and expected return to see how your investments grow over time. Visualize the power of compounding.',
   keywords:

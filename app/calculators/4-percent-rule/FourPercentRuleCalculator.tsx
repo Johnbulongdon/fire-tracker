@@ -4,18 +4,18 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
 const C = {
-  bg: '#08080e',
-  card: '#13131e',
-  border: '#1c1c2e',
-  text: '#e8e8f2',
-  muted: '#5e5e7a',
-  mutedLight: '#9090a8',
-  accent: '#f97316',
-  teal: '#22d3a5',
+  bg: '#f6fbf7',
+  card: '#ffffff',
+  border: '#dbe7df',
+  text: '#163127',
+  muted: '#5f7a6f',
+  mutedLight: '#6b7f76',
+  accent: '#047857',
+  teal: '#059669',
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#1c1c2e',
+  background: '#dbe7df',
   border: `1px solid ${C.border}`,
   borderRadius: 8,
   color: C.text,
@@ -45,11 +45,11 @@ function fmtFull(n: number) {
 }
 
 const RATES = [
-  { rate: 3.0, label: '3.0%', note: 'Very conservative · 33× expenses' },
-  { rate: 3.5, label: '3.5%', note: 'Conservative · 28.6× expenses' },
-  { rate: 4.0, label: '4.0%', note: 'Standard · 25× expenses · Trinity Study' },
-  { rate: 4.5, label: '4.5%', note: 'Moderate · 22.2× expenses' },
-  { rate: 5.0, label: '5.0%', note: 'Aggressive · 20× expenses' },
+  { rate: 3.0, label: '3.0%', note: 'Very conservative -33xexpenses' },
+  { rate: 3.5, label: '3.5%', note: 'Conservative -28.6xexpenses' },
+  { rate: 4.0, label: '4.0%', note: 'Standard -25xexpenses -Trinity Study' },
+  { rate: 4.5, label: '4.5%', note: 'Moderate -22.2xexpenses' },
+  { rate: 5.0, label: '5.0%', note: 'Aggressive -20xexpenses' },
 ]
 
 const MONTHLY_CATEGORIES = [
@@ -100,9 +100,9 @@ export default function FourPercentRuleCalculator() {
           <span style={{ color: C.accent, fontWeight: 800, fontSize: 18, letterSpacing: '-1px' }}>Fire</span>
         </Link>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>← All calculators</Link>
+          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>-All calculators</Link>
           <Link href="/" style={{ color: C.accent, textDecoration: 'none', fontSize: 14, fontWeight: 600, border: `1px solid ${C.accent}`, padding: '6px 14px', borderRadius: 6 }}>
-            FIRE date →
+            FIRE date -
           </Link>
         </div>
       </nav>
@@ -110,14 +110,14 @@ export default function FourPercentRuleCalculator() {
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px 80px' }}>
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 12 }}>
-            FIRE · Retirement
+            FIRE -Retirement
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-2px', margin: '0 0 12px', lineHeight: 1.1 }}>
             FIRE Number Calculator
           </h1>
           <p style={{ fontSize: 16, color: C.mutedLight, margin: 0, lineHeight: 1.7 }}>
-            Your FIRE number is how much you need invested to retire — calculated using the safe withdrawal rate.
-            The standard is 4% (from the 1998 Trinity Study), meaning 25× your annual expenses.
+            Your FIRE number is how much you need invested to retire -calculated using the safe withdrawal rate.
+            The standard is 4% (from the 1998 Trinity Study), meaning 25xyour annual expenses.
             Adjust the rate below to see how it shifts your target.
           </p>
         </div>
@@ -227,7 +227,7 @@ export default function FourPercentRuleCalculator() {
           {/* Rate comparison table */}
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
             <div style={{ fontSize: 13, color: C.mutedLight, marginBottom: 14, fontWeight: 600 }}>
-              Compare withdrawal rates — click to select
+              Compare withdrawal rates -click to select
             </div>
             <div style={{ display: 'grid', gap: 8 }}>
               {rateTable.map(({ rate, label, note, fireNumber: fn, isSelected }) => (
@@ -239,7 +239,7 @@ export default function FourPercentRuleCalculator() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '12px 16px',
-                    background: isSelected ? `${C.accent}15` : '#13131e',
+                    background: isSelected ? `${C.accent}15` : '#ffffff',
                     border: isSelected ? `1px solid ${C.accent}50` : '1px solid transparent',
                     borderRadius: 8,
                     cursor: 'pointer',
@@ -271,13 +271,13 @@ export default function FourPercentRuleCalculator() {
             in 96% of historical market scenarios, including the Great Depression and 1970s stagflation.
           </p>
           <p style={{ marginBottom: 16 }}>
-            <strong style={{ color: C.text }}>Your FIRE number = Annual expenses ÷ Withdrawal rate</strong>
+            <strong style={{ color: C.text }}>Your FIRE number = Annual expenses 姊?Withdrawal rate</strong>
             <br />
-            At 4%, that&apos;s 25× your annual spending. At 3%, it&apos;s 33×. At 5%, it&apos;s 20×.
+            At 4%, that&apos;s 25xyour annual spending. At 3%, it&apos;s 33x At 5%, it&apos;s 20x
           </p>
           <p>
-            Early retirees (before 65) typically use 3–3.5% for extra safety — your portfolio needs to last
-            40–50 years, not 30. The 4% rule was designed for traditional 30-year retirements starting around age 65.
+            Early retirees (before 65) typically use 3-.5% for extra safety -your portfolio needs to last
+            40-0 years, not 30. The 4% rule was designed for traditional 30-year retirements starting around age 65.
           </p>
         </div>
       </div>

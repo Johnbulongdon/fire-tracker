@@ -4,19 +4,19 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
 const C = {
-  bg: '#08080e',
-  card: '#13131e',
-  border: '#1c1c2e',
-  text: '#e8e8f2',
-  muted: '#5e5e7a',
-  mutedLight: '#9090a8',
-  accent: '#f97316',
-  teal: '#22d3a5',
+  bg: '#f6fbf7',
+  card: '#ffffff',
+  border: '#dbe7df',
+  text: '#163127',
+  muted: '#5f7a6f',
+  mutedLight: '#6b7f76',
+  accent: '#047857',
+  teal: '#059669',
   purple: '#8b5cf6',
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#1c1c2e',
+  background: '#dbe7df',
   border: `1px solid ${C.border}`,
   borderRadius: 8,
   color: C.text,
@@ -96,9 +96,9 @@ export default function CoastFireCalculator() {
           <span style={{ color: C.accent, fontWeight: 800, fontSize: 18, letterSpacing: '-1px' }}>Fire</span>
         </Link>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>← All calculators</Link>
+          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>-All calculators</Link>
           <Link href="/" style={{ color: C.accent, textDecoration: 'none', fontSize: 14, fontWeight: 600, border: `1px solid ${C.accent}`, padding: '6px 14px', borderRadius: 6 }}>
-            FIRE number →
+            FIRE number -
           </Link>
         </div>
       </nav>
@@ -106,13 +106,13 @@ export default function CoastFireCalculator() {
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px 80px' }}>
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontSize: 12, color: C.purple, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 12 }}>
-            FIRE · Strategy
+            FIRE -Strategy
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-2px', margin: '0 0 12px', lineHeight: 1.1 }}>
             Coast FIRE Calculator
           </h1>
           <p style={{ fontSize: 16, color: C.mutedLight, margin: 0, lineHeight: 1.7 }}>
-            Coast FIRE is the point where you have enough invested that — even if you stop contributing today —
+            Coast FIRE is the point where you have enough invested that -even if you stop contributing today -
             compound growth will carry you to full retirement by your target age. Find your magic number.
           </p>
         </div>
@@ -203,10 +203,10 @@ export default function CoastFireCalculator() {
               </div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {result.milestones.map(({ age: a, balance }) => (
-                  <div key={a} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#13131e', borderRadius: 8 }}>
+                  <div key={a} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#ffffff', borderRadius: 8 }}>
                     <span style={{ color: C.mutedLight, fontSize: 14 }}>Age {a}</span>
                     <span style={{ color: balance >= result.fireTarget ? C.teal : C.text, fontWeight: 600, fontSize: 14 }}>
-                      {fmtFull(balance)}{balance >= result.fireTarget ? ' ✓' : ''}
+                      {fmtFull(balance)}{balance >= result.fireTarget ? ' (target met)' : ''}
                     </span>
                   </div>
                 ))}
@@ -222,14 +222,14 @@ export default function CoastFireCalculator() {
           </h2>
           <p style={{ marginBottom: 16 }}>
             Coast FIRE is a milestone before full FIRE. Once you hit your Coast number, you have enough invested
-            that you can stop making retirement contributions entirely — your money will compound to your full FIRE target
+            that you can stop making retirement contributions entirely -your money will compound to your full FIRE target
             by your intended retirement age all on its own.
           </p>
           <p style={{ marginBottom: 16 }}>
-            <strong style={{ color: C.text }}>Formula:</strong> Coast FIRE = FIRE Target ÷ (1 + r)^years to retirement
+            <strong style={{ color: C.text }}>Formula:</strong> Coast FIRE = FIRE Target 濮?(1 + r)^years to retirement
           </p>
           <p>
-            After reaching Coast FIRE, many people shift to covering just their living expenses — taking lower-stress
+            After reaching Coast FIRE, many people shift to covering just their living expenses -taking lower-stress
             jobs, going part-time, or pursuing passion projects. Your investments do the heavy lifting. This is also
             called &quot;Barista FIRE&quot; or &quot;Slow FIRE.&quot;
           </p>

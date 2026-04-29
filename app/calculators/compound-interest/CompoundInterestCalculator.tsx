@@ -4,14 +4,14 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
 const C = {
-  bg: '#08080e',
-  card: '#13131e',
-  border: '#1c1c2e',
-  text: '#e8e8f2',
-  muted: '#5e5e7a',
-  mutedLight: '#9090a8',
-  accent: '#f97316',
-  teal: '#22d3a5',
+  bg: '#f6fbf7',
+  card: '#ffffff',
+  border: '#dbe7df',
+  text: '#163127',
+  muted: '#5f7a6f',
+  mutedLight: '#6b7f76',
+  accent: '#047857',
+  teal: '#059669',
 }
 
 function fmt(n: number) {
@@ -25,7 +25,7 @@ function fmtFull(n: number) {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#1c1c2e',
+  background: '#dbe7df',
   border: `1px solid ${C.border}`,
   borderRadius: 8,
   color: C.text,
@@ -85,9 +85,9 @@ export default function CompoundInterestCalculator() {
           <span style={{ color: C.accent, fontWeight: 800, fontSize: 18, letterSpacing: '-1px' }}>Fire</span>
         </Link>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>← All calculators</Link>
+          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>-All calculators</Link>
           <Link href="/" style={{ color: C.accent, textDecoration: 'none', fontSize: 14, fontWeight: 600, border: `1px solid ${C.accent}`, padding: '6px 14px', borderRadius: 6 }}>
-            FIRE number →
+            FIRE number -
           </Link>
         </div>
       </nav>
@@ -96,14 +96,14 @@ export default function CompoundInterestCalculator() {
         {/* Header */}
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 12 }}>
-            Investing · Growth
+            Investing -Growth
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-2px', margin: '0 0 12px', lineHeight: 1.1 }}>
             Compound Interest Calculator
           </h1>
           <p style={{ fontSize: 16, color: C.mutedLight, margin: 0, lineHeight: 1.7 }}>
             Compound interest is the foundation of FIRE. See how your starting balance and
-            monthly contributions snowball over time — and how much of your final wealth
+            monthly contributions snowball over time -and how much of your final wealth
             comes from growth rather than what you put in.
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function CompoundInterestCalculator() {
             </div>
           </div>
 
-          {/* Visual bar chart — compact */}
+          {/* Visual bar chart -compact */}
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
             <div style={{ fontSize: 13, color: C.mutedLight, marginBottom: 14, fontWeight: 600 }}>Growth over time</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -167,7 +167,7 @@ export default function CompoundInterestCalculator() {
                 return (
                   <div key={year} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 12, color: C.muted, width: 36, flexShrink: 0, textAlign: 'right' }}>yr {year}</span>
-                    <div style={{ flex: 1, position: 'relative', height: 20, borderRadius: 4, background: '#1c1c2e', overflow: 'hidden' }}>
+                    <div style={{ flex: 1, position: 'relative', height: 20, borderRadius: 4, background: '#dbe7df', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${balancePct}%`, background: `${C.accent}40`, borderRadius: 4 }} />
                       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${contribPct}%`, background: `${C.accent}80`, borderRadius: 4 }} />
                     </div>
@@ -199,12 +199,12 @@ export default function CompoundInterestCalculator() {
             returns you&apos;ve already earned. The longer you stay invested, the more your gains compound on themselves.
           </p>
           <p style={{ marginBottom: 16 }}>
-            <strong style={{ color: C.text }}>Formula:</strong> A = P(1 + r/n)^(nt) + PMT × [(1 + r/n)^(nt) − 1] / (r/n)
+            <strong style={{ color: C.text }}>Formula:</strong> A = P(1 + r/n)^(nt) + PMT x[(1 + r/n)^(nt) -1] / (r/n)
             <br />where P is principal, r is annual rate, n is compounding periods per year, t is years, PMT is monthly contribution.
           </p>
           <p>
             For FIRE planning, the 7% figure (inflation-adjusted historical S&P 500 average) is the standard assumption.
-            Starting early matters more than saving more — 10 extra years of compounding often outperforms doubling your monthly contribution.
+            Starting early matters more than saving more -10 extra years of compounding often outperforms doubling your monthly contribution.
           </p>
         </div>
       </div>

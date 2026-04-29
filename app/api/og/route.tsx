@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     (
       <div
         style={{
-          background: '#08080e',
+          background: '#f6fbf7',
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -28,14 +28,14 @@ export async function GET(req: NextRequest) {
           padding: '52px 72px',
         }}
       >
-        {/* Background glow — top-right */}
+        {/* Background glow -top-right */}
         <div
           style={{
             position: 'absolute',
             width: 700,
             height: 700,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 65%)',
+            background: 'radial-gradient(circle, rgba(5,150,105,0.16) 0%, transparent 65%)',
             top: -200,
             right: -200,
             display: 'flex',
@@ -44,21 +44,21 @@ export async function GET(req: NextRequest) {
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ color: '#e8e8f2', fontSize: 22, fontWeight: 800, letterSpacing: '-1px' }}>
+          <span style={{ color: '#163127', fontSize: 22, fontWeight: 800, letterSpacing: '-1px' }}>
             Until
           </span>
-          <span style={{ color: '#f97316', fontSize: 22, fontWeight: 800, letterSpacing: '-1px' }}>
+          <span style={{ color: '#047857', fontSize: 22, fontWeight: 800, letterSpacing: '-1px' }}>
             Fire
           </span>
         </div>
 
-        {/* Main content — left-aligned */}
+        {/* Main content -left-aligned */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div
             style={{
               fontSize: 22,
               fontWeight: 600,
-              color: '#9090a8',
+              color: '#6b7f76',
               textTransform: 'uppercase',
               letterSpacing: '3px',
               display: 'flex',
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
             style={{
               fontSize: 64,
               fontWeight: 800,
-              color: '#e8e8f2',
+              color: '#163127',
               lineHeight: 1,
               display: 'flex',
             }}
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
             style={{
               fontSize: 80,
               fontWeight: 800,
-              color: '#f97316',
+              color: '#047857',
               lineHeight: 1,
               letterSpacing: '-3px',
               display: 'flex',
@@ -92,12 +92,12 @@ export async function GET(req: NextRequest) {
           <div
             style={{
               fontSize: 22,
-              color: '#9090a8',
+              color: '#6b7f76',
               marginTop: 12,
               display: 'flex',
             }}
           >
-            {years} year{years !== 1 ? 's' : ''} away · free calculator
+            {years} year{years !== 1 ? 's' : ''} away 路 free calculator
           </div>
         </div>
 
@@ -115,16 +115,16 @@ export async function GET(req: NextRequest) {
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                background: '#22d3a5',
+                background: '#059669',
                 display: 'flex',
               }}
             />
-            <span style={{ color: '#e8e8f2', fontSize: 20 }}>
+            <span style={{ color: '#163127', fontSize: 20 }}>
               What does your city look like?
             </span>
           </div>
-          <span style={{ color: '#22d3a5', fontSize: 20, fontWeight: 600 }}>
-            untilfire.com →
+          <span style={{ color: '#059669', fontSize: 20, fontWeight: 600 }}>
+            untilfire.com 鈫?
           </span>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import APYCalculator from './APYCalculator'
 
 export const metadata: Metadata = {
-  title: 'APY Calculator — Convert APR to Annual Percentage Yield | UntilFire',
+  title: 'APY Calculator -Convert APR to Annual Percentage Yield | UntilFire',
   description:
     'Free APY calculator. Enter your APR and compounding frequency to get your true annual percentage yield. See exactly how much your savings will grow over 1, 5, and 10 years.',
   keywords:
@@ -33,7 +33,7 @@ export default function APYPage() {
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
             name: 'APY Calculator',
-            description: 'Free APY calculator — convert APR to annual percentage yield with any compounding frequency.',
+            description: 'Free APY calculator -convert APR to annual percentage yield with any compounding frequency.',
             url: 'https://untilfire.com/calculators/apy',
             applicationCategory: 'FinanceApplication',
             operatingSystem: 'Any',

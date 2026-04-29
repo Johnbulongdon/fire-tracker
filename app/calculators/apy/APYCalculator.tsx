@@ -4,22 +4,22 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
 const C = {
-  bg: '#08080e',
-  card: '#13131e',
-  border: '#1c1c2e',
-  text: '#e8e8f2',
-  muted: '#5e5e7a',
-  mutedLight: '#9090a8',
-  accent: '#f97316',
-  teal: '#22d3a5',
+  bg: '#f6fbf7',
+  card: '#ffffff',
+  border: '#dbe7df',
+  text: '#163127',
+  muted: '#5f7a6f',
+  mutedLight: '#6b7f76',
+  accent: '#047857',
+  teal: '#059669',
 }
 
 const FREQUENCIES = [
-  { label: 'Daily (365×/year)', n: 365 },
-  { label: 'Monthly (12×/year)', n: 12 },
-  { label: 'Quarterly (4×/year)', n: 4 },
-  { label: 'Semi-annually (2×/year)', n: 2 },
-  { label: 'Annually (1×/year)', n: 1 },
+  { label: 'Daily (365xyear)', n: 365 },
+  { label: 'Monthly (12xyear)', n: 12 },
+  { label: 'Quarterly (4xyear)', n: 4 },
+  { label: 'Semi-annually (2xyear)', n: 2 },
+  { label: 'Annually (1xyear)', n: 1 },
 ]
 
 function fmt(n: number, decimals = 2) {
@@ -31,7 +31,7 @@ function fmt(n: number, decimals = 2) {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#1c1c2e',
+  background: '#dbe7df',
   border: `1px solid ${C.border}`,
   borderRadius: 8,
   color: C.text,
@@ -90,7 +90,7 @@ export default function APYCalculator() {
         </Link>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>
-            ← All calculators
+            -All calculators
           </Link>
           <Link
             href="/"
@@ -104,7 +104,7 @@ export default function APYCalculator() {
               borderRadius: 6,
             }}
           >
-            FIRE number →
+            FIRE number -
           </Link>
         </div>
       </nav>
@@ -113,7 +113,7 @@ export default function APYCalculator() {
         {/* Header */}
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontSize: 12, color: C.teal, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 12 }}>
-            Savings · Banking
+            Savings -Banking
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-2px', margin: '0 0 12px', lineHeight: 1.1 }}>
             APY Calculator
@@ -186,7 +186,7 @@ export default function APYCalculator() {
         {/* Results */}
         <div
           style={{
-            background: '#0e1a0e',
+            background: '#ecfdf5',
             border: `1px solid ${C.teal}30`,
             borderRadius: 16,
             padding: '28px 32px',
@@ -226,7 +226,7 @@ export default function APYCalculator() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '10px 14px',
-                    background: '#13131e',
+                    background: '#ffffff',
                     borderRadius: 8,
                   }}
                 >
@@ -244,7 +244,7 @@ export default function APYCalculator() {
         {/* Explanation (SEO content) */}
         <div style={{ color: C.mutedLight, lineHeight: 1.8, fontSize: 15 }}>
           <h2 style={{ color: C.text, fontSize: 20, fontWeight: 700, marginBottom: 12, letterSpacing: '-0.5px' }}>
-            APR vs APY — what&apos;s the difference?
+            APR vs APY -what&apos;s the difference?
           </h2>
           <p style={{ marginBottom: 16 }}>
             <strong style={{ color: C.text }}>APR (Annual Percentage Rate)</strong> is the simple interest rate a bank advertises.
@@ -252,11 +252,11 @@ export default function APYCalculator() {
             The more frequently interest compounds, the higher your APY relative to your APR.
           </p>
           <p style={{ marginBottom: 16 }}>
-            <strong style={{ color: C.text }}>Formula:</strong> APY = (1 + APR/n)ⁿ − 1, where n is the number of compounding periods per year.
+            <strong style={{ color: C.text }}>Formula:</strong> APY = (1 + APR/n)--1, where n is the number of compounding periods per year.
           </p>
           <p>
             For FIRE planning, high-yield savings accounts and money market funds use daily or monthly compounding.
-            Even a small difference in APY compounds significantly over years — which is why this number matters more than the advertised APR.
+            Even a small difference in APY compounds significantly over years -which is why this number matters more than the advertised APR.
           </p>
         </div>
       </div>

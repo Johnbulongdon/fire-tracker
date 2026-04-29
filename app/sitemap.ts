@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next'
+import { learnArticles } from '@/lib/learn'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+  const baseRoutes: MetadataRoute.Sitemap = [
     {
       url: 'https://untilfire.com',
       lastModified: new Date(),
@@ -44,5 +45,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.3,
     },
+    {
+      url: 'https://untilfire.com/learn',
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
   ]
+
+  const articleRoutes: MetadataRoute.Sitemap = learnArticles.map((article) => ({
+    url: `https://untilfire.com/learn/${article.slug}`,
+    lastModified: new Date(article.publishedAt),
+    changeFrequency: 'monthly',
+    priority: 0.6,
+  }))
+
+  return [...baseRoutes, ...articleRoutes]
 }

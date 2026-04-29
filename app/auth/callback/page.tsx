@@ -13,8 +13,16 @@ export default function AuthCallback() {
   }, [])
 
   return (
-    <div style={{ background: '#08080e', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e8e8f2', fontFamily: 'sans-serif' }}>
-      Signing you in...
-    </div>
+    <main className="uf-app-frame">
+      <div className="uf-app-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="uf-surface" style={{ width: '100%', maxWidth: 420, padding: 32, textAlign: 'center' }}>
+          <div className="uf-chip" style={{ marginBottom: 16 }}>Secure sign-in</div>
+          <h1 style={{ margin: 0, fontSize: '2rem', letterSpacing: '-0.04em' }}>Signing you in</h1>
+          <p style={{ margin: '14px 0 0', color: 'var(--color-gray-500)' }}>
+            We&apos;re finishing your Google login and sending you to the dashboard.
+          </p>
+        </div>
+      </div>
+    </main>
   )
 }

@@ -4,18 +4,18 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
 const C = {
-  bg: '#08080e',
-  card: '#13131e',
-  border: '#1c1c2e',
-  text: '#e8e8f2',
-  muted: '#5e5e7a',
-  mutedLight: '#9090a8',
-  accent: '#f97316',
-  teal: '#22d3a5',
+  bg: '#f6fbf7',
+  card: '#ffffff',
+  border: '#dbe7df',
+  text: '#163127',
+  muted: '#5f7a6f',
+  mutedLight: '#6b7f76',
+  accent: '#047857',
+  teal: '#059669',
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#1c1c2e',
+  background: '#dbe7df',
   border: `1px solid ${C.border}`,
   borderRadius: 8,
   color: C.text,
@@ -90,9 +90,9 @@ export default function SavingsRateCalculator() {
           <span style={{ color: C.accent, fontWeight: 800, fontSize: 18, letterSpacing: '-1px' }}>Fire</span>
         </Link>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>← All calculators</Link>
+          <Link href="/calculators" style={{ color: C.mutedLight, textDecoration: 'none', fontSize: 14 }}>-All calculators</Link>
           <Link href="/" style={{ color: C.accent, textDecoration: 'none', fontSize: 14, fontWeight: 600, border: `1px solid ${C.accent}`, padding: '6px 14px', borderRadius: 6 }}>
-            FIRE number →
+            FIRE number -
           </Link>
         </div>
       </nav>
@@ -100,13 +100,13 @@ export default function SavingsRateCalculator() {
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px 80px' }}>
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 12 }}>
-            FIRE · Core
+            FIRE -Core
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-2px', margin: '0 0 12px', lineHeight: 1.1 }}>
             Savings Rate Calculator
           </h1>
           <p style={{ fontSize: 16, color: C.mutedLight, margin: 0, lineHeight: 1.7 }}>
-            Your savings rate — the percentage of take-home pay you save — is the single
+            Your savings rate -the percentage of take-home pay you save -is the single
             most powerful variable in FIRE planning. More than your salary, your investment
             choices, or your city. See yours and how it maps to a retirement timeline.
           </p>
@@ -164,7 +164,7 @@ export default function SavingsRateCalculator() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '10px 14px',
-                    background: isYours ? `${C.accent}15` : '#13131e',
+                    background: isYours ? `${C.accent}15` : '#ffffff',
                     border: isYours ? `1px solid ${C.accent}40` : '1px solid transparent',
                     borderRadius: 8,
                   }}
@@ -173,7 +173,7 @@ export default function SavingsRateCalculator() {
                     <span style={{ color: isYours ? C.accent : C.mutedLight, fontWeight: isYours ? 700 : 400, fontSize: 15, width: 36 }}>
                       {Math.round(rate * 100)}%
                     </span>
-                    {isYours && <span style={{ fontSize: 11, color: C.accent, fontWeight: 700, letterSpacing: '1px' }}>← YOU</span>}
+                    {isYours && <span style={{ fontSize: 11, color: C.accent, fontWeight: 700, letterSpacing: '1px' }}>-YOU</span>}
                   </div>
                   <span style={{ color: isYours ? C.accent : C.text, fontWeight: isYours ? 700 : 500, fontSize: 15 }}>
                     {fmtYrs(y)}
@@ -191,16 +191,16 @@ export default function SavingsRateCalculator() {
           </h2>
           <p style={{ marginBottom: 16 }}>
             At a 10% savings rate, you need to work 43 years to retire. At 50%, you need just 17 years.
-            At 75%, just 7 years. The relationship is non-linear — small increases in savings rate compress your
+            At 75%, just 7 years. The relationship is non-linear -small increases in savings rate compress your
             timeline dramatically, especially as you approach 50%.
           </p>
           <p style={{ marginBottom: 16 }}>
             This is based on the &quot;shockingly simple math&quot; behind FIRE from Mr. Money Mustache:
             your years to retirement is determined entirely by your savings rate and expected investment returns.
-            Your income level cancels out — a doctor saving 10% has the same FIRE timeline as a teacher saving 10%.
+            Your income level cancels out -a doctor saving 10% has the same FIRE timeline as a teacher saving 10%.
           </p>
           <p>
-            The 4% rule (safe withdrawal rate) is used here to calculate your FIRE target: 25× your annual expenses.
+            The 4% rule (safe withdrawal rate) is used here to calculate your FIRE target: 25xyour annual expenses.
             Investment returns are modeled at 7% annually (inflation-adjusted S&P 500 historical average).
           </p>
         </div>

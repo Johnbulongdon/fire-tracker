@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'UntilFire — Find Your FIRE Number & Retire Early'
+export const alt = 'UntilFire - Find Your FIRE Number & Retire Early'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -10,7 +10,7 @@ export default async function Image() {
     (
       <div
         style={{
-          background: '#08080e',
+          background: '#f6fbf7',
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -29,7 +29,7 @@ export default async function Image() {
             width: 600,
             height: 600,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(5,150,105,0.16) 0%, transparent 70%)',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
@@ -39,10 +39,10 @@ export default async function Image() {
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 32 }}>
-          <span style={{ color: '#e8e8f2', fontSize: 36, fontWeight: 800, letterSpacing: '-2px' }}>
+          <span style={{ color: '#163127', fontSize: 36, fontWeight: 800, letterSpacing: '-2px' }}>
             Until
           </span>
-          <span style={{ color: '#f97316', fontSize: 36, fontWeight: 800, letterSpacing: '-2px' }}>
+          <span style={{ color: '#047857', fontSize: 36, fontWeight: 800, letterSpacing: '-2px' }}>
             Fire
           </span>
         </div>
@@ -52,7 +52,7 @@ export default async function Image() {
           style={{
             fontSize: 64,
             fontWeight: 800,
-            color: '#e8e8f2',
+            color: '#163127',
             textAlign: 'center',
             lineHeight: 1.1,
             letterSpacing: '-2px',
@@ -63,7 +63,7 @@ export default async function Image() {
           }}
         >
           <span>Find out exactly</span>
-          <span style={{ color: '#f97316' }}>when you can retire</span>
+          <span style={{ color: '#047857' }}>when you can retire</span>
         </div>
 
         {/* Subheading */}
@@ -71,13 +71,13 @@ export default async function Image() {
           style={{
             marginTop: 24,
             fontSize: 24,
-            color: '#9090a8',
+            color: '#6b7f76',
             textAlign: 'center',
             maxWidth: 680,
             display: 'flex',
           }}
         >
-          Free FIRE calculator — adjusted for your city, income & spending. Takes 60 seconds.
+          Free FIRE calculator - adjusted for your city, income and spending. Takes 60 seconds.
         </div>
 
         {/* Stats row */}
@@ -102,8 +102,8 @@ export default async function Image() {
                 gap: 4,
               }}
             >
-              <span style={{ fontSize: 32, fontWeight: 700, color: '#22d3a5' }}>{value}</span>
-              <span style={{ fontSize: 16, color: '#5e5e7a' }}>{label}</span>
+              <span style={{ fontSize: 32, fontWeight: 700, color: '#059669' }}>{value}</span>
+              <span style={{ fontSize: 16, color: '#6b7f76' }}>{label}</span>
             </div>
           ))}
         </div>
@@ -115,7 +115,7 @@ export default async function Image() {
             bottom: 32,
             right: 48,
             fontSize: 18,
-            color: '#2a2a3e',
+            color: '#6b7f76',
             display: 'flex',
           }}
         >

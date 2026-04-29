@@ -2,9 +2,9 @@ import { Metadata } from 'next'
 import SavingsRateCalculator from './SavingsRateCalculator'
 
 export const metadata: Metadata = {
-  title: 'Savings Rate Calculator — How Savings Rate Affects Your FIRE Date | UntilFire',
+  title: 'Savings Rate Calculator -How Savings Rate Affects Your FIRE Date | UntilFire',
   description:
-    'Calculate your savings rate and see exactly how it shifts your FIRE retirement date. The savings rate is the single most powerful lever in FIRE planning — find yours in seconds.',
+    'Calculate your savings rate and see exactly how it shifts your FIRE retirement date. The savings rate is the single most powerful lever in FIRE planning -find yours in seconds.',
   keywords:
     'savings rate calculator, FIRE savings rate, how long to retire calculator, financial independence calculator, savings percentage calculator, how much to save to retire',
   alternates: { canonical: 'https://untilfire.com/calculators/savings-rate' },

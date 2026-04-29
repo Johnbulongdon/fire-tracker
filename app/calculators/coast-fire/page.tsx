@@ -2,9 +2,9 @@ import { Metadata } from 'next'
 import CoastFireCalculator from './CoastFireCalculator'
 
 export const metadata: Metadata = {
-  title: 'Coast FIRE Calculator — Find Your Coast FI Number | UntilFire',
+  title: 'Coast FIRE Calculator -Find Your Coast FI Number | UntilFire',
   description:
-    'Calculate your Coast FIRE number — the amount you need saved today so that compound growth alone carries you to full retirement, without any more contributions. Free calculator.',
+    'Calculate your Coast FIRE number -the amount you need saved today so that compound growth alone carries you to full retirement, without any more contributions. Free calculator.',
   keywords:
     'coast FIRE calculator, coast FI calculator, coast fire number, coast FI number, barista FIRE calculator, semi-retirement calculator, how much to save to coast',
   alternates: { canonical: 'https://untilfire.com/calculators/coast-fire' },
@@ -33,7 +33,7 @@ export default function CoastFirePage() {
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
             name: 'Coast FIRE Calculator',
-            description: 'Calculate your Coast FIRE number — how much to save now so you never need to contribute again.',
+            description: 'Calculate your Coast FIRE number -how much to save now so you never need to contribute again.',
             url: 'https://untilfire.com/calculators/coast-fire',
             applicationCategory: 'FinanceApplication',
             operatingSystem: 'Any',
