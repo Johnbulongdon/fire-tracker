@@ -13,9 +13,14 @@ import { monteCarloFIRE } from "@/lib/monte-carlo";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Expenses = Record<string, number>;
 type TabKey =
-  | "portfolio-overview" | "portfolio-assets" | "portfolio-liabilities"
-  | "plan-goals"         | "plan-simulations" | "plan-calculators"
-  | "insights-spending"  | "insights-overview" | "insights-trends";
+  | "home-overview"
+  | "money-networth" | "money-cashflow"
+  | "plan-goals"     | "plan-scenarios"
+  | "tools-calculators";
+
+type SidebarItem =
+  | { key: TabKey; label: string; icon: string; href?: never }
+  | { href: string; label: string; icon: string; key?: never };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = [
@@ -1136,45 +1141,55 @@ function TrendsTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortga
 }
 
 // ─── Sidebar groups definition ────────────────────────────────────────────────
-const SIDEBAR_GROUPS: { label: string; items: { key: TabKey; label: string; icon: string }[] }[] = [
+const SIDEBAR_GROUPS: { label: string; items: SidebarItem[] }[] = [
   {
-    label: "Portfolio",
+    label: "Home",
     items: [
-      { key: "portfolio-overview",     label: "Overview",    icon: "◉" },
-      { key: "portfolio-assets",       label: "Assets",      icon: "◈" },
-      { key: "portfolio-liabilities",  label: "Liabilities", icon: "◎" },
+      { key: "home-overview",    label: "Overview",    icon: "🏠" },
+    ],
+  },
+  {
+    label: "Money",
+    items: [
+      { key: "money-networth",   label: "Net Worth",   icon: "💰" },
+      { key: "money-cashflow",   label: "Cashflow",    icon: "↕" },
     ],
   },
   {
     label: "Plan",
     items: [
-      { key: "plan-goals",       label: "Goals",       icon: "◐" },
-      { key: "plan-simulations", label: "Simulations", icon: "⟳" },
-      { key: "plan-calculators", label: "Calculators", icon: "◑" },
+      { key: "plan-goals",       label: "Goals",       icon: "🎯" },
+      { key: "plan-scenarios",   label: "Scenarios",   icon: "📊" },
     ],
   },
   {
-    label: "Insights",
+    label: "Learn",
     items: [
-      { key: "insights-spending",  label: "Spending",  icon: "◆" },
-      { key: "insights-overview",  label: "Overview",  icon: "≡" },
-      { key: "insights-trends",    label: "Trends",    icon: "∿" },
+      { href: "/learn/articles", label: "Articles",    icon: "📄" },
+      { href: "/learn/topics",   label: "Topics",      icon: "📚" },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
+      { key: "tools-calculators", label: "Calculators", icon: "🧮" },
     ],
   },
 ];
 
 // ─── Root ────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [tab, setTab] = useState<TabKey>("insights-overview");
+  const [tab, setTab] = useState<TabKey>("home-overview");
 
-  // Read initial tab from URL query string (e.g. ?tab=insights-spending)
+  // Read initial tab from URL query string (e.g. ?tab=money-cashflow)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab") as TabKey | null;
     const valid: TabKey[] = [
-      "portfolio-overview", "portfolio-assets", "portfolio-liabilities",
-      "plan-goals", "plan-simulations", "plan-calculators",
-      "insights-spending", "insights-overview", "insights-trends",
+      "home-overview",
+      "money-networth", "money-cashflow",
+      "plan-goals", "plan-scenarios",
+      "tools-calculators",
     ];
     if (t && valid.includes(t)) setTab(t);
   }, []);
@@ -1325,14 +1340,26 @@ export default function Dashboard() {
             <div key={group.label} className="uf-sidebar-group">
               <div className="uf-sidebar-group-label">{group.label}</div>
               {group.items.map(item => (
-                <button
-                  key={item.key}
-                  className={`uf-sidebar-item ${tab === item.key ? "active" : ""}`}
-                  onClick={() => setTab(item.key)}
-                >
-                  <span className="uf-sidebar-icon">{item.icon}</span>
-                  {item.label}
-                </button>
+                item.href ? (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="uf-sidebar-item"
+                    style={{ textDecoration: "none" }}
+                  >
+                    <span className="uf-sidebar-icon">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ) : (
+                  <button
+                    key={item.key}
+                    className={`uf-sidebar-item ${tab === item.key ? "active" : ""}`}
+                    onClick={() => setTab(item.key!)}
+                  >
+                    <span className="uf-sidebar-icon">{item.icon}</span>
+                    {item.label}
+                  </button>
+                )
               ))}
             </div>
           ))}
@@ -1347,50 +1374,7 @@ export default function Dashboard() {
         {/* ── Main content ─────────────────────────────────────────────────── */}
         <main className="uf-main">
           <div className="uf-content">
-            {tab === "portfolio-overview" && (
-              <PortfolioOverviewTab
-                income={income} expenses={expenses}
-                k401={k401} rothIRA={rothIRA} taxable={taxable}
-                totalDebt={totalDebt} mortgageBalance={mortgageBalance}
-                mortgageMonthly={mortgageMonthly} growthRate={growthRate}
-                withdrawalRate={withdrawalRate}
-              />
-            )}
-            {tab === "portfolio-assets" && (
-              <AssetsTab
-                k401={k401} setK401={setK401}
-                rothIRA={rothIRA} setRothIRA={setRothIRA}
-                taxable={taxable} setTaxable={setTaxable}
-                growthRate={growthRate} setGrowthRate={setGrowthRate}
-                withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
-              />
-            )}
-            {tab === "portfolio-liabilities" && (
-              <LiabilitiesTab
-                totalDebt={totalDebt} setTotalDebt={setTotalDebt}
-                mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
-                mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
-              />
-            )}
-            {tab === "plan-goals" && (
-              <GoalsTab fireAge={fireAge} setFireAge={setFireAge} />
-            )}
-            {tab === "plan-simulations" && (
-              <SimulationsTab
-                income={income} expenses={expenses}
-                k401={k401} rothIRA={rothIRA} taxable={taxable}
-                growthRate={growthRate} withdrawalRate={withdrawalRate}
-              />
-            )}
-            {tab === "plan-calculators" && <CalculatorsTab />}
-            {tab === "insights-spending" && (
-              <>
-                <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
-                <div style={{ borderTop: "1px solid #E2E8F0", margin: "32px 0" }} />
-                <TransactionsTab />
-              </>
-            )}
-            {tab === "insights-overview" && (
+            {tab === "home-overview" && (
               <DashTab
                 income={income} expenses={expenses}
                 k401={k401} rothIRA={rothIRA} taxable={taxable}
@@ -1399,15 +1383,49 @@ export default function Dashboard() {
                 withdrawalRate={withdrawalRate}
               />
             )}
-            {tab === "insights-trends" && (
-              <TrendsTab
+            {tab === "money-networth" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+                <PortfolioOverviewTab
+                  income={income} expenses={expenses}
+                  k401={k401} rothIRA={rothIRA} taxable={taxable}
+                  totalDebt={totalDebt} mortgageBalance={mortgageBalance}
+                  mortgageMonthly={mortgageMonthly} growthRate={growthRate}
+                  withdrawalRate={withdrawalRate}
+                />
+                <div style={{ borderTop: "1px solid #E2E8F0" }} />
+                <AssetsTab
+                  k401={k401} setK401={setK401}
+                  rothIRA={rothIRA} setRothIRA={setRothIRA}
+                  taxable={taxable} setTaxable={setTaxable}
+                  growthRate={growthRate} setGrowthRate={setGrowthRate}
+                  withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
+                />
+                <div style={{ borderTop: "1px solid #E2E8F0" }} />
+                <LiabilitiesTab
+                  totalDebt={totalDebt} setTotalDebt={setTotalDebt}
+                  mortgageBalance={mortgageBalance} setMortgageBalance={setMortgageBalance}
+                  mortgageMonthly={mortgageMonthly} setMortgageMonthly={setMortgageMonthly}
+                />
+              </div>
+            )}
+            {tab === "money-cashflow" && (
+              <>
+                <BudgetTab income={income} setIncome={setIncome} expenses={expenses} setExpenses={setExpenses} actuals={actuals} />
+                <div style={{ borderTop: "1px solid #E2E8F0", margin: "32px 0" }} />
+                <TransactionsTab />
+              </>
+            )}
+            {tab === "plan-goals" && (
+              <GoalsTab fireAge={fireAge} setFireAge={setFireAge} />
+            )}
+            {tab === "plan-scenarios" && (
+              <SimulationsTab
                 income={income} expenses={expenses}
                 k401={k401} rothIRA={rothIRA} taxable={taxable}
-                totalDebt={totalDebt} mortgageBalance={mortgageBalance}
-                mortgageMonthly={mortgageMonthly} growthRate={growthRate}
-                withdrawalRate={withdrawalRate}
+                growthRate={growthRate} withdrawalRate={withdrawalRate}
               />
             )}
+            {tab === "tools-calculators" && <CalculatorsTab />}
           </div>
         </main>
       </div>
