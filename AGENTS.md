@@ -39,3 +39,14 @@ Before pushing visual changes, restate the baseline in plain language:
 - `Using latest pushed GitHub main as base`
 
 If the requested design direction conflicts with `origin/main`, say so before pushing.
+
+## Standard Publish Path
+
+The standard publish path is the GitHub connector.
+
+1. Validate locally against the latest pushed `origin/main` baseline.
+2. Publish through the GitHub connector first.
+3. Use raw `git push` only as a secondary transport when it is healthy and does not conflict with the connector path.
+4. If local git networking fails, continue publishing through the connector rather than switching baselines or leaving local-only commits as the source of truth.
+
+For larger changes, prefer a connector-backed branch or staged commit flow over direct local-only history.
