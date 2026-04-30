@@ -6,16 +6,16 @@ import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
 
 export const metadata: Metadata = {
-  title: 'UntilFire -Find Your FIRE Number & Retire Early',
+  title: 'UntilFire | Find Your FIRE Number',
   description:
-    'Calculate exactly when you can retire. Enter your city, income, and spending -get your FIRE number and retirement date in 60 seconds. Free, no login required.',
+    'Calculate when you can retire based on your city, income, and spending. Get your FIRE number and retirement timeline in about 60 seconds for free.',
   keywords:
     'FIRE calculator, financial independence, retire early, FIRE number, savings rate calculator, how much to retire, 4% rule calculator',
   alternates: {
     canonical: 'https://untilfire.com',
   },
   openGraph: {
-    title: 'UntilFire -Find Your FIRE Number & Retire Early',
+    title: 'UntilFire | Find Your FIRE Number',
     description: 'Your city. Your income. Your exact retirement date. Takes 60 seconds.',
     url: 'https://untilfire.com',
     siteName: 'UntilFire',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'UntilFire -Find Your FIRE Number & Retire Early',
+    title: 'UntilFire | Find Your FIRE Number',
     description: 'Your city. Your income. Your exact retirement date. Takes 60 seconds.',
   },
   metadataBase: new URL('https://untilfire.com'),
@@ -60,7 +60,7 @@ export default function RootLayout({
               '@type': 'WebApplication',
               name: 'UntilFire',
               url: 'https://untilfire.com',
-              description: 'Free FIRE calculator -find your financial independence number adjusted for your city, income, and spending.',
+              description: 'Free FIRE calculator for finding your financial independence number based on your city, income, and spending.',
               applicationCategory: 'FinanceApplication',
               operatingSystem: 'Any',
               offers: {

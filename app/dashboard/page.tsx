@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import TransactionsTab from "./TransactionsTab";
 import { monteCarloFIRE } from "@/lib/monte-carlo";
+import { consumeCalculatorPrefill, type CalculatorPrefill } from "@/lib/journey";
 
 // 閳光偓閳光偓閳光偓 Types 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
 type Expenses = Record<string, number>;
@@ -39,6 +40,8 @@ const fmt = (n: number, compact = false) => {
   if (compact && Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}k`;
   return "$" + Math.round(n).toLocaleString();
 };
+
+const fmtSigned = (n: number, compact = false) => (n < 0 ? `-${fmt(Math.abs(n), compact)}` : fmt(n, compact));
 
 // 閳光偓閳光偓閳光偓 FIRE Engine 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
 function calcProjection({
@@ -304,10 +307,14 @@ function MonteCarloCard({ income, expenses, k401, rothIRA, taxable, growthRate, 
 }
 
 // 閳光偓閳光偓閳光偓 Dashboard Overview Tab 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
-function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate }: {
+function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate, actuals, prefill, onOpenBudget, onOpenExpenses }: {
   income: number; expenses: Expenses; k401: number; rothIRA: number;
   taxable: number; totalDebt: number; mortgageBalance: number;
   mortgageMonthly: number; growthRate: number; withdrawalRate: number;
+  actuals: Record<string, number>;
+  prefill: CalculatorPrefill | null;
+  onOpenBudget: () => void;
+  onOpenExpenses: () => void;
 }) {
   const monthlyExpenses = Object.entries(expenses)
     .filter(([k]) => !k.startsWith("_"))
@@ -325,6 +332,16 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
   const progress    = fireTarget > 0 ? Math.min(100, (investable / fireTarget) * 100) : 0;
   const chartData   = data.slice(0, Math.min(data.length, (fireYear ?? 30) + 6));
   const activeCats  = EXPENSE_CATS.filter(c => (expenses[c.key] || 0) > 0);
+  const hasActuals  = Object.values(actuals).some(v => v > 0);
+  const housingRatio = income > 0 ? ((expenses.housing || 0) / income) * 100 : 0;
+  const checklist = [
+    { label: "Confirm monthly income", complete: income > 0, detail: income > 0 ? fmt(income) : "Needed for your timeline" },
+    { label: "Set a target budget", complete: monthlyExpenses > 0, detail: monthlyExpenses > 0 ? fmt(monthlyExpenses) : "Open Budget to add spending targets" },
+    { label: "Add current assets", complete: investable > 0, detail: investable > 0 ? fmt(investable, true) : "401(k), Roth IRA, or taxable accounts" },
+    { label: "Review debt and mortgage", complete: totalDebt > 0 || mortgageBalance > 0 || mortgageMonthly > 0, detail: totalDebt > 0 || mortgageBalance > 0 ? fmtSigned(-(totalDebt + mortgageBalance), true) : "Add balances if they affect your runway" },
+    { label: "Log your first expense", complete: hasActuals, detail: hasActuals ? `${Object.keys(actuals).length} categories tracked this month` : "Use Expenses to start tracking real spending" },
+  ];
+  const completedChecklist = checklist.filter((item) => item.complete).length;
 
   const retireYear = fireYear ? new Date().getFullYear() + fireYear : null;
 
@@ -353,7 +370,7 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
                   </span>
                 </div>
                 <div style={{ marginTop: 8, fontSize: 16, color: "rgba(255,255,255,0.55)" }}>
-                  <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{fireYear} years</span> away 璺?target{" "}
+                  <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{fireYear} years</span> away, target{" "}
                   <span style={{ color: "#62FAE3", fontFamily: "Inter, sans-serif" }}>{fmt(fireTarget, true)}</span>
                 </div>
               </>
@@ -399,6 +416,54 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
           </div>
           <div style={{ height: 6, background: "rgba(255,255,255,0.15)", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${progress}%`, background: "#62FAE3", borderRadius: 99, transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="uf-card" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#059669", marginBottom: 10 }}>
+            Next best actions
+          </div>
+          <h2 style={{ margin: "0 0 8px", fontSize: 24, letterSpacing: "-0.03em" }}>
+            {prefill ? "We brought your calculator plan with you." : "Turn this estimate into a working plan."}
+          </h2>
+          <p style={{ margin: 0, color: "#64748B", lineHeight: 1.7 }}>
+            {prefill
+              ? `Your ${prefill.cityName || "latest"} projection is saved. Finish the missing inputs below so the dashboard becomes a real operating plan.`
+              : "Confirm the missing inputs below so your dashboard becomes more than a rough estimate."}
+          </p>
+          {prefill && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
+              {prefill.fireTarget ? <span className="uf-tag" style={{ color: "#065F46", background: "rgba(209,250,229,0.7)" }}>Target {fmt(prefill.fireTarget, true)}</span> : null}
+              {prefill.monthlyIncome ? <span className="uf-tag" style={{ color: "#065F46", background: "rgba(209,250,229,0.7)" }}>Income {fmt(prefill.monthlyIncome)}</span> : null}
+              {prefill.monthlySavings ? <span className="uf-tag" style={{ color: "#065F46", background: "rgba(209,250,229,0.7)" }}>Savings {fmt(prefill.monthlySavings)}</span> : null}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
+            <button onClick={onOpenBudget} style={{ background: "#064E3B", color: "#fff", border: "none", borderRadius: 10, padding: "10px 14px", fontWeight: 700, cursor: "pointer" }}>Finish budget</button>
+            <button onClick={onOpenExpenses} style={{ background: "#ffffff", color: "#064E3B", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px 14px", fontWeight: 700, cursor: "pointer" }}>Log first expense</button>
+            <Link href="/learn/why-savings-rate-matters-more-than-income" style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px 14px", fontWeight: 700, textDecoration: "none" }}>Learn what moves your date</Link>
+          </div>
+        </div>
+
+        <div style={{ border: "1px solid #E2E8F0", borderRadius: 14, padding: 18, background: "#F8FAFC" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>Complete your plan</div>
+            <div style={{ fontSize: 12, color: "#64748B" }}>{completedChecklist}/{checklist.length} complete</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {checklist.map((item) => (
+              <div key={item.label} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid #E2E8F0" }}>
+                <div style={{ width: 24, height: 24, borderRadius: 999, background: item.complete ? "#059669" : "#E2E8F0", color: item.complete ? "#fff" : "#64748B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, flexShrink: 0 }}>
+                  {item.complete ? "Done" : "Next"}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#19181E" }}>{item.label}</div>
+                  <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5 }}>{item.detail}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -491,7 +556,7 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
                   <tr key={row.label}>
                     <td style={{ padding: "6px 0", fontSize: 13, color: row.bold ? "#19181E" : "#64748B", fontWeight: row.bold ? 600 : 400 }}>{row.label}</td>
                     <td style={{ padding: "6px 0", textAlign: "right", fontFamily: "Inter, sans-serif", fontSize: 13, color: row.color, fontWeight: row.bold ? 700 : 400 }}>
-                      {row.val >= 0 ? fmt(row.val) : `閳?{fmt(Math.abs(row.val))}`}
+                      {fmtSigned(row.val)}
                     </td>
                   </tr>
                 );
@@ -508,19 +573,19 @@ function DashTab({ income, expenses, k401, rothIRA, taxable, totalDebt, mortgage
               {
                 icon: "棣冩惓",
                 title: "Savings Rate",
-                body: savingsRate >= 50 ? `${savingsRate.toFixed(0)}% 閳?you're on an aggressive FIRE track.` : savingsRate >= 25 ? `${savingsRate.toFixed(0)}% is solid. Hitting 50% cuts years off your date.` : `At ${savingsRate.toFixed(0)}%, reducing expenses is your biggest lever.`,
+                body: savingsRate >= 50 ? `${savingsRate.toFixed(0)}% means you are on an aggressive FIRE track.` : savingsRate >= 25 ? `${savingsRate.toFixed(0)}% is solid. Pushing toward 50% can cut years off your date.` : `At ${savingsRate.toFixed(0)}%, reducing recurring expenses is your biggest lever.`,
                 color: savingsRate >= 50 ? "#059669" : savingsRate >= 25 ? "#20D4BF" : "#DC2626",
               },
               {
                 icon: "棣冨綌",
                 title: "Housing Ratio",
-                body: income > 0 && expenses.housing > 0 ? `Housing is ${(((expenses.housing || 0) / income) * 100).toFixed(0)}% of take-home. ${(expenses.housing || 0) / income > 0.3 ? "Above 30% 閳?your biggest cost lever." : "Under 30% 閳?healthy ratio."}` : "Add housing expenses to see your ratio.",
+                body: income > 0 && expenses.housing > 0 ? `Housing is ${housingRatio.toFixed(0)}% of take-home. ${housingRatio > 30 ? "Above 30% and likely your biggest cost lever." : "Under 30% and in a healthy range."}` : "Add housing expenses to see your ratio.",
                 color: "#19181E",
               },
               {
                 icon: "棣冩暉",
                 title: "Rule of 25",
-                body: `Target: ${fmt(fireTarget, true)}. Every $100/mo you cut reduces your FIRE number by $30k.`,
+                body: `Target: ${fmt(fireTarget, true)}. Every $100 per month you cut lowers your FIRE number by about $30,000.`,
                 color: "#19181E",
               },
             ].map(ins => (
@@ -812,7 +877,7 @@ function PortfolioOverviewTab({ income, expenses, k401, rothIRA, taxable, totalD
                 <tr key={row.label}>
                   <td style={{ padding: "8px 0", fontSize: 14, color: row.bold ? "#19181E" : "#64748B", fontWeight: row.bold ? 600 : 400 }}>{row.label}</td>
                   <td style={{ padding: "8px 0", textAlign: "right", fontFamily: "Inter, sans-serif", fontSize: 14, color: row.color, fontWeight: row.bold ? 700 : 400 }}>
-                    {row.val >= 0 ? fmt(row.val) : `閳?{fmt(Math.abs(row.val))}`}
+                    {fmtSigned(row.val)}
                   </td>
                 </tr>
               );
@@ -1221,6 +1286,7 @@ export default function Dashboard() {
   const [withdrawalRate,  setWithdrawalRate]  = useState(0.04);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [actuals, setActuals] = useState<Record<string, number>>({});
+  const [journeyPrefill, setJourneyPrefill] = useState<CalculatorPrefill | null>(null);
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoaded   = useRef(false);
 
@@ -1243,14 +1309,12 @@ export default function Dashboard() {
         });
       supabase.from("user_budget").select("*").eq("user_id", session.user.id).single().then(({ data }) => {
         // Check for calculator prefill from the landing page
-        let prefill: { income?: number; monthlySavings?: number } = {};
-        try {
-          const raw = localStorage.getItem("uf_calc_prefill");
-          if (raw) { prefill = JSON.parse(raw); localStorage.removeItem("uf_calc_prefill"); }
-        } catch {}
+        const prefill = consumeCalculatorPrefill() || {};
+        const seededIncome = prefill.monthlyIncome || prefill.income || 0;
+        setJourneyPrefill(Object.keys(prefill).length > 0 ? prefill : null);
 
         if (data) {
-          setIncome(prefill.income || data.income || 0);
+          setIncome(seededIncome || data.income || 0);
           const raw = data.expenses || {};
           const fp  = raw._fire_profile || {};
           const { _fire_profile: _, ...budgetExpenses } = raw;
@@ -1264,9 +1328,8 @@ export default function Dashboard() {
           setMortgageMonthly(fp.mortgageMonthly || 0);
           setGrowthRate(fp.growthRate || 0.07);
           setWithdrawalRate(fp.withdrawalRate || 0.04);
-        } else if (prefill.income) {
-          // New user 閳?no saved budget yet, seed from calculator
-          setIncome(prefill.income);
+        } else if (seededIncome) {
+          setIncome(seededIncome);
         }
         isLoaded.current = true;
       });
@@ -1424,6 +1487,10 @@ export default function Dashboard() {
                 totalDebt={totalDebt} mortgageBalance={mortgageBalance}
                 mortgageMonthly={mortgageMonthly} growthRate={growthRate}
                 withdrawalRate={withdrawalRate}
+                actuals={actuals}
+                prefill={journeyPrefill}
+                onOpenBudget={() => setTab("insights-spending")}
+                onOpenExpenses={() => setTab("expenses")}
               />
             )}
             {tab === "expenses" && <TransactionsTab />}

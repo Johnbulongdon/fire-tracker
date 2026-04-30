@@ -51,6 +51,20 @@ export const learnArticles: LearnArticle[] = [
       'The right path depends on your timeline, expenses, job flexibility, and how much optionality you want along the way.',
     ],
   },
+  {
+    slug: 'how-fire-assumptions-change-your-retirement-date',
+    title: 'How FIRE Assumptions Change Your Retirement Date',
+    description: 'Small changes in savings, spending, and withdrawal assumptions can move your timeline by years. Here is how to read them clearly.',
+    category: 'Planning',
+    publishedAt: '2026-04-30',
+    readTime: '5 min read',
+    body: [
+      'A FIRE date is not one fixed truth. It is the output of assumptions about income, savings, spending, growth, and withdrawal rate.',
+      'Savings rate usually moves the date fastest because it improves two things at once: how much you invest and how much you may need later.',
+      'Spending assumptions matter just as much. A lower recurring spending target reduces the portfolio required to retire, while a higher target pushes the goal further away.',
+      'Withdrawal rate, market return, and location costs are best treated as planning levers rather than promises. The point of the calculator is to help you test tradeoffs and decide what to change next.',
+    ],
+  },
 ]
 
 export function getLearnArticle(slug: string) {

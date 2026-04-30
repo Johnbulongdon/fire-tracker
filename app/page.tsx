@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { saveCalculatorPrefill } from "@/lib/journey";
 import {
   CITIES, City, calcTakeHome, calcFIRE, STATE_TAX,
 } from "@/lib/fire-data";
@@ -32,10 +33,10 @@ function Nav({ step, totalSteps, onRestart, onSignIn }: {
         ))}
       </div>
       {step > 0 && (
-        <button className="uf-nav-restart" onClick={onRestart}>← Start over</button>
+        <button className="uf-nav-restart" onClick={onRestart}>Start over</button>
       )}
       {step === 0 && (
-        <button className="uf-nav-signin" onClick={onSignIn}>Sign in →</button>
+        <button className="uf-nav-signin" onClick={onSignIn}>Sign in</button>
       )}
     </nav>
   );
@@ -852,7 +853,7 @@ function WaitlistInline({ fireTarget, retireYear }: { fireTarget: number; retire
         </button>
       </div>
       {status === "error" && (
-        <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>Something went wrong — try again.</p>
+        <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>Something went wrong. Try again.</p>
       )}
     </div>
   );
@@ -979,8 +980,8 @@ function useCountUp(target: number, duration: number, running: boolean) {
   return val;
 }
 
-function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
-  city: CityState; income: number; savings: number; stateKey: string;
+function RevealScreen({ city, income, savings, stateKey, fireGoal, onAdjust }: {
+  city: CityState; income: number; savings: number; stateKey: string; fireGoal: string;
   onAdjust: () => void;
 }) {
   const result = calcFIRE(savings, city.col);
@@ -1057,7 +1058,7 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
       {/* PHASE 1 */}
       {calcPhase && (
         <div className="uf-calc-phase">
-          <div className="uf-calc-label">Running your projection…</div>
+          <div className="uf-calc-label">Running your projection...</div>
           <div className="uf-calc-steps">
             {calcLabels.map((label, i) => (
               <span key={i} className={`uf-calc-step ${activeSteps.includes(i) ? "lit" : ""}`}>
@@ -1082,12 +1083,12 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
               {fmtUSD(counted)}
             </div>
             <div style={{ fontSize: 13, color: "#64748B", textAlign: "center", marginBottom: 8, fontFamily: "'Manrope', sans-serif" }}>
-              Based on the 4% rule — save this amount and live off investment returns, without running out of money.
+              Based on the 4% rule: save this amount and live off investment returns without running out of money.
             </div>
             <div className="uf-fire-date-row">
               <div className="uf-fire-date-line" />
               <div className="uf-fire-date">
-                You could retire in {result.retireYear} — age {result.age}
+                You could retire in {result.retireYear} at age {result.age}
               </div>
               <div className="uf-fire-date-line" />
             </div>
@@ -1133,28 +1134,29 @@ function RevealScreen({ city, income, savings, stateKey, onAdjust }: {
 
               {/* PRIMARY CTA */}
               <Link
-                href="/dashboard"
-                className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg"
-                style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}
-                onClick={() => {
-                  try {
-                    localStorage.setItem("uf_calc_prefill", JSON.stringify({
-                      income,
-                      monthlySavings: savings,
-                    }));
-                  } catch {}
-                }}
-              >
-                Track your progress to {fmtUSD(result.fireTarget)} — free →
-              </Link>
-              <Link href="/calculator" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-                See full wealth projection + charts →
-              </Link>
+  href="/login"
+  className="uf-btn uf-btn-teal uf-btn-full uf-btn-lg"
+  style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}
+  onClick={() => {
+    saveCalculatorPrefill({
+      monthlyIncome: Math.round(takeHome / 12),
+      monthlySavings: savings,
+      monthlySpendEstimate: Math.max(0, Math.round(takeHome / 12 - savings)),
+      cityName: city.name,
+      stateKey,
+      fireGoal,
+      fireTarget: result.fireTarget,
+      retireYear: result.retireYear,
+      generatedAt: new Date().toISOString(),
+    });
+  }}
+>
+  Save this plan and open your dashboard
+</Link>
+              <Link href="/learn/how-fire-assumptions-change-your-retirement-date" className="uf-btn uf-btn-ghost uf-btn-full" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>See what changes your retirement date</Link>
 
               <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>
-                  ← Adjust inputs
-                </button>
+                <button className="uf-btn uf-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={onAdjust}>Adjust inputs</button>
               </div>
               <p className="uf-disclaimer">
                 Estimate only. Not financial advice. Based on 7% real return (historical S&P500 average after inflation).
@@ -1193,7 +1195,7 @@ function WaitlistSection() {
       <div className="uf-eyebrow" style={{ textAlign: "center", marginBottom: 16 }}>🔥 Coming Soon</div>
       <h2 className="uf-h2" style={{ textAlign: "center", marginBottom: 12 }}>Get the AI roadmap</h2>
       <p className="uf-body" style={{ textAlign: "center", marginBottom: 32 }}>
-        Join the waitlist for the AI-powered FIRE roadmap — personalized monthly plan to retire faster. Launching at $9/mo.
+        Join the waitlist for the AI-powered FIRE roadmap: a personalized monthly plan to retire faster. Launching at $9/mo.
       </p>
       {status === "done" ? (
         <div className="uf-waitlist-success">🎉 You&apos;re on the list! We&apos;ll email you when we launch.</div>
@@ -1211,11 +1213,11 @@ function WaitlistSection() {
             onClick={handleSubmit}
             style={{ whiteSpace: "nowrap" }}
           >
-            {status === "loading" ? "Joining…" : "Join waitlist →"}
+            {status === "loading" ? "Joining..." : "Join waitlist"}
           </button>
         </div>
       )}
-      {status === "error" && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 12 }}>Something went wrong — try again.</p>}
+      {status === "error" && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 12 }}>Something went wrong. Try again.</p>}
       <p className="uf-hint" style={{ textAlign: "center", marginTop: 16 }}>No spam. Unsubscribe anytime.</p>
     </div>
   );
@@ -1248,11 +1250,8 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  async function signIn() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    });
+  function signIn() {
+    router.push('/login');
   }
 
   const STEP_MAP: Record<Screen, number> = { hero: 0, goals: 1, city: 2, income: 3, savings: 4, reveal: 5 };
@@ -1704,6 +1703,7 @@ export default function Home() {
             income={income}
             savings={savings}
             stateKey={cityState.stateKey}
+            fireGoal={fireGoal}
             onAdjust={() => setScreen("savings")}
           />
         )}

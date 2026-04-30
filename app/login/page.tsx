@@ -1,14 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { peekCalculatorPrefill, type CalculatorPrefill } from '@/lib/journey'
 
 export default function LoginPage() {
   const router = useRouter()
+  const [prefill, setPrefill] = useState<CalculatorPrefill | null>(null)
 
   useEffect(() => {
+    setPrefill(peekCalculatorPrefill())
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) router.push('/dashboard')
     })
@@ -41,12 +45,34 @@ export default function LoginPage() {
           <div style={{ marginBottom: 24 }}>
             <div className="uf-chip">UntilFire account</div>
             <h1 style={{ margin: '18px 0 10px', fontSize: '2.2rem', lineHeight: 1.05, letterSpacing: '-0.04em' }}>
-              Sign in to keep your FIRE plan in one place.
+              {prefill ? 'Save and continue your FIRE plan.' : 'Sign in to keep your FIRE plan in one place.'}
             </h1>
             <p style={{ margin: 0, color: 'var(--color-gray-500)', lineHeight: 1.7 }}>
-              Your calculator stays free. Signing in unlocks the dashboard, expense tracking, and your personalized workspace.
+              {prefill
+                ? `We saved your ${prefill.cityName ? `${prefill.cityName} ` : ''}projection so you can pick up inside the dashboard without re-entering everything.`
+                : 'Your calculator stays free. Signing in unlocks the dashboard, expense tracking, and your personalized workspace.'}
             </p>
           </div>
+
+          {prefill && (
+            <div
+              style={{
+                marginBottom: 18,
+                padding: '14px 16px',
+                borderRadius: 14,
+                border: '1px solid rgba(6, 78, 59, 0.12)',
+                background: 'rgba(209, 250, 229, 0.45)',
+                color: 'var(--color-gray-800)',
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Ready to carry forward</div>
+              <div style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--color-gray-600)' }}>
+                {prefill.fireTarget ? `FIRE target ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(prefill.fireTarget)}. ` : ''}
+                {prefill.monthlyIncome ? `Monthly take-home ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(prefill.monthlyIncome)}. ` : ''}
+                {prefill.monthlySavings ? `Monthly savings ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(prefill.monthlySavings)}.` : ''}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={signInWithGoogle}
@@ -77,7 +103,7 @@ export default function LoginPage() {
           </button>
 
           <p style={{ margin: '18px 0 0', color: 'var(--color-gray-500)', fontSize: 13, lineHeight: 1.6 }}>
-            No credit card required. You can still use the main calculator without an account.
+            No credit card required. The calculator stays free even if you never create an account.
           </p>
 
           <Link href="/" className="uf-article-back" style={{ marginTop: 22 }}>
