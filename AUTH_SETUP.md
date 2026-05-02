@@ -1,222 +1,109 @@
-# Authentication Setup Guide
+# Authentication & Supabase Setup
 
-## Overview
+This is the live setup guide for UntilFire. The earlier version of this doc described a legacy `user_plans` plan-tracker and a `middleware.ts` route guard; neither matches the running app. See the *Legacy notes* section at the bottom if you find references to those elsewhere.
 
-This FIRE Dashboard uses Supabase for authentication with complete user ownership and Row Level Security (RLS).
+## Architecture at a glance
 
-## Features Implemented
+- **Auth provider:** Supabase Google OAuth (PKCE flow). Initiated from `/login`, completed at `/auth/callback`.
+- **Client:** `lib/supabase.ts` exports a singleton browser client with `persistSession`, `autoRefreshToken`, and `storageKey: 'fire-dashboard-auth'`.
+- **Auth context:** `lib/auth-context.tsx` exposes `useAuth()` for `user`, `loading`, and `signOut`. Wrapped at the root in `app/layout.tsx`.
+- **Route protection:** there is **no `middleware.ts`**. Protected pages (today: `/dashboard`) check the session client-side and redirect to `/login` when unauthenticated. Row Level Security on Supabase is the real security boundary; the redirect is a UX nicety. `docs/DECISIONS.md` (2026-03) explicitly chose RLS over middleware.
+- **Server-side admin:** `app/api/stripe/webhook/route.ts` uses `SUPABASE_SERVICE_ROLE_KEY` to upsert into `subscriptions`. Never expose that key to the client.
 
-✅ **Centralized Supabase Client** (`lib/supabase.ts`)
-- Singleton client with auth persistence
-- Auto-refresh tokens
-- Session storage in localStorage
-- Helper functions for user management
+## Live data model
 
-✅ **Auth Context Provider** (`lib/auth-context.tsx`)
-- Global authentication state
-- React hooks for easy access (`useAuth`)
-- Automatic session monitoring
-- Sign out functionality
+Bootstrap SQL: `supabase-setup.sql` (run once on a fresh Supabase project).
 
-✅ **Protected Routes Middleware** (`middleware.ts`)
-- Protects `/dashboard`, `/profile`, `/settings` routes
-- Redirects unauthenticated users to login
-- Redirects authenticated users away from login page
+| Table | Owner / writer | Read by | Notes |
+|---|---|---|---|
+| `user_budget` | `authenticated` (RLS by `user_id`) | `app/dashboard/page.tsx`, `app/dashboard/TransactionsTab.tsx` | One row per user. `expenses` is jsonb keyed by category plus `_fire_profile` blob. |
+| `expenses` | `authenticated` (RLS by `user_id`) | `app/dashboard/page.tsx`, `app/dashboard/TransactionsTab.tsx` | Transaction log. `transaction_type` ∈ `expense \| income`. |
+| `subscriptions` | `service_role` (Stripe webhook) | `lib/supabase.ts` `getSubscription/isPro`, `app/api/stripe/{portal,checkout}/route.ts` | Authenticated users have SELECT-only RLS; writes use service role from the webhook. |
+| `waitlist` | `anon` (public form) | n/a — no client reads | INSERT-only policy, unique on `email`. |
 
-✅ **User Ownership**
-- All database operations include `user_id`
-- Users can only see/edit their own data
-- Enforced by Row Level Security policies
+Tables that are NOT in the live app and NOT in the bootstrap SQL: `user_plans`, `stash_history`. Components that reference them (`CalculatorForm`, `PlanList`, `LogStashForm`, `QuickAddButton`, `ProjectionChart`) are orphaned in `/components` and not imported by any active route as of this document.
 
-✅ **Toast Notifications**
-- Success/error feedback for all operations
-- Using `react-hot-toast` library
+## Environment variables
 
-## Architecture
-
-### Authentication Flow
-
-1. **User visits protected route** → Middleware checks session
-2. **No session** → Redirect to `/login`
-3. **Login successful** → Redirect to `/dashboard`
-4. **Auth state changes** → Context updates all components
-5. **Database operations** → Automatic `user_id` filtering via RLS
-
-### File Structure
+Required on every environment:
 
 ```
-lib/
-├── supabase.ts          # Centralized Supabase client
-└── auth-context.tsx     # Auth state management
-
-app/
-├── layout.tsx           # Wraps app with AuthProvider
-├── login/page.tsx       # Login page with Auth UI
-└── dashboard/page.tsx   # Protected dashboard
-
-components/
-├── CalculatorForm.tsx   # Saves plans with user_id
-└── PlanList.tsx         # Fetches user's plans only
-
-middleware.ts            # Route protection
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-## Database Schema
+Required for Stripe / paid tier (server only):
 
-The `user_plans` table includes:
-
-```sql
-CREATE TABLE user_plans (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL,  -- Links to auth.users
-  plan_name TEXT,
-  current_age INTEGER,
-  monthly_income DECIMAL,
-  monthly_invest DECIMAL,
-  monthly_spend DECIMAL,
-  current_stash DECIMAL,
-  fire_number DECIMAL,
-  expected_return DECIMAL,
-  withdrawal_rate DECIMAL,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-);
+```
+SUPABASE_SERVICE_ROLE_KEY=...
+STRIPE_SECRET_KEY=...
+STRIPE_PRO_PRICE_ID=...
+STRIPE_WEBHOOK_SECRET=...
 ```
 
-## Setup Instructions
+Without the public Supabase vars, `lib/env.getOptionalSupabaseEnv()` returns `null`, the client falls back to a placeholder, and the waitlist API responds with 503. The dashboard will fail to load a session.
 
-### 1. Configure Supabase (Already Done)
+## Fresh-environment setup
 
-Environment variables are set in `.env.local`:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://boqzhdfdetixnwnohtho.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+1. **Create the Supabase project.** New project → wait for the database to provision.
+2. **Enable Google OAuth.** Authentication → Providers → Google. Add the OAuth client and set:
+   - **Authorized redirect URI:** `https://<project-ref>.supabase.co/auth/v1/callback` (the Supabase value, not your app URL).
+3. **Configure auth URLs.** Authentication → URL Configuration:
+   - **Site URL:** your deployed origin (e.g. `https://untilfire.com`). For local-only setup use `http://localhost:3000`.
+   - **Redirect URLs:** add every origin you sign in from, including local dev. The app sends users back to `${window.location.origin}/auth/callback` (see `app/login/page.tsx`).
+4. **Run the schema.** SQL Editor → paste `supabase-setup.sql` → Run. It is idempotent and uses `IF NOT EXISTS` plus `DROP POLICY IF EXISTS` so re-running is safe.
+5. **Set environment variables.** In `.env.local` for local dev or in the Vercel project settings for production. The anon key and URL are visible in Supabase → Project Settings → API.
+6. **Run the app.**
+   ```bash
+   npm install
+   npm run dev
+   ```
+   - Visit `http://localhost:3000` — calculator should render without auth.
+   - Visit `http://localhost:3000/dashboard` — should bounce to `/login` (client-side redirect because there is no session).
+   - Sign in with Google → land on `/dashboard` → enter income/expense values → confirm a row appears in `user_budget`. Add a transaction → confirm it appears in `expenses`.
 
-### 2. Run Database Migration
-
-Execute the SQL in `supabase-setup.sql` in your Supabase SQL Editor:
-- Creates `user_plans` table with `user_id` column
-- Enables Row Level Security (RLS)
-- Creates policies for user ownership
-- Adds indexes for performance
-
-### 3. Enable Auth Providers (Optional)
-
-In Supabase Dashboard → Authentication → Providers:
-- ✅ Email (enabled by default)
-- Optional: Enable Google, GitHub, etc.
-
-### 4. Configure Auth Settings
-
-In Supabase Dashboard → Authentication → URL Configuration:
-- Site URL: `https://your-domain.com`
-- Redirect URLs: Add your deployed URL
-
-## Usage
-
-### Using Auth in Components
+## Using auth in code
 
 ```tsx
 'use client'
-import { useAuth } from '../lib/auth-context'
+import { useAuth } from '@/lib/auth-context'
 
-export default function MyComponent() {
+export default function Component() {
   const { user, loading, signOut } = useAuth()
-
-  if (loading) return <div>Loading...</div>
-  if (!user) return <div>Please sign in</div>
-
-  return (
-    <div>
-      <p>Welcome {user.email}</p>
-      <button onClick={signOut}>Sign Out</button>
-    </div>
-  )
+  if (loading) return null
+  if (!user) return <a href="/login">Sign in</a>
+  return <button onClick={signOut}>Sign out {user.email}</button>
 }
 ```
 
-### Saving Data with user_id
+User-scoped Supabase queries (RLS-enforced):
 
 ```tsx
-const { user } = useAuth()
-
-const saveData = async () => {
-  const { data, error } = await supabase
-    .from('user_plans')
-    .insert({
-      user_id: user.id,  // Always include user_id
-      plan_name: 'My Plan',
-      // ... other fields
-    })
-}
+const { data: { session } } = await supabase.auth.getSession()
+if (!session) return
+await supabase
+  .from('expenses')
+  .insert({ user_id: session.user.id, /* ...rest */ })
 ```
 
-### Fetching User's Data
+`auth.uid() = user_id` policies will reject inserts that omit `user_id` or use someone else's id, so always include `session.user.id` from the live session.
 
-```tsx
-const fetchData = async () => {
-  const { data, error } = await supabase
-    .from('user_plans')
-    .select('*')
-    .eq('user_id', user.id)  // Filter by user_id
-    .order('created_at', { ascending: false })
-}
-```
+## Why no `middleware.ts`?
 
-## Security Features
+- RLS already prevents cross-user data access. A middleware redirect adds no security; it is purely UX.
+- Next.js 15 + Supabase SSR middleware adds cookie-juggling and edge runtime constraints that were not worth the cost for a single protected route.
+- The dashboard already does the redirect itself in its mount effect, and there are no other authenticated pages today.
 
-### Row Level Security (RLS)
-
-All database policies enforce user ownership:
-
-- **SELECT**: Users can only view their own records
-- **INSERT**: Users can only create records with their user_id
-- **UPDATE**: Users can only update their own records
-- **DELETE**: Users can only delete their own records
-
-### Session Management
-
-- Sessions persist in localStorage
-- Auto-refresh before expiration
-- Automatic cleanup on sign out
-
-### Protected Routes
-
-Middleware automatically:
-- Blocks unauthenticated access to protected pages
-- Redirects to login with return URL
-- Prevents authenticated users from accessing login
+If we add more protected routes (e.g. `/profile`, `/settings`), revisit this decision and either (a) add a small `middleware.ts` using `@supabase/ssr` or (b) factor a shared `useRequireSession()` hook. Update this section when that happens.
 
 ## Troubleshooting
 
-### "User not authenticated" errors
-- Check if AuthProvider wraps the app in `layout.tsx`
-- Verify middleware.ts is in the root directory
-- Check browser console for Supabase errors
+- **`/dashboard` instantly bounces back to `/login`** — Supabase env vars are missing or wrong, or the session cookie was cleared. Check the browser console for `Missing Supabase environment variables` and verify `NEXT_PUBLIC_SUPABASE_URL/ANON_KEY` are loaded (`process.env.NEXT_PUBLIC_SUPABASE_URL` in DevTools).
+- **OAuth redirect loop** — the Site URL or Redirect URL list in Supabase does not include the origin you are signing in from. Add it.
+- **`new row violates row-level security policy`** — the insert is missing `user_id` or the value does not match `auth.uid()`. Always set `user_id: session.user.id`.
+- **Stripe webhook does not update `subscriptions`** — the route uses `SUPABASE_SERVICE_ROLE_KEY`. If unset, writes will silently fail RLS. Configure the env var in the deployment.
+- **Waitlist POST returns 503** — `getOptionalSupabaseEnv()` returned `null`. Set the public Supabase env vars and redeploy.
 
-### Data not saving
-- Verify user_id is included in insert operations
-- Check Supabase logs for RLS policy violations
-- Ensure table exists with correct schema
+## Legacy notes
 
-### Middleware not working
-- Check `middleware.ts` is in project root (not `/app`)
-- Verify matcher config includes your routes
-- Clear browser cache and restart dev server
-
-## Testing
-
-1. **Sign up**: Go to `/login` and create an account
-2. **Create plan**: Save a FIRE plan from the calculator
-3. **Sign out**: Click sign out button
-4. **Sign in again**: Your plans should be visible
-5. **New user**: Create another account - should see no plans
-
-## Next Steps
-
-- [ ] Add email verification requirement
-- [ ] Implement password reset flow
-- [ ] Add user profile page
-- [ ] Enable additional OAuth providers
-- [ ] Add plan sharing features (optional)
+Earlier docs described `user_plans`, `stash_history`, and a `middleware.ts`. None of those are in `supabase-setup.sql` or the live app today. The components that reference them are orphaned and may be deleted in a follow-up cleanup. If you find a doc, comment, or commit that still references them, treat it as stale.
