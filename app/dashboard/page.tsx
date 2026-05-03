@@ -8,7 +8,7 @@ import {
   ResponsiveContainer, LineChart, Line, Legend, ReferenceLine,
 } from "recharts";
 import TransactionsTab from "./TransactionsTab";
-import { monteCarloFIRE } from "@/lib/fire";
+import { loadDefaultScenario, monteCarloFIRE, saveDefaultScenario } from "@/lib/fire";
 import { consumeCalculatorPrefill, type CalculatorPrefill } from "@/lib/journey";
 
 // 閳光偓閳光偓閳光偓 Types 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
@@ -1274,7 +1274,8 @@ export default function Dashboard() {
   const [income,   setIncome]   = useState(0);
   const [expenses, setExpenses] = useState<Expenses>({ housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0 });
 
-  // FIRE profile state (stored in expenses._fire_profile to avoid schema changes)
+  // FIRE profile state — persisted via the single default scenario
+  // (lib/fire/scenarios.ts). user_budget is dual-written for back-compat.
   const [fireAge,         setFireAge]         = useState(30);
   const [k401,            setK401]            = useState(0);
   const [rothIRA,         setRothIRA]         = useState(0);
@@ -1307,30 +1308,27 @@ export default function Dashboard() {
             setActuals(agg);
           }
         });
-      supabase.from("user_budget").select("*").eq("user_id", session.user.id).single().then(({ data }) => {
+      loadDefaultScenario(supabase, session.user.id).then((scenario) => {
         // Check for calculator prefill from the landing page
         const prefill = consumeCalculatorPrefill() || {};
         const seededIncome = prefill.monthlyIncome || prefill.income || 0;
         setJourneyPrefill(Object.keys(prefill).length > 0 ? prefill : null);
 
-        if (data) {
-          setIncome(seededIncome || data.income || 0);
-          const raw = data.expenses || {};
-          const fp  = raw._fire_profile || {};
-          const { _fire_profile: _, ...budgetExpenses } = raw;
-          setExpenses({ housing: 0, food: 0, transport: 0, subscriptions: 0, healthcare: 0, entertainment: 0, other: 0, ...budgetExpenses });
-          setFireAge(data.fire_age || 30);
-          setK401(fp.k401 || data.fire_assets || 0);
-          setRothIRA(fp.rothIRA || 0);
-          setTaxable(fp.taxable || 0);
-          setTotalDebt(fp.totalDebt || 0);
-          setMortgageBalance(fp.mortgageBalance || 0);
-          setMortgageMonthly(fp.mortgageMonthly || 0);
-          setGrowthRate(fp.growthRate || 0.07);
-          setWithdrawalRate(fp.withdrawalRate || 0.04);
-        } else if (seededIncome) {
-          setIncome(seededIncome);
-        }
+        setIncome(seededIncome || scenario.monthlyIncome || 0);
+        setExpenses({
+          housing: 0, food: 0, transport: 0, subscriptions: 0,
+          healthcare: 0, entertainment: 0, other: 0,
+          ...(scenario.budgetCategories as Expenses),
+        });
+        setFireAge(scenario.fireAge);
+        setK401(scenario.k401);
+        setRothIRA(scenario.rothIRA);
+        setTaxable(scenario.taxable);
+        setTotalDebt(scenario.totalDebt);
+        setMortgageBalance(scenario.mortgageBalance);
+        setMortgageMonthly(scenario.mortgageMonthly);
+        setGrowthRate(scenario.growthRate);
+        setWithdrawalRate(scenario.withdrawalRate);
         isLoaded.current = true;
       });
     });
@@ -1344,15 +1342,14 @@ export default function Dashboard() {
     saveTimer.current = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const fireProfile = { k401, rothIRA, taxable, totalDebt, mortgageBalance, mortgageMonthly, growthRate, withdrawalRate };
-      await supabase.from("user_budget").upsert({
-        user_id:     session.user.id,
-        income,
-        expenses:    { ...expenses, _fire_profile: fireProfile },
-        fire_age:    fireAge,
-        fire_assets: k401, // keep backwards-compatible
-        updated_at:  new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      await saveDefaultScenario(supabase, session.user.id, {
+        monthlyIncome: income,
+        fireAge,
+        k401, rothIRA, taxable, totalDebt,
+        mortgageBalance, mortgageMonthly,
+        growthRate, withdrawalRate,
+        budgetCategories: expenses as Record<string, number>,
+      });
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1000);
