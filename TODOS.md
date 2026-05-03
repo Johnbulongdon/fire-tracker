@@ -1,28 +1,23 @@
 # TODOS
 
-## Deferred from eng review (2026-04-25)
+## Resolved 2026-05-02 (UNTAAAA-3)
 
-### Age display is wrong for everyone not 26
-**What:** `calcFIRE()` returns `age: 26 + years` hardcoded. RevealScreen displays "you could retire at age 67" as if the user is 26 today.
-**Why:** Confidently wrong data is worse than no data. Users over 26 (most of them) see a number that's off by however many years they are over 26.
-**Options:** Add a birth year input step to the wizard (one new screen), or remove the age field from the RevealScreen display entirely. Removing is faster.
-**Where:** `lib/fire-data.ts:520` (age calculation) + `app/page.tsx` (RevealScreen age display)
-**Depends on:** Nothing blocking.
+### Hardcoded retirement age in reveal flow — FIXED
+`calcFIRE()` no longer assumes age 26 or year 2026. It accepts an optional
+`currentAge` and uses `new Date().getFullYear()`. The `SavingsScreen` adds an
+optional age input; when omitted, the reveal shows "You could retire in YYYY
+(N years from now)" instead of inventing an age.
 
----
+### Hardcoded social-proof counters — REMOVED
+The "14,847 FIRE numbers calculated today" live counter, the "Joined by 38,000+
+investors" avatar block, and the fabricated "$5.8B / 38K / 94% / 7.2yr" stat
+strip are gone. The hero strip now shows real, verifiable product facts (Free,
+60s, `${CITIES.length}` cities, no login). When real PostHog instrumentation
+is live, swap any of these for query-driven values.
 
-### Replace hardcoded social proof counters with real PostHog data
-**What:** Hero section shows a randomly-incrementing counter starting at 14,847 and "2,400+ cities." Neither is real.
-**Why:** Once PostHog is live and capturing `calculator_completed` events, real completion counts are available. Fake numbers drift further from reality with every passing day.
-**Options:** Query PostHog API for total `calculator_completed` event count. Show real number (or round down to nearest 50 for comfort). Replace the setInterval fake with a static real number.
-**Where:** `app/page.tsx` lines 81 and 138-139 (HeroScreen).
-**Depends on:** PostHog must be live and capturing events for a few weeks first.
-
----
-
-### Custom city entry silently applies Texas (0%) state tax to everyone
-**What:** When a user types a city not in the 263-city database, the app creates a custom city with `stateKey: "tx"` (line 195). Texas has 0% state income tax.
-**Why:** A user in France, California, or New York entering a custom monthly expense gets take-home calculations based on Texas tax rates. The income number used in the FIRE projection is silently inflated for high-tax users.
-**Options:** Add a country/state selector in the custom city flow (the cleanest fix), or show a visible disclaimer: "Tax estimate assumes US average — adjust income to post-tax if needed."
-**Where:** `app/page.tsx:195` (CityScreen custom city creation).
-**Depends on:** Nothing blocking. Disclaimer version is a one-liner.
+### Custom city silently used Texas tax — FIXED
+Custom-city entries now set `stateKey: "custom"`. `STATE_TAX["custom"]` is a
+sentinel that `calcTakeHome` short-circuits with the gross unchanged. The
+`IncomeScreen` detects the custom jurisdiction, force-defaults to take-home
+mode, disables the gross modes, and shows an explicit notice that we don't
+know the user's tax jurisdiction.

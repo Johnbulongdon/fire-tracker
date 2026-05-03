@@ -67,27 +67,21 @@ function WizardProgress({ step }: { step: number }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PREVIEW_BARS = [28, 38, 33, 48, 42, 62, 57, 72, 66, 80, 76, 95];
+// Real, verifiable product facts. CITIES.length is read at render time so this
+// can never drift out of sync with the dataset.
 const HERO_STATS = [
-  { v: "$5.8B", l: "Assets Tracked" },
-  { v: "38K",   l: "Active Users" },
-  { v: "94%",   l: "On Track" },
-  { v: "7.2yr", l: "Avg. FIRE Timeline" },
+  { v: "Free",                  l: "No credit card" },
+  { v: "60s",                   l: "To your FIRE number" },
+  { v: `${CITIES.length}`,      l: "Cities supported" },
+  { v: "No login",              l: "To run the calculator" },
 ];
 
 function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
   const [mounted, setMounted] = useState(false);
-  const [calcCount, setCalcCount] = useState(14847);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setCalcCount(n => n + Math.floor(Math.random() * 2 + 1));
-    }, 3200);
-    return () => clearInterval(id);
   }, []);
 
   return (
@@ -96,10 +90,6 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
       <div className="uf-hero-inner">
         {/* Left — copy */}
         <div className="uf-hero-content">
-          <div className="uf-live-counter">
-            <span className="uf-live-count">{calcCount.toLocaleString()}</span>
-            <span className="uf-live-label">&nbsp;FIRE numbers calculated today</span>
-          </div>
           <div className="uf-badge">
             <span className="uf-badge-dot" /> Free — no credit card required
           </div>
@@ -121,16 +111,6 @@ function HeroScreen({ onStart, onSignIn }: { onStart: () => void; onSignIn: () =
             >
               Log in →
             </button>
-          </div>
-          <div className="uf-social-proof">
-            <div className="uf-avatars">
-              {["#047857","#20D4BF","#065F46","#34D399"].map((c, i) => (
-                <div key={i} className="uf-avatar" style={{ background: c }} />
-              ))}
-            </div>
-            <span className="uf-proof-text">
-              Joined by <strong>38,000+</strong> investors on their FIRE journey
-            </span>
           </div>
         </div>
 
@@ -296,7 +276,7 @@ function CityScreen({ onNext, onBack }: {
   function confirmCustom() {
     const monthly = parseInt(customMonthly) || 0;
     if (monthly < 100) return;
-    setSelected({ name: query || "Custom City", col: monthly * 12, stateKey: "tx", isCustom: true });
+    setSelected({ name: query || "Custom City", col: monthly * 12, stateKey: "custom", isCustom: true });
     setShowCustom(false);
   }
 
@@ -484,7 +464,11 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
   onNext: (income: number, takeHomeOverride?: number) => void;
   onBack: () => void;
 }) {
-  const [mode, setMode]         = useState<IncomeMode>('annual');
+  // For custom cities we don't know the user's tax jurisdiction. Force
+  // take-home mode and lock the other modes so we never silently apply
+  // someone else's tax table to their income.
+  const isCustomJurisdiction = stateKey === 'custom';
+  const [mode, setMode]         = useState<IncomeMode>(isCustomJurisdiction ? 'takehome' : 'annual');
   const [rawValue, setRawValue] = useState<string>('90000');
   const [takeHomeRaw, setTakeHomeRaw] = useState<string>(''); // for take-home mode
 
@@ -544,19 +528,32 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
 
       {/* Mode pills */}
       <div className="uf-mode-pills">
-        {INCOME_MODES.map(m => (
-          <button
-            key={m.key}
-            className={`uf-mode-pill ${mode === m.key ? 'active' : ''}`}
-            onClick={() => { setMode(m.key); setRawValue(''); }}
-          >
-            {m.label}
-          </button>
-        ))}
+        {INCOME_MODES.map(m => {
+          const disabled = isCustomJurisdiction && m.key !== 'takehome';
+          return (
+            <button
+              key={m.key}
+              className={`uf-mode-pill ${mode === m.key ? 'active' : ''}`}
+              disabled={disabled}
+              title={disabled ? "Custom city — tax jurisdiction unknown. Enter take-home directly." : undefined}
+              style={disabled ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+              onClick={() => { if (disabled) return; setMode(m.key); setRawValue(''); }}
+            >
+              {m.label}
+            </button>
+          );
+        })}
       </div>
-      <p className="uf-hint" style={{ marginBottom: 16 }}>
-        {INCOME_MODES.find(m => m.key === mode)?.hint}
-      </p>
+      {isCustomJurisdiction ? (
+        <p className="uf-hint" style={{ marginBottom: 16, color: 'var(--accent)' }}>
+          Custom city: we don&apos;t know your tax jurisdiction, so we can&apos;t estimate
+          take-home from gross. Enter your monthly take-home directly.
+        </p>
+      ) : (
+        <p className="uf-hint" style={{ marginBottom: 16 }}>
+          {INCOME_MODES.find(m => m.key === mode)?.hint}
+        </p>
+      )}
 
       {/* Main input */}
       {mode !== 'takehome' ? (
@@ -707,10 +704,15 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
 // income is now always annual take-home (already post-tax) from IncomeScreen
 function SavingsScreen({ income, stateKey, onNext, onBack }: {
   income: number; stateKey: string;
-  onNext: (savings: number) => void;
+  onNext: (savings: number, currentAge?: number) => void;
   onBack: () => void;
 }) {
   const [savings, setSavings] = useState(1500);
+  const [ageRaw, setAgeRaw] = useState<string>("");
+  const parsedAge = (() => {
+    const n = parseInt(ageRaw, 10);
+    return Number.isFinite(n) && n >= 16 && n <= 90 ? n : undefined;
+  })();
   // income is already take-home annual — divide by 12 for monthly
   const monthly = income / 12;
   const rate = monthly > 0 ? Math.round((savings / monthly) * 100) : 0;
@@ -778,9 +780,27 @@ function SavingsScreen({ income, stateKey, onNext, onBack }: {
         </div>
       </div>
 
+      <div style={{ marginTop: 20 }}>
+        <label className="uf-label" htmlFor="uf-current-age">
+          Your current age <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional — used to project your retirement age)</span>
+        </label>
+        <input
+          id="uf-current-age"
+          type="number"
+          className="uf-input uf-input-mono"
+          placeholder="e.g. 32"
+          min={16}
+          max={90}
+          value={ageRaw}
+          onChange={e => setAgeRaw(e.target.value)}
+          style={{ maxWidth: 160 }}
+        />
+        <p className="uf-hint">Leave blank if you&apos;d rather not say — we&apos;ll just show your FIRE year, not your age at FIRE.</p>
+      </div>
+
       <div className="uf-nav-row">
         <button className="uf-btn uf-btn-ghost" onClick={onBack}>Back</button>
-        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(savings)}>
+        <button className="uf-btn uf-btn-primary" style={{ flex: 1 }} onClick={() => onNext(savings, parsedAge)}>
           Show my FIRE number 🔥
         </button>
       </div>
@@ -980,11 +1000,12 @@ function useCountUp(target: number, duration: number, running: boolean) {
   return val;
 }
 
-function RevealScreen({ city, income, savings, stateKey, fireGoal, onAdjust }: {
+function RevealScreen({ city, income, savings, stateKey, fireGoal, currentAge, onAdjust }: {
   city: CityState; income: number; savings: number; stateKey: string; fireGoal: string;
+  currentAge?: number;
   onAdjust: () => void;
 }) {
-  const result = calcFIRE(savings, city.col);
+  const result = calcFIRE(savings, city.col, currentAge);
   const { takeHome } = calcTakeHome(income, stateKey);
 
   // Phase 1: calculating steps
@@ -1035,13 +1056,13 @@ function RevealScreen({ city, income, savings, stateKey, fireGoal, onAdjust }: {
   }, [counted, result.fireTarget, counting]);
 
   // Delta calculations
-  const highSaver = calcFIRE((takeHome / 12) * 0.5, city.col);
+  const highSaver = calcFIRE((takeHome / 12) * 0.5, city.col, currentAge);
   const costYears = Math.max(0, result.years - highSaver.years).toFixed(1);
 
-  const d1 = calcFIRE(savings + city.col * 0.04 / 12, city.col);
-  const d2 = calcFIRE(savings + 416, city.col);
-  const d3 = calcFIRE(Math.max(0, savings - income * 0.1 / 12), city.col);
-  const d4 = calcFIRE(savings + 500, city.col);
+  const d1 = calcFIRE(savings + city.col * 0.04 / 12, city.col, currentAge);
+  const d2 = calcFIRE(savings + 416, city.col, currentAge);
+  const d3 = calcFIRE(Math.max(0, savings - income * 0.1 / 12), city.col, currentAge);
+  const d4 = calcFIRE(savings + 500, city.col, currentAge);
 
   const calcLabels = ["City cost-of-living", "After-tax income", "Compound growth at 7%", "25× withdrawal rule"];
 
@@ -1088,7 +1109,9 @@ function RevealScreen({ city, income, savings, stateKey, fireGoal, onAdjust }: {
             <div className="uf-fire-date-row">
               <div className="uf-fire-date-line" />
               <div className="uf-fire-date">
-                You could retire in {result.retireYear} at age {result.age}
+                {result.age !== undefined
+                  ? `You could retire in ${result.retireYear} at age ${result.age}`
+                  : `You could retire in ${result.retireYear} (${result.years} year${result.years === 1 ? '' : 's'} from now)`}
               </div>
               <div className="uf-fire-date-line" />
             </div>
@@ -1238,6 +1261,7 @@ export default function Home() {
   const [cityState, setCityState]   = useState<CityState | null>(null);
   const [income, setIncome]         = useState(90000);
   const [savings, setSavings]       = useState(1500);
+  const [currentAge, setCurrentAge] = useState<number | undefined>(undefined);
 
   // Auth redirect — keep existing behaviour
   useEffect(() => {
@@ -1684,7 +1708,7 @@ export default function Home() {
         )}
         {screen === "income" && (
           <IncomeScreen
-            stateKey={cityState?.stateKey ?? "tx"}
+            stateKey={cityState?.stateKey ?? "custom"}
             onNext={inc => { setIncome(inc); setScreen("savings"); }}
             onBack={() => setScreen("city")}
           />
@@ -1692,8 +1716,8 @@ export default function Home() {
         {screen === "savings" && (
           <SavingsScreen
             income={income}
-            stateKey={cityState?.stateKey ?? "tx"}
-            onNext={sav => { setSavings(sav); setScreen("reveal"); }}
+            stateKey={cityState?.stateKey ?? "custom"}
+            onNext={(sav, age) => { setSavings(sav); setCurrentAge(age); setScreen("reveal"); }}
             onBack={() => setScreen("income")}
           />
         )}
@@ -1704,6 +1728,7 @@ export default function Home() {
             savings={savings}
             stateKey={cityState.stateKey}
             fireGoal={fireGoal}
+            currentAge={currentAge}
             onAdjust={() => setScreen("savings")}
           />
         )}

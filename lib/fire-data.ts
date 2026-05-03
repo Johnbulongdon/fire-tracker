@@ -307,6 +307,10 @@ export const CITIES: City[] = [
 export interface TaxInfo { rate: number; label: string; }
 
 export const STATE_TAX: Record<string, TaxInfo> = {
+  // Custom city — sentinel used when the user enters a city we don't have in the
+  // database. We deliberately do NOT assume a tax jurisdiction here; the income
+  // screen forces take-home mode so we never invent a tax estimate.
+  custom: { rate: 0, label: 'Custom city — tax estimate unavailable, enter take-home directly' },
   // US – no income tax
   tx:  { rate: 0,      label: 'Texas — no state income tax' },
   fl:  { rate: 0,      label: 'Florida — no state income tax' },
@@ -483,6 +487,14 @@ export interface TaxResult {
 
 export function calcTakeHome(gross: number, stateKey: string): TaxResult {
   const si = STATE_TAX[stateKey] ?? { rate: 0, label: 'Unknown' };
+  // 'custom' means we don't know the user's tax jurisdiction. Don't fabricate
+  // one — return the gross unchanged so callers downstream don't display a
+  // misleading take-home figure. The income screen forces take-home mode for
+  // custom cities, so this branch is the safety net for any other caller.
+  if (stateKey === 'custom') {
+    return { fedTax: 0, fica: 0, stateTax: 0, takeHome: gross,
+             effectiveRate: 0, stateInfo: si, isUSCity: false };
+  }
   const usCity = isUS(stateKey);
   if (usCity) {
     const f = fedTax(gross);
@@ -507,15 +519,29 @@ export interface FIREResult {
   fireTarget: number;
   years: number;
   retireYear: number;
-  age: number;
+  /** Age at FIRE — only set when the caller supplied currentAge. */
+  age?: number;
 }
 
-export function calcFIRE(monthlySavings: number, annualExpenses: number): FIREResult {
+export function calcFIRE(
+  monthlySavings: number,
+  annualExpenses: number,
+  currentAge?: number,
+  startingBalance: number = 0,
+): FIREResult {
   const target = annualExpenses * 25;
-  let bal = 27400, yrs = 0;
+  let bal = startingBalance, yrs = 0;
   while (bal < target && yrs < 65) {
     bal = bal * 1.07 + monthlySavings * 12;
     yrs++;
   }
-  return { fireTarget: target, years: yrs, retireYear: 2026 + yrs, age: 26 + yrs };
+  const result: FIREResult = {
+    fireTarget: target,
+    years: yrs,
+    retireYear: new Date().getFullYear() + yrs,
+  };
+  if (typeof currentAge === 'number' && currentAge > 0) {
+    result.age = currentAge + yrs;
+  }
+  return result;
 }
