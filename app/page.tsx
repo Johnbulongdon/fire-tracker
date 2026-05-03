@@ -5,9 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { saveCalculatorPrefill } from "@/lib/journey";
-import {
-  CITIES, City, calcTakeHome, calcFIRE, STATE_TAX,
-} from "@/lib/fire-data";
+import { CITIES, City, STATE_TAX } from "@/lib/fire-data";
+import { calcFIRE, calcTakeHome } from "@/lib/fire";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -646,7 +645,7 @@ function IncomeScreen({ stateKey, onNext, onBack }: {
               <span className="uf-mono">{tax.fedTax > 0 ? `-${fmtUSD(tax.fedTax)}` : tax.isUSCity ? '$0' : 'n/a'}</span>
             </div>
             <div className="uf-tax-row">
-              <span className="uf-tax-label">{tax.isUSCity ? 'State / local tax' : 'Est. income tax'} ({tax.stateInfo.label})</span>
+              <span className="uf-tax-label">{tax.isUSCity ? 'State / local tax' : 'Est. income tax'} ({tax.jurisdictionLabel})</span>
               <span className="uf-mono">{tax.stateTax > 0 ? `-${fmtUSD(tax.stateTax)}` : '$0'}</span>
             </div>
             {tax.isUSCity && (

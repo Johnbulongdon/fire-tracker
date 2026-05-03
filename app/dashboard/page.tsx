@@ -8,7 +8,7 @@ import {
   ResponsiveContainer, LineChart, Line, Legend, ReferenceLine,
 } from "recharts";
 import TransactionsTab from "./TransactionsTab";
-import { monteCarloFIRE } from "@/lib/monte-carlo";
+import { monteCarloFIRE } from "@/lib/fire";
 import { consumeCalculatorPrefill, type CalculatorPrefill } from "@/lib/journey";
 
 // 閳光偓閳光偓閳光偓 Types 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓

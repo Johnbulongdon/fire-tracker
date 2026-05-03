@@ -1,3 +1,7 @@
+// Monte Carlo simulator for FIRE outcomes. Pure function — no React, Supabase,
+// or fetch dependencies. Deliberately seam-friendly so future strategies can
+// share the same simulator with their own annual update step.
+
 export type MonteCarloResult = {
   probability: number;
   p10Years: number;
