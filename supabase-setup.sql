@@ -2,10 +2,18 @@
 -- Run this in your Supabase project's SQL Editor on a fresh environment.
 --
 -- Tables created:
---   - user_budget       (dashboard income/expenses + FIRE profile json)
---   - expenses          (transaction log used by /dashboard transactions tab)
---   - subscriptions     (Stripe Pro tier mirror)
---   - waitlist          (public landing waitlist signups)
+--   - user_budget         (dashboard income/expenses + FIRE profile json — legacy)
+--   - expenses            (transaction log used by /dashboard transactions tab)
+--   - subscriptions       (Stripe Pro tier mirror)
+--   - waitlist            (public landing waitlist signups)
+--   - profiles            (FIRE OS: who the user is — locale, demographics)
+--   - scenarios           (FIRE OS: named container for one set of assumptions)
+--   - scenario_assumptions (FIRE OS: tunable inputs the engine consumes)
+--
+-- The FIRE OS tables (profiles, scenarios, scenario_assumptions) are additive.
+-- v1 always reads the user's single default scenario; multi-scenario UI is
+-- intentionally out of scope here. See supabase/migrations/ for forward-only
+-- migrations that incrementally evolved the schema.
 --
 -- Auth model: Supabase Google OAuth + RLS. There is no Next.js middleware.ts;
 -- /dashboard redirects to /login client-side when no session is found.
@@ -162,3 +170,127 @@ CREATE POLICY "waitlist anon insert" ON waitlist
 GRANT INSERT ON waitlist TO anon;
 GRANT INSERT ON waitlist TO authenticated;
 GRANT ALL    ON waitlist TO service_role;
+
+-- ─── FIRE OS: profiles, scenarios, scenario_assumptions ─────────────────────
+-- Source of truth lives in supabase/migrations/0001_profiles_and_scenarios.sql.
+-- The block below is that migration inlined so a fresh Supabase SQL Editor
+-- run builds the full FIRE OS schema in one pass. Keep them in sync; new
+-- changes go in a new forward-only migration file.
+
+-- profiles ------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id      UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  locale_kind  TEXT NOT NULL DEFAULT 'us'
+    CHECK (locale_kind IN ('us', 'intl', 'unknown')),
+  jurisdiction TEXT,
+  current_age  INTEGER,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "profiles owner select" ON profiles;
+CREATE POLICY "profiles owner select" ON profiles
+  FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "profiles owner insert" ON profiles;
+CREATE POLICY "profiles owner insert" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "profiles owner update" ON profiles;
+CREATE POLICY "profiles owner update" ON profiles
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "profiles owner delete" ON profiles;
+CREATE POLICY "profiles owner delete" ON profiles
+  FOR DELETE USING (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+GRANT ALL ON profiles TO authenticated;
+GRANT ALL ON profiles TO service_role;
+
+-- scenarios -----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS scenarios (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL DEFAULT 'Default',
+  is_default BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX IF NOT EXISTS scenarios_user_id_idx ON scenarios(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS scenarios_one_default_per_user
+  ON scenarios(user_id) WHERE is_default;
+
+ALTER TABLE scenarios ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "scenarios owner select" ON scenarios;
+CREATE POLICY "scenarios owner select" ON scenarios
+  FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "scenarios owner insert" ON scenarios;
+CREATE POLICY "scenarios owner insert" ON scenarios
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "scenarios owner update" ON scenarios;
+CREATE POLICY "scenarios owner update" ON scenarios
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "scenarios owner delete" ON scenarios;
+CREATE POLICY "scenarios owner delete" ON scenarios
+  FOR DELETE USING (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS update_scenarios_updated_at ON scenarios;
+CREATE TRIGGER update_scenarios_updated_at
+  BEFORE UPDATE ON scenarios
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+GRANT ALL ON scenarios TO authenticated;
+GRANT ALL ON scenarios TO service_role;
+
+-- scenario_assumptions ------------------------------------------------------
+CREATE TABLE IF NOT EXISTS scenario_assumptions (
+  scenario_id       UUID PRIMARY KEY REFERENCES scenarios(id) ON DELETE CASCADE,
+  user_id           UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  monthly_income    NUMERIC(12,2) NOT NULL DEFAULT 0,
+  fire_age          INTEGER       NOT NULL DEFAULT 30,
+  k401              NUMERIC(14,2) NOT NULL DEFAULT 0,
+  roth_ira          NUMERIC(14,2) NOT NULL DEFAULT 0,
+  taxable           NUMERIC(14,2) NOT NULL DEFAULT 0,
+  total_debt        NUMERIC(14,2) NOT NULL DEFAULT 0,
+  mortgage_balance  NUMERIC(14,2) NOT NULL DEFAULT 0,
+  mortgage_monthly  NUMERIC(12,2) NOT NULL DEFAULT 0,
+  growth_rate       NUMERIC(6,4)  NOT NULL DEFAULT 0.07,
+  withdrawal_rate   NUMERIC(6,4)  NOT NULL DEFAULT 0.04,
+  budget_categories JSONB         NOT NULL DEFAULT '{}'::jsonb,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX IF NOT EXISTS scenario_assumptions_user_id_idx
+  ON scenario_assumptions(user_id);
+
+ALTER TABLE scenario_assumptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "scenario_assumptions owner select" ON scenario_assumptions;
+CREATE POLICY "scenario_assumptions owner select" ON scenario_assumptions
+  FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "scenario_assumptions owner insert" ON scenario_assumptions;
+CREATE POLICY "scenario_assumptions owner insert" ON scenario_assumptions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "scenario_assumptions owner update" ON scenario_assumptions;
+CREATE POLICY "scenario_assumptions owner update" ON scenario_assumptions
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "scenario_assumptions owner delete" ON scenario_assumptions;
+CREATE POLICY "scenario_assumptions owner delete" ON scenario_assumptions
+  FOR DELETE USING (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS update_scenario_assumptions_updated_at
+  ON scenario_assumptions;
+CREATE TRIGGER update_scenario_assumptions_updated_at
+  BEFORE UPDATE ON scenario_assumptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+GRANT ALL ON scenario_assumptions TO authenticated;
+GRANT ALL ON scenario_assumptions TO service_role;
