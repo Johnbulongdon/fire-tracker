@@ -11,23 +11,20 @@
     "validate": "npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
-    "@supabase/auth-ui-react": "^0.4.7",
-    "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.0",
     "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
-    "next": "15.3.6",
-    "posthog-js": "^1.363.4",
+    "next": "15.5.15",
+    "posthog-js": "^1.372.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-hot-toast": "^2.6.0",
     "react-resizable-panels": "^4.4.1",
     "recharts": "^3.8.0",
-    "resend": "^6.9.3",
+    "resend": "^6.12.2",
     "stripe": "^22.0.1",
     "tailwind-merge": "^3.4.0"
   },
@@ -38,8 +35,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.38.0",
-    "eslint-config-next": "15.3.6",
+    "eslint-config-next": "15.5.15",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "dompurify": "^3.4.2",
+    "postcss": "^8.5.10",
+    "protobufjs": "^7.5.5",
+    "svix": "^1.92.2"
   }
 }
